@@ -1,6 +1,6 @@
 {
     "name": "@fjell/lib-sequelize",
-    "version": "4.3.2",
+    "version": "4.3.3",
     "license": "UNLICENSED",
     "description": "Sequelize Library for Fjell",
     "engines": {
@@ -23,9 +23,9 @@
         "test": "yarn run lint && NODE_OPTIONS='--experimental-require-module' yarn run jest --coverage"
     },
     "dependencies": {
-        "@fjell/core": "^4.3",
-        "@fjell/lib": "^4.3",
-        "@fjell/logging": "^4.3",
+        "@fjell/core": "^4.3.3",
+        "@fjell/lib": "^4.3.5",
+        "@fjell/logging": "^4.3.8",
         "dayjs": "^1.11.13",
         "deepmerge": "^4.3.1",
         "multer": "^1.4.5-lts.1",
