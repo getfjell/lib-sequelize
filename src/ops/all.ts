@@ -26,7 +26,7 @@ L5 extends string = never
   const all = async (
     itemQuery: ItemQuery,
     locations?: LocKeyArray<L1, L2, L3, L4, L5> | [] | undefined,
-    // eslint-disable-next-line max-params
+     
   ): Promise<V[]> => {
     logger.default('All', { itemQuery, locations });
     const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locations || [];

@@ -2,6 +2,7 @@ import { getOneOperation } from '@/ops/one';
 import { IQFactory, Item, ItemQuery, LocKeyArray } from '@fjell/core';
 import { Definition } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
+import { jest } from '@jest/globals';
 
 jest.mock('@fjell/logging', () => {
   return {
@@ -29,10 +30,11 @@ describe('one', () => {
   let mockModel: jest.Mocked<ModelStatic<any>>;
   let mockItems: jest.Mocked<TestItem>[];
   let definitionMock: jest.Mocked<Definition<TestItem, 'test'>>;
-    
+
   beforeEach(() => {
     jest.clearAllMocks();
-  
+
+    // @ts-ignore
     mockItems = [
       {
         key: { kt: 'test', pk: '1' },
@@ -51,6 +53,7 @@ describe('one', () => {
     ] as TestItem[];
 
     mockModel = {
+      // @ts-ignore
       findAll: jest.fn().mockResolvedValue(mockItems),
       getAttributes: jest.fn().mockReturnValue({
         id: { type: DataTypes.STRING, allowNull: false },
@@ -68,6 +71,7 @@ describe('one', () => {
   });
 
   it('should return first item when results exist', async () => {
+    // @ts-ignore
     mockModel.findAll = jest.fn().mockReturnValue(mockItems as Item<'test'>[]);
 
     const itemQuery: ItemQuery = IQFactory.condition('status', 'active').limit(1).toQuery();
@@ -91,6 +95,7 @@ describe('one', () => {
   });
 
   it('should return null when no results exist', async () => {
+    // @ts-ignore
     mockModel.findAll = jest.fn().mockReturnValue([] as Item<'test'>[]);
 
     const itemQuery: ItemQuery = IQFactory.condition('status', 'inactive').limit(1).toQuery();
@@ -107,9 +112,9 @@ describe('one', () => {
 
     const itemQuery: ItemQuery = IQFactory.condition('status', 'active').limit(1).toQuery();
     const locations = [
-      {kt: 'location1', lk: '1' },
-      {kt: 'location2', lk: '2' },
-    ] as LocKeyArray<'location1','location2'>;
+      { kt: 'location1', lk: '1' },
+      { kt: 'location2', lk: '2' },
+    ] as LocKeyArray<'location1', 'location2'>;
 
     const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'location1', 'location2'>> = {
       coordinate: {
@@ -124,6 +129,6 @@ describe('one', () => {
         locations,
       )
     ).rejects.toThrow('Not implemented for more than one location key');
-    
+
   });
 });

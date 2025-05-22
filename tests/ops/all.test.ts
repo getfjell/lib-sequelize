@@ -2,6 +2,7 @@ import { Definition } from '@/Definition';
 import { getAllOperation } from '@/ops/all';
 import { Item, ItemQuery, LocKeyArray } from '@fjell/core';
 import { ModelStatic, Op } from 'sequelize';
+import { jest } from '@jest/globals';
 
 jest.mock('@fjell/logging', () => {
   return {
@@ -33,6 +34,7 @@ describe('all', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // @ts-ignore
     mockItem = {
       key: {
         kt: 'test',
@@ -48,7 +50,7 @@ describe('all', () => {
         isDeleted: false
       })
     } as unknown as TestItem;
-  
+
     mockModel = {
       findAll: jest.fn().mockReturnValue([mockItem]),
       associations: {},
@@ -62,6 +64,7 @@ describe('all', () => {
       }),
     } as any;
 
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: {},
       testColumn: {},
@@ -71,12 +74,14 @@ describe('all', () => {
       isDeleted: {}
     });
 
+    // @ts-ignore
     definitionMock = {
       coordinate: {
         kta: ['test']
       }
     } as unknown as Definition<TestItem, 'test'>;
 
+    // @ts-ignore
     mockModel = {
       findAll: jest.fn(),
       associations: {}
@@ -84,7 +89,10 @@ describe('all', () => {
   });
 
   it('should return empty array when no matches found', async () => {
+    // @ts-ignore
     mockModel.findAll = jest.fn().mockResolvedValue([]);
+
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: {},
       testColumn: {},
@@ -106,12 +114,14 @@ describe('all', () => {
       { get: () => ({ id: '1', name: 'Item 1' }) },
       { get: () => ({ id: '2', name: 'Item 2' }) }
     ];
+    // @ts-ignore
     mockModel.findAll = jest.fn().mockResolvedValue(mockItems);
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: {},
       name: {}
     });
-    
+
     const query: ItemQuery = {};
     const result = await getAllOperation([mockModel], definitionMock)(query, []);
 
@@ -144,6 +154,7 @@ describe('all', () => {
         foreignKey: 'orderId'
       },
     };
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: {},
       testColumn: {},
@@ -151,12 +162,13 @@ describe('all', () => {
       createdAt: {},
       updatedAt: {},
       isDeleted: {}
-    })
+    });
+    // @ts-ignore
     mockModel.findAll = jest.fn().mockResolvedValue([]);
 
     const query: ItemQuery = {};
     const locations = [{ kt: 'order', lk: '123' }] as LocKeyArray<'order'>;
-    
+
     await getAllOperation<
       Item<'test', 'order'>, 'test', 'order'
     >([mockModel], definitionMock)(query, locations);
@@ -177,7 +189,7 @@ describe('all', () => {
 
   it('should throw error for multiple locations', async () => {
     type TestItem = Item<'test', 'order', 'customer'>;
-    
+
     const query: ItemQuery = {};
     const locations = [
       { kt: 'order', lk: '123' },
@@ -201,7 +213,7 @@ describe('all', () => {
   it('should throw error for invalid location association', async () => {
     // @ts-ignore
     mockModel.associations = {};
-
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: {},
       testColumn: {},

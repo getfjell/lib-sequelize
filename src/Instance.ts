@@ -16,8 +16,7 @@ export interface Instance<
 > extends Library.Instance<V, S, L1, L2, L3, L4, L5> {
   models: ModelStatic<any>[];
 }
-
-// eslint-disable-next-line max-params
+ 
 export function createInstance<
   V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,

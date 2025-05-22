@@ -2,6 +2,7 @@ import { Definition } from '@/Definition';
 import { getRemoveOperation } from '@/ops/remove';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
+import { jest } from '@jest/globals';
 
 jest.mock('@fjell/logging', () => {
   return {
@@ -28,7 +29,7 @@ describe('remove', () => {
 
   let mockModel: jest.Mocked<ModelStatic<any>>;
   let definitionMock: jest.Mocked<Definition<TestItem, 'test'>>;
-  
+
   beforeEach(() => {
     mockModel = {
       findByPk: jest.fn(),
@@ -61,7 +62,8 @@ describe('remove', () => {
       }),
       id: '123'
     };
-    
+
+    // @ts-ignore
     mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
 
     const result = await getRemoveOperation([mockModel], definitionMock)(key);
@@ -102,6 +104,7 @@ describe('remove', () => {
       }
     } as any;
 
+    // @ts-ignore
     mockModel.findOne = jest.fn().mockResolvedValue(mockItem);
 
     const result = await getRemoveOperation([mockModel], definitionMock)(key);
@@ -122,6 +125,7 @@ describe('remove', () => {
   });
 
   it('should hard delete when deleteOnRemove is true and no soft delete fields exist', async () => {
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: {},
       testColumn: {}
@@ -141,6 +145,7 @@ describe('remove', () => {
       deleteOnRemove: true
     };
 
+    // @ts-ignore
     mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
 
     const result = await getRemoveOperation([mockModel], definitionMock)(key);
@@ -156,6 +161,7 @@ describe('remove', () => {
   });
 
   it('should throw error when no soft delete fields and deleteOnRemove false', async () => {
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: {},
       testColumn: {}
@@ -174,8 +180,10 @@ describe('remove', () => {
       id: '123'
     };
 
+    // @ts-ignore
     mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
 
+    // @ts-ignore
     await expect(
       getRemoveOperation([mockModel], definitionMock)(key)
     ).rejects.toThrow('No deletedAt or isDeleted attribute found in model, and deleteOnRemove is not set');

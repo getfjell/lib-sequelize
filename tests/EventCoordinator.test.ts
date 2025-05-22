@@ -1,5 +1,5 @@
 import { createEvents, populateEvents, removeEvents, updateEvents } from '@/EventCoordinator';
-
+import { jest } from '@jest/globals';
 jest.mock('@fjell/logging', () => {
   return {
     get: jest.fn().mockReturnThis(),
@@ -27,9 +27,9 @@ describe('EventCoordinator', () => {
         id: '123',
         name: 'test'
       };
-      
+
       const result = createEvents(item);
-      
+
       expect(result.events).toBeDefined();
       expect(result.events?.created.at).toBeInstanceOf(Date);
       expect(result.events?.updated.at).toBeInstanceOf(Date);
@@ -61,9 +61,9 @@ describe('EventCoordinator', () => {
           birthday: { at: new Date('2023-01-01') },
         }
       };
-      
+
       const result = createEvents(item);
-      
+
       expect(result.events).toBeDefined();
       expect(result.events?.created.at).toBeInstanceOf(Date);
       expect(result.events?.updated.at).toBeInstanceOf(Date);
