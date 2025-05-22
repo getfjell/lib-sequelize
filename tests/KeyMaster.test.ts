@@ -1,26 +1,6 @@
 import { addKey, populateKey, removeKey } from '@/KeyMaster';
 import { AllItemTypeArrays, Item } from '@fjell/core';
-import { jest } from '@jest/globals';
-
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+import { describe, expect, it } from 'vitest';
 
 describe('KeyMaster', () => {
   describe('removeKey', () => {

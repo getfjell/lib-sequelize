@@ -3,36 +3,16 @@ import { getFindOperation } from '@/ops/find';
 import { Item, LocKeyArray } from '@fjell/core';
 import { Definition } from '@fjell/lib';
 import { ModelStatic } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = Item<'test', 'order'>;
 
 describe('find', () => {
-  type TestItem = Item<'test', 'order'>;
-
   let mockModel: ModelStatic<any>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>>;
+  let definitionMock: Mocked<Definition<TestItem, 'test', 'order'>>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     definitionMock = {
       coordinate: {
         kta: ['test', 'order'],
@@ -41,8 +21,8 @@ describe('find', () => {
     } as any;
 
     mockModel = {
-      findAll: jest.fn(),
-      getAttributes: jest.fn().mockReturnValue({
+      findAll: vi.fn(),
+      getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
         createdAt: {},
@@ -53,7 +33,7 @@ describe('find', () => {
 
   it('should call finder method when finder exists', async () => {
     // @ts-ignore
-    const mockFinderMethod = jest.fn().mockResolvedValue([{ id: '123', testColumn: 'test' }]);
+    const mockFinderMethod = vi.fn().mockResolvedValue([{ id: '123', testColumn: 'test' }]);
     definitionMock.options = {
       finders: {
         // @ts-ignore
@@ -75,7 +55,7 @@ describe('find', () => {
     definitionMock.options = {
       finders: {
         // @ts-ignore
-        otherFinder: jest.fn()
+        otherFinder: vi.fn()
       }
     };
 
@@ -98,7 +78,7 @@ describe('find', () => {
 
   it('should pass finder parameters correctly', async () => {
     // @ts-ignore
-    const mockFinderMethod = jest.fn().mockResolvedValue([]);
+    const mockFinderMethod = vi.fn().mockResolvedValue([]);
     definitionMock.options = {
       finders: {
         // @ts-ignore
@@ -123,7 +103,7 @@ describe('find', () => {
 
   it('should handle locations correctly', async () => {
     // @ts-ignore
-    const mockFinderMethod = jest.fn().mockResolvedValue([]);
+    const mockFinderMethod = vi.fn().mockResolvedValue([]);
     definitionMock.options = {
       finders: {
         // @ts-ignore

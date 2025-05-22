@@ -1,45 +1,26 @@
 import { getGetOperation } from '@/ops/get';
-import { ComKey, Item, PriKey } from '@fjell/core';
+import { ComKey, PriKey } from '@fjell/core';
 import { Definition, NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = import('@fjell/core').Item<'test'>;
+type TestItemOrder = import('@fjell/core').Item<'test', 'order'>;
 
 describe('get', () => {
-  type TestItem = Item<'test'>;
-
   let mockModel: ModelStatic<any>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>>;
+  let definitionMock: Mocked<Definition<TestItem, 'test', 'order'>>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockModel = {
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
     } as any;
 
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: { type: DataTypes.STRING, allowNull: false },
       testColumn: { type: DataTypes.STRING, allowNull: false }
     });
@@ -57,14 +38,14 @@ describe('get', () => {
     const mockItem = {
       id: '123',
       testColumn: 'test',
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test'
       })
     };
 
     // @ts-ignore
-    mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
     const result = await getGetOperation([mockModel], definitionMock)(key);
 
@@ -77,9 +58,7 @@ describe('get', () => {
   });
 
   it('should get item with ComKey', async () => {
-    type TestItem = Item<'test', 'order'>;
-
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>> = {
+    const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
@@ -95,7 +74,7 @@ describe('get', () => {
       id: '123',
       orderId: '456',
       testColumn: 'test',
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         orderId: '456',
         testColumn: 'test'
@@ -103,7 +82,7 @@ describe('get', () => {
     };
 
     // @ts-ignore
-    mockModel.findOne = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findOne = vi.fn().mockResolvedValue(mockItem);
 
     const result = await getGetOperation([mockModel], definitionMock)(key);
 
@@ -122,7 +101,7 @@ describe('get', () => {
     const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
 
     // @ts-ignore
-    mockModel.findByPk = jest.fn().mockResolvedValue(null);
+    mockModel.findByPk = vi.fn().mockResolvedValue(null);
 
     await expect(
       getGetOperation([mockModel], definitionMock)(key)
@@ -130,9 +109,7 @@ describe('get', () => {
   });
 
   it('should throw NotFoundError when item not found with ComKey', async () => {
-    type TestItem = Item<'test', 'order'>;
-
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>> = {
+    const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
@@ -145,7 +122,7 @@ describe('get', () => {
     } as ComKey<'test', 'order'>;
 
     // @ts-ignore
-    mockModel.findOne = jest.fn().mockResolvedValue(null);
+    mockModel.findOne = vi.fn().mockResolvedValue(null);
 
     await expect(
       getGetOperation([mockModel], definitionMock)(key)

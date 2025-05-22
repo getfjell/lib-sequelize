@@ -3,37 +3,17 @@ import { getUpdateOperation } from '@/ops/update';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = import('@fjell/core').Item<'test'>;
 
 describe('update', () => {
-  type TestItem = Item<'test'>;
-
-  let mockModel: jest.Mocked<ModelStatic<any>>;
-  let mockItem: jest.Mocked<TestItem>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test'>>;
+  let mockModel: Mocked<ModelStatic<any>>;
+  let mockItem: Mocked<TestItem>;
+  let definitionMock: Mocked<Definition<TestItem, 'test'>>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockItem = {
       key: { kt: 'test', pk: '1' },
@@ -50,9 +30,9 @@ describe('update', () => {
     };
 
     mockModel = {
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
-      getAttributes: jest.fn().mockReturnValue({
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
+      getAttributes: vi.fn().mockReturnValue({
         id: { type: DataTypes.STRING, allowNull: false },
         name: { type: DataTypes.STRING, allowNull: false },
         status: { type: DataTypes.STRING, allowNull: false }
@@ -74,8 +54,8 @@ describe('update', () => {
 
       const mockResponse = {
         ...mockItem,
-        save: jest.fn(),
-        get: jest.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
+        save: vi.fn(),
+        get: vi.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
       };
 
       // @ts-ignore
@@ -114,8 +94,8 @@ describe('update', () => {
 
       const mockResponse = {
         ...mockItem,
-        save: jest.fn(),
-        get: jest.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
+        save: vi.fn(),
+        get: vi.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
       };
 
       // @ts-ignore
@@ -145,7 +125,7 @@ describe('update', () => {
       };
       const updatedProps = { name: 'Updated Name' };
 
-      const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'location'>> = {
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'location'>> = {
         coordinate: {
           kta: ['test', 'location'],
           scopes: []
