@@ -2,6 +2,7 @@ import { getGetOperation } from '@/ops/get';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { Definition, NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
+import { jest } from '@jest/globals';
 
 jest.mock('@fjell/logging', () => {
   return {
@@ -28,7 +29,7 @@ describe('get', () => {
 
   let mockModel: ModelStatic<any>;
   let definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>>;
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -36,11 +37,13 @@ describe('get', () => {
       findByPk: jest.fn(),
       findOne: jest.fn(),
     } as any;
+
+    // @ts-ignore
     mockModel.getAttributes = jest.fn().mockReturnValue({
       id: { type: DataTypes.STRING, allowNull: false },
       testColumn: { type: DataTypes.STRING, allowNull: false }
     });
- 
+
     definitionMock = {
       coordinate: {
         kta: ['test'],
@@ -60,6 +63,7 @@ describe('get', () => {
       })
     };
 
+    // @ts-ignore
     mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
 
     const result = await getGetOperation([mockModel], definitionMock)(key);
@@ -98,6 +102,7 @@ describe('get', () => {
       })
     };
 
+    // @ts-ignore
     mockModel.findOne = jest.fn().mockResolvedValue(mockItem);
 
     const result = await getGetOperation([mockModel], definitionMock)(key);
@@ -116,8 +121,9 @@ describe('get', () => {
   it('should throw NotFoundError when item not found with PriKey', async () => {
     const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
 
+    // @ts-ignore
     mockModel.findByPk = jest.fn().mockResolvedValue(null);
-  
+
     await expect(
       getGetOperation([mockModel], definitionMock)(key)
     ).rejects.toThrow(NotFoundError);
@@ -138,6 +144,7 @@ describe('get', () => {
       loc: [{ kt: 'order', lk: '456' }]
     } as ComKey<'test', 'order'>;
 
+    // @ts-ignore
     mockModel.findOne = jest.fn().mockResolvedValue(null);
 
     await expect(
@@ -147,7 +154,7 @@ describe('get', () => {
 
   it('should throw error for invalid key', async () => {
     const invalidKey = { invalid: 'key' };
-  
+
     await expect(
       // @ts-ignore - Testing invalid key
       getGetOperation([mockModel], definitionMock)(invalidKey)

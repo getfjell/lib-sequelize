@@ -2,7 +2,7 @@ import { addCompoundCondition, addCondition, buildQuery } from '@/QueryBuilder';
 import { CompoundCondition, Condition, ItemQuery } from '@fjell/core';
 import dayjs from 'dayjs';
 import { ModelStatic, Op } from 'sequelize';
-
+import { jest } from '@jest/globals';
 jest.mock('@fjell/logging', () => {
   return {
     get: jest.fn().mockReturnThis(),
@@ -112,14 +112,14 @@ describe('QueryBuilder', () => {
       const condition: Condition = {
         column: 'testColumn',
         operator: 'in',
-        value: [5,6,7]
+        value: [5, 6, 7]
       };
 
       const result = addCondition({}, condition, mockModel);
 
       expect(result).toEqual({
         testColumn: {
-          [Op.in]: [5,6,7]
+          [Op.in]: [5, 6, 7]
         }
       });
     });

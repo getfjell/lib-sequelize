@@ -22,7 +22,7 @@ export const createOperations = <
 >(
     models: Array<ModelStatic<any>>,
     definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  // eslint-disable-next-line max-params
+   
   ): Library.Operations<V, S, L1, L2, L3, L4, L5> => {
 
   const operations = {} as Library.Operations<V, S, L1, L2, L3, L4, L5>;

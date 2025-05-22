@@ -3,6 +3,7 @@ import { getUpdateOperation } from '@/ops/update';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
+import { jest } from '@jest/globals';
 
 jest.mock('@fjell/logging', () => {
   return {
@@ -30,15 +31,18 @@ describe('update', () => {
   let mockModel: jest.Mocked<ModelStatic<any>>;
   let mockItem: jest.Mocked<TestItem>;
   let definitionMock: jest.Mocked<Definition<TestItem, 'test'>>;
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     mockItem = {
       key: { kt: 'test', pk: '1' },
       events: {
+        // @ts-ignore
         created: { at: new Date() },
+        // @ts-ignore
         updated: { at: new Date() },
+        // @ts-ignore
         deleted: { at: null },
       },
       name: 'Test Item',
@@ -67,13 +71,13 @@ describe('update', () => {
     it('should update item when found', async () => {
       const key: PriKey<'test'> = { kt: 'test', pk: '1' };
       const updatedProps = { name: 'Updated Name' };
-      
+
       const mockResponse = {
         ...mockItem,
         save: jest.fn(),
         get: jest.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
       };
-      
+
       // @ts-ignore
       mockModel.findByPk.mockResolvedValue(mockResponse);
 
@@ -107,13 +111,13 @@ describe('update', () => {
         loc: [{ kt: 'location', lk: 'loc1' }]
       };
       const updatedProps = { name: 'Updated Name' };
-      
+
       const mockResponse = {
         ...mockItem,
         save: jest.fn(),
         get: jest.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
       };
-      
+
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(mockResponse);
 
@@ -121,7 +125,7 @@ describe('update', () => {
         key,
         updatedProps,
       );
-      
+
       expect(mockModel.findOne).toHaveBeenCalledWith({
         where: {
           locationId: 'loc1',

@@ -1,5 +1,6 @@
 import { addKey, populateKey, removeKey } from '@/KeyMaster';
 import { AllItemTypeArrays, Item } from '@fjell/core';
+import { jest } from '@jest/globals';
 
 jest.mock('@fjell/logging', () => {
   return {

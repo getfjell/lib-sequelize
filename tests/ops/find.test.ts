@@ -3,6 +3,8 @@ import { getFindOperation } from '@/ops/find';
 import { Item, LocKeyArray } from '@fjell/core';
 import { Definition } from '@fjell/lib';
 import { ModelStatic } from 'sequelize';
+import { jest } from '@jest/globals';
+
 jest.mock('@fjell/logging', () => {
   return {
     get: jest.fn().mockReturnThis(),
@@ -50,9 +52,11 @@ describe('find', () => {
   });
 
   it('should call finder method when finder exists', async () => {
+    // @ts-ignore
     const mockFinderMethod = jest.fn().mockResolvedValue([{ id: '123', testColumn: 'test' }]);
     definitionMock.options = {
       finders: {
+        // @ts-ignore
         testFinder: mockFinderMethod
       }
     };
@@ -70,6 +74,7 @@ describe('find', () => {
   it('should throw error when finder does not exist', async () => {
     definitionMock.options = {
       finders: {
+        // @ts-ignore
         otherFinder: jest.fn()
       }
     };
@@ -92,9 +97,11 @@ describe('find', () => {
   });
 
   it('should pass finder parameters correctly', async () => {
+    // @ts-ignore
     const mockFinderMethod = jest.fn().mockResolvedValue([]);
     definitionMock.options = {
       finders: {
+        // @ts-ignore
         testFinder: mockFinderMethod
       }
     };
@@ -115,9 +122,11 @@ describe('find', () => {
   });
 
   it('should handle locations correctly', async () => {
+    // @ts-ignore
     const mockFinderMethod = jest.fn().mockResolvedValue([]);
     definitionMock.options = {
       finders: {
+        // @ts-ignore
         testFinder: mockFinderMethod
       }
     };

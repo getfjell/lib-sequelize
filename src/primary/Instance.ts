@@ -16,8 +16,7 @@ export interface Instance<
 > extends AbstractSequelizeInstance<V, S> {
   models: ModelStatic<any>[];
 }
-
-// eslint-disable-next-line max-params
+ 
 export function createInstance<
   V extends Item<S>,
   S extends string

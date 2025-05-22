@@ -2,6 +2,7 @@ import { Definition } from '@/Definition';
 import { getCreateOperation } from '@/ops/create';
 import { cPK, Item, LocKeyArray } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
+import { jest } from '@jest/globals';
 
 jest.mock('@fjell/logging', () => {
   return {
@@ -60,6 +61,7 @@ describe('create', () => {
       })
     };
 
+    // @ts-ignore
     mockModel.create = jest.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
@@ -92,6 +94,7 @@ describe('create', () => {
       })
     };
 
+    // @ts-ignore
     mockModel.create = jest.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
@@ -121,6 +124,7 @@ describe('create', () => {
       }
     } as any;
 
+    // @ts-ignore
     mockModel.create = jest.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(

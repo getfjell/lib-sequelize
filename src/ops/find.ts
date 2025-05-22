@@ -25,7 +25,7 @@ L5 extends string = never
     finder: string,
     finderParams: Record<string, string | number | boolean | Date | Array<string | number | boolean | Date>>,
     locations?: LocKeyArray<L1, L2, L3, L4, L5> | [],
-    // eslint-disable-next-line max-params
+     
   ): Promise<V[]> => {
     logger.default('Find', { finder, finderParams, locations });
 
