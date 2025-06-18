@@ -34,7 +34,7 @@
         "@fjell/logging": "^4.4.3",
         "dayjs": "^1.11.13",
         "deepmerge": "^4.3.1",
-        "multer": "1.4.5-lts.2",
+        "multer": "2.0.1",
         "sequelize": "^6.37.7",
         "specifier-resolution-node": "^1.1.4",
         "winston": "^3.17.0"
