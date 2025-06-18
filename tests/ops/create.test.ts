@@ -3,15 +3,23 @@ import { getCreateOperation } from '@/ops/create';
 import { cPK, LocKeyArray } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;
 type TestItemOrder = import('@fjell/core').Item<'test', 'order'>;
 
 describe('create', () => {
   let mockModel: ModelStatic<any>;
+  let mockRegistry: Mocked<Library.Registry>;
   let definitionMock: Mocked<Definition<TestItem, 'test'>>;
 
   beforeEach(() => {
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
+
     mockModel = {
       create: vi.fn(),
       getAttributes: vi.fn().mockReturnValue({
@@ -46,7 +54,7 @@ describe('create', () => {
     mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
-      getCreateOperation([mockModel], definitionMock)(newItem)
+      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem)
     ).rejects.toThrow('Not implemented');
 
   });
@@ -77,7 +85,7 @@ describe('create', () => {
     mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
-      getCreateOperation([mockModel], definitionMock)(newItem, { locations: location })
+      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { locations: location })
     ).rejects.toThrow('Not implemented');
 
   });
@@ -107,7 +115,7 @@ describe('create', () => {
     mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
-      getCreateOperation([mockModel], definitionMock)(newItem, { key })
+      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { key })
     ).rejects.toThrow('Not implemented');
   });
 

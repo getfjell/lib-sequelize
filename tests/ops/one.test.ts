@@ -1,8 +1,9 @@
 import { getOneOperation } from '@/ops/one';
 import { IQFactory, Item, ItemQuery, LocKeyArray } from '@fjell/core';
-import { Definition } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import { Definition } from '@/Definition';
+import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;
 
@@ -10,9 +11,16 @@ describe('one', () => {
   let mockModel: Mocked<ModelStatic<any>>;
   let mockItems: Mocked<TestItem>[];
   let definitionMock: Mocked<Definition<TestItem, 'test'>>;
+  let mockRegistry: Mocked<Library.Registry>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
 
     // @ts-ignore
     mockItems = [
@@ -46,6 +54,11 @@ describe('one', () => {
       coordinate: {
         kta: ['test'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any as Mocked<Definition<TestItem, 'test'>>;
   });
@@ -56,7 +69,7 @@ describe('one', () => {
 
     const itemQuery: ItemQuery = IQFactory.condition('status', 'active').limit(1).toQuery();
 
-    const result = await getOneOperation([mockModel], definitionMock)(
+    const result = await getOneOperation([mockModel], definitionMock, mockRegistry)(
       itemQuery,
       [],
     );
@@ -68,6 +81,11 @@ describe('one', () => {
       key: {
         kt: 'test',
         pk: '1',
+      },
+      events: {
+        created: { at: null },
+        updated: { at: null },
+        deleted: { at: null }
       }
     }
 
@@ -80,7 +98,7 @@ describe('one', () => {
 
     const itemQuery: ItemQuery = IQFactory.condition('status', 'inactive').limit(1).toQuery();
 
-    const result = await getOneOperation([mockModel], definitionMock)(
+    const result = await getOneOperation([mockModel], definitionMock, mockRegistry)(
       itemQuery,
     );
 
@@ -100,11 +118,16 @@ describe('one', () => {
       coordinate: {
         kta: ['test', 'location1', 'location2'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any as Mocked<Definition<TestItem, 'test', 'location1', 'location2'>>;
 
     await expect(
-      getOneOperation([mockModel], definitionMock)(
+      getOneOperation([mockModel], definitionMock, mockRegistry)(
         itemQuery,
         locations as any,
       )

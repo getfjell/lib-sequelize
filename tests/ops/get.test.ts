@@ -1,14 +1,17 @@
 import { getGetOperation } from '@/ops/get';
 import { ComKey, PriKey } from '@fjell/core';
-import { Definition, NotFoundError } from '@fjell/lib';
+import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+import { Definition } from '@/Definition';
+import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;
 type TestItemOrder = import('@fjell/core').Item<'test', 'order'>;
 
 describe('get', () => {
   let mockModel: ModelStatic<any>;
+  let mockRegistry: Mocked<Library.Registry>;
   let definitionMock: Mocked<Definition<TestItem, 'test', 'order'>>;
 
   beforeEach(() => {
@@ -18,6 +21,12 @@ describe('get', () => {
       findByPk: vi.fn(),
       findOne: vi.fn(),
     } as any;
+
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
 
     // @ts-ignore
     mockModel.getAttributes = vi.fn().mockReturnValue({
@@ -29,6 +38,11 @@ describe('get', () => {
       coordinate: {
         kta: ['test'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any;
   });
@@ -47,12 +61,17 @@ describe('get', () => {
     // @ts-ignore
     mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getGetOperation([mockModel], definitionMock)(key);
+    const result = await getGetOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(result).toEqual({
       id: '123',
       testColumn: 'test',
-      key: { kt: 'test', pk: '123' }
+      key: { kt: 'test', pk: '123' },
+      events: {
+        created: { at: null },
+        updated: { at: null },
+        deleted: { at: null }
+      }
     });
     expect(mockModel.findByPk).toHaveBeenCalledWith('123');
   });
@@ -62,6 +81,11 @@ describe('get', () => {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any;
 
@@ -84,13 +108,18 @@ describe('get', () => {
     // @ts-ignore
     mockModel.findOne = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getGetOperation([mockModel], definitionMock)(key);
+    const result = await getGetOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(result).toEqual({
       id: '123',
       orderId: '456',
       testColumn: 'test',
-      key: { kt: 'test', pk: '123', loc: [{ kt: 'order', lk: '456' }] }
+      key: { kt: 'test', pk: '123', loc: [{ kt: 'order', lk: '456' }] },
+      events: {
+        created: { at: null },
+        updated: { at: null },
+        deleted: { at: null }
+      }
     });
     expect(mockModel.findOne).toHaveBeenCalledWith({
       where: { id: '123', orderId: '456' }
@@ -104,7 +133,7 @@ describe('get', () => {
     mockModel.findByPk = vi.fn().mockResolvedValue(null);
 
     await expect(
-      getGetOperation([mockModel], definitionMock)(key)
+      getGetOperation([mockModel], definitionMock, mockRegistry)(key)
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -113,6 +142,11 @@ describe('get', () => {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any;
 
@@ -125,7 +159,7 @@ describe('get', () => {
     mockModel.findOne = vi.fn().mockResolvedValue(null);
 
     await expect(
-      getGetOperation([mockModel], definitionMock)(key)
+      getGetOperation([mockModel], definitionMock, mockRegistry)(key)
     ).rejects.toThrow(NotFoundError);
   });
 

@@ -4,6 +4,7 @@ import { ComKey, Item, PriKey } from '@fjell/core';
 import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;
 
@@ -11,9 +12,16 @@ describe('update', () => {
   let mockModel: Mocked<ModelStatic<any>>;
   let mockItem: Mocked<TestItem>;
   let definitionMock: Mocked<Definition<TestItem, 'test'>>;
+  let mockRegistry: Mocked<Library.Registry>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
 
     mockItem = {
       key: { kt: 'test', pk: '1' },
@@ -43,6 +51,10 @@ describe('update', () => {
       coordinate: {
         kta: ['test'],
         scopes: []
+      },
+      options: {
+        references: {},
+        aggregations: {}
       }
     } as any;
   });
@@ -55,17 +67,37 @@ describe('update', () => {
       const mockResponse = {
         ...mockItem,
         save: vi.fn(),
-        get: vi.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
+        update: vi.fn().mockImplementation((props) => {
+          const updatedItem = { ...mockItem, ...props };
+          // Return the mock response itself with updated properties
+          Object.assign(mockResponse, updatedItem);
+          return mockResponse;
+        }),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1', name: 'Updated Name', status: 'active' };
+          }
+          return mockItem;
+        })
       };
 
       // @ts-ignore
       mockModel.findByPk.mockResolvedValue(mockResponse);
 
-      const result = await getUpdateOperation([mockModel], definitionMock)(key, updatedProps);
+      const result = await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps);
 
       expect(mockModel.findByPk).toHaveBeenCalledWith('1');
-      expect(mockResponse.save).toHaveBeenCalled();
-      expect(result.name).toEqual('Updated Name');
+      expect(mockResponse.update).toHaveBeenCalled();
+      expect(result).toEqual({
+        ...mockItem,
+        id: '1',
+        name: 'Updated Name',
+        events: {
+          created: { at: null },
+          updated: { at: null },
+          deleted: { at: null }
+        }
+      });
     });
 
     it('should throw NotFoundError when item not found', async () => {
@@ -76,7 +108,7 @@ describe('update', () => {
       mockModel.findByPk.mockResolvedValue(null);
 
       await expect(
-        getUpdateOperation([mockModel], definitionMock)(
+        getUpdateOperation([mockModel], definitionMock, mockRegistry)(
           key,
           updatedProps,
         )
@@ -95,13 +127,24 @@ describe('update', () => {
       const mockResponse = {
         ...mockItem,
         save: vi.fn(),
-        get: vi.fn().mockReturnValue({ ...mockItem, name: 'Updated Name' })
+        update: vi.fn().mockImplementation((props) => {
+          const updatedItem = { ...mockItem, ...props };
+          // Return the mock response itself with updated properties
+          Object.assign(mockResponse, updatedItem);
+          return mockResponse;
+        }),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1', name: 'Updated Name', status: 'active' };
+          }
+          return mockItem;
+        })
       };
 
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(mockResponse);
 
-      const result = await getUpdateOperation([mockModel], definitionMock)(
+      const result = await getUpdateOperation([mockModel], definitionMock, mockRegistry)(
         key,
         updatedProps,
       );
@@ -112,8 +155,17 @@ describe('update', () => {
           id: '1'
         }
       });
-      expect(mockResponse.save).toHaveBeenCalled();
-      expect(result.name).toEqual('Updated Name');
+      expect(mockResponse.update).toHaveBeenCalled();
+      expect(result).toEqual({
+        ...mockItem,
+        id: '1',
+        name: 'Updated Name',
+        events: {
+          created: { at: null },
+          updated: { at: null },
+          deleted: { at: null }
+        }
+      });
     });
 
     it('should throw NotFoundError when item not found', async () => {
@@ -129,6 +181,10 @@ describe('update', () => {
         coordinate: {
           kta: ['test', 'location'],
           scopes: []
+        },
+        options: {
+          references: {},
+          aggregations: {}
         }
       } as any;
 
@@ -139,6 +195,7 @@ describe('update', () => {
         getUpdateOperation(
           [mockModel],
           definitionMock,
+          mockRegistry
         )(
           key,
           updatedProps,

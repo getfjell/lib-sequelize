@@ -2,7 +2,7 @@ import { addCompoundCondition, addCondition, buildQuery } from '@/QueryBuilder';
 import { CompoundCondition, Condition, ItemQuery } from '@fjell/core';
 import dayjs from 'dayjs';
 import { ModelStatic, Op } from 'sequelize';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('QueryBuilder', () => {
   let mockModel: ModelStatic<any>;

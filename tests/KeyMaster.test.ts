@@ -1,4 +1,4 @@
-import { addKey, populateKey, removeKey } from '@/KeyMaster';
+import { addKey, removeKey } from '@/KeyMaster';
 import { AllItemTypeArrays, Item } from '@fjell/core';
 import { describe, expect, it } from 'vitest';
 
@@ -11,44 +11,6 @@ describe('KeyMaster', () => {
       };
       const result = removeKey(item);
       expect(result.key).toBeUndefined();
-    });
-  });
-
-  describe('populateKey', () => {
-    it('should populate key for single key type', () => {
-      const item = {
-        id: '123',
-        name: 'test'
-      };
-      const keyTypes = ['customer'] as AllItemTypeArrays<'customer'>;
-      const result = populateKey(item, keyTypes);
-      expect(result.key).toEqual({ kt: 'customer', pk: '123' });
-      expect(result.id).toBeUndefined();
-    });
-
-    it('should populate key for two key types', () => {
-      const item = {
-        id: '123',
-        name: 'test',
-        customerId: '456'
-      };
-      const keyTypes = ['order', 'customer'] as AllItemTypeArrays<'order', 'customer'>;
-      const result = populateKey(item, keyTypes);
-      expect(result.key).toEqual({
-        kt: 'order', pk: '123',
-        loc: [{ kt: 'customer', lk: '456' }]
-      });
-      expect(result.id).toBeUndefined();
-      expect(result.customerId).toBeUndefined();
-    });
-
-    it('should throw error for more than two key types', () => {
-      const item = {
-        id: '123',
-        name: 'test'
-      };
-      const keyTypes = ['orderLine', 'order', 'customer'] as AllItemTypeArrays<'orderLine', 'order', 'customer'>;
-      expect(() => populateKey(item, keyTypes)).toThrow('Not implemented');
     });
   });
 

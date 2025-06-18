@@ -3,12 +3,14 @@ import { getAllOperation } from '@/ops/all';
 import { Item, ItemQuery, LocKeyArray } from '@fjell/core';
 import { ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;
 
 describe('all', () => {
   let mockItem: Mocked<TestItem>;
   let mockModel: Mocked<ModelStatic<any>>;
+  let mockRegistry: Mocked<Library.Registry>;
   let definitionMock: Mocked<Definition<TestItem, 'test'>>;
 
   beforeEach(() => {
@@ -30,6 +32,12 @@ describe('all', () => {
         isDeleted: false
       })
     } as unknown as TestItem;
+
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
 
     mockModel = {
       findAll: vi.fn().mockReturnValue([mockItem]),
@@ -58,6 +66,11 @@ describe('all', () => {
     definitionMock = {
       coordinate: {
         kta: ['test']
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as unknown as Definition<TestItem, 'test'>;
 
@@ -83,7 +96,7 @@ describe('all', () => {
     });
 
     const query: ItemQuery = {};
-    const result = await getAllOperation([mockModel], definitionMock)(query, []);
+    const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
 
     expect(result).toEqual([]);
     expect(mockModel.findAll).toHaveBeenCalled();
@@ -103,7 +116,7 @@ describe('all', () => {
     });
 
     const query: ItemQuery = {};
-    const result = await getAllOperation([mockModel], definitionMock)(query, []);
+    const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({
@@ -126,6 +139,11 @@ describe('all', () => {
         kta: ['test', 'order'],
         scopes: []
       },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
+      }
     } as any;
 
     // @ts-ignore
@@ -151,7 +169,7 @@ describe('all', () => {
 
     await getAllOperation<
       Item<'test', 'order'>, 'test', 'order'
-    >([mockModel], definitionMock)(query, locations);
+    >([mockModel], definitionMock, mockRegistry)(query, locations);
 
     expect(mockModel.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -181,12 +199,17 @@ describe('all', () => {
         kta: ['test', 'order', 'customer'],
         scopes: []
       },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
+      }
     } as any;
 
     await expect(
       getAllOperation<
         Item<'test', 'order', 'customer'>, 'test', 'order', 'customer'
-      >([mockModel], definitionMock)(query, locations)
+      >([mockModel], definitionMock, mockRegistry)(query, locations)
     ).rejects.toThrow('Not implemented for more than one location key');
   });
 

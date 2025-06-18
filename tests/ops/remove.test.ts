@@ -3,12 +3,14 @@ import { getRemoveOperation } from '@/ops/remove';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;
 
 describe('remove', () => {
   let mockModel: Mocked<ModelStatic<any>>;
   let definitionMock: Mocked<Definition<TestItem, 'test'>>;
+  let mockRegistry: Mocked<Library.Registry>;
 
   beforeEach(() => {
     mockModel = {
@@ -23,6 +25,12 @@ describe('remove', () => {
         isDeleted: {}
       }),
     } as any;
+
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
 
     definitionMock = {
       coordinate: {
@@ -46,7 +54,7 @@ describe('remove', () => {
     // @ts-ignore
     mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getRemoveOperation([mockModel], definitionMock)(key);
+    const result = await getRemoveOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(mockModel.findByPk).toHaveBeenCalledWith('123');
     expect(mockItem.save).toHaveBeenCalled();
@@ -87,7 +95,7 @@ describe('remove', () => {
     // @ts-ignore
     mockModel.findOne = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getRemoveOperation([mockModel], definitionMock)(key);
+    const result = await getRemoveOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(mockModel.findOne).toHaveBeenCalledWith({
       where: {
@@ -122,13 +130,14 @@ describe('remove', () => {
     };
 
     definitionMock.options = {
-      deleteOnRemove: true
+      ...definitionMock.options,
+      deleteOnRemove: true,
     };
 
     // @ts-ignore
     mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getRemoveOperation([mockModel], definitionMock)(key);
+    const result = await getRemoveOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(mockModel.findByPk).toHaveBeenCalledWith('123');
     expect(mockItem.destroy).toHaveBeenCalled();
@@ -148,7 +157,8 @@ describe('remove', () => {
     });
 
     definitionMock.options = {
-      deleteOnRemove: false
+      ...definitionMock.options,
+      deleteOnRemove: false,
     };
 
     const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
@@ -165,7 +175,7 @@ describe('remove', () => {
 
     // @ts-ignore
     await expect(
-      getRemoveOperation([mockModel], definitionMock)(key)
+      getRemoveOperation([mockModel], definitionMock, mockRegistry)(key)
     ).rejects.toThrow('No deletedAt or isDeleted attribute found in model, and deleteOnRemove is not set');
   });
 
@@ -173,7 +183,7 @@ describe('remove', () => {
     const invalidKey = { kt: 'test' } as any;
 
     await expect(
-      getRemoveOperation([mockModel], definitionMock)(invalidKey)
+      getRemoveOperation([mockModel], definitionMock, mockRegistry)(invalidKey)
     ).rejects.toThrow('Key for Remove is not a valid ItemKey');
   });
 });
