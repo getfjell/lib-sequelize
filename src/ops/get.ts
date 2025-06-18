@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import {
   ComKey,
   isComKey,
@@ -13,23 +14,25 @@ import { ModelStatic } from 'sequelize';
 import { processRow } from '@/RowProcessor';
 import { Definition } from '@/Definition';
 import { NotFoundError } from '@fjell/lib';
+import * as Library from "@fjell/lib";
 
 const logger = LibLogger.get('sequelize', 'ops', 'get');
 
 export const getGetOperation = <
-V extends Item<S, L1, L2, L3, L4, L5>,
-S extends string,
-L1 extends string = never,
-L2 extends string = never,
-L3 extends string = never,
-L4 extends string = never,
-L5 extends string = never
+  V extends Item<S, L1, L2, L3, L4, L5>,
+  S extends string,
+  L1 extends string = never,
+  L2 extends string = never,
+  L3 extends string = never,
+  L4 extends string = never,
+  L5 extends string = never
 >(
-    models: Array<ModelStatic<any>>,
-    definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  ) => {
+  models: Array<ModelStatic<any>>,
+  definition: Definition<V, S, L1, L2, L3, L4, L5>,
+  registry: Library.Registry
+) => {
 
-  const { coordinate } = definition;
+  const { coordinate, options: { references, aggregations } } = definition;
   const { kta } = coordinate;
 
   const get = async (
@@ -48,9 +51,9 @@ L5 extends string = never
 
     let item;
 
-    if( isPriKey(itemKey) ) {
+    if (isPriKey(itemKey)) {
       item = await model.findByPk((itemKey as PriKey<S>).pk);
-    } else if( isComKey(itemKey) ) {
+    } else if (isComKey(itemKey)) {
       const comKey = itemKey as ComKey<S, L1, L2, L3, L4, L5>;
       // TODO: This should probably interrogate the model?
       item = await model.findOne({ where: { id: comKey.pk, [comKey?.loc[0]?.kt + 'Id']: comKey?.loc[0]?.lk } });
@@ -59,7 +62,7 @@ L5 extends string = never
     if (!item) {
       throw new NotFoundError<S, L1, L2, L3, L4, L5>('get', coordinate, key);
     } else {
-      return validateKeys(processRow(item, kta), kta) as V;
+      return validateKeys(await processRow(item, kta, references, aggregations, registry), kta) as V;
     }
   }
 
