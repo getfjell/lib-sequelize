@@ -1,39 +1,28 @@
 import { Definition } from '@/Definition';
 import { getCreateOperation } from '@/ops/create';
-import { cPK, Item, LocKeyArray } from '@fjell/core';
+import { cPK, LocKeyArray } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = import('@fjell/core').Item<'test'>;
+type TestItemOrder = import('@fjell/core').Item<'test', 'order'>;
 
 describe('create', () => {
-  type TestItem = Item<'test'>;
-
   let mockModel: ModelStatic<any>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test'>>;
+  let mockRegistry: Mocked<Library.Registry>;
+  let definitionMock: Mocked<Definition<TestItem, 'test'>>;
 
   beforeEach(() => {
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
+
     mockModel = {
-      create: jest.fn(),
-      getAttributes: jest.fn().mockReturnValue({
+      create: vi.fn(),
+      getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
         createdAt: {},
@@ -47,7 +36,7 @@ describe('create', () => {
       testColumn: 'test'
     };
 
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test'>> = {
+    const definitionMock: Mocked<Definition<TestItem, 'test'>> = {
       coordinate: {
         kta: ['test'],
         scopes: []
@@ -55,25 +44,23 @@ describe('create', () => {
     } as any;
 
     const mockCreatedItem = {
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test'
       })
     };
 
     // @ts-ignore
-    mockModel.create = jest.fn().mockResolvedValue(mockCreatedItem);
+    mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
-      getCreateOperation([mockModel], definitionMock)(newItem)
+      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem)
     ).rejects.toThrow('Not implemented');
 
   });
 
   it('should create item with ComKey using location', async () => {
-    type TestItem = Item<'test', 'order'>;
-
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>> = {
+    const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
@@ -87,7 +74,7 @@ describe('create', () => {
     const location = [{ kt: 'order', lk: '456' }] as LocKeyArray<'order'>;
 
     const mockCreatedItem = {
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         orderId: '456',
         testColumn: 'test'
@@ -95,10 +82,10 @@ describe('create', () => {
     };
 
     // @ts-ignore
-    mockModel.create = jest.fn().mockResolvedValue(mockCreatedItem);
+    mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
-      getCreateOperation([mockModel], definitionMock)(newItem, { locations: location })
+      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { locations: location })
     ).rejects.toThrow('Not implemented');
 
   });
@@ -109,7 +96,7 @@ describe('create', () => {
     };
 
     const mockCreatedItem = {
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: 'custom-id',
         testColumn: 'test'
       })
@@ -117,7 +104,7 @@ describe('create', () => {
 
     const key = cPK('custom-id', 'test');
 
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test'>> = {
+    const definitionMock: Mocked<Definition<TestItem, 'test'>> = {
       coordinate: {
         kta: ['test'],
         scopes: []
@@ -125,10 +112,10 @@ describe('create', () => {
     } as any;
 
     // @ts-ignore
-    mockModel.create = jest.fn().mockResolvedValue(mockCreatedItem);
+    mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
     await expect(
-      getCreateOperation([mockModel], definitionMock)(newItem, { key })
+      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { key })
     ).rejects.toThrow('Not implemented');
   });
 
