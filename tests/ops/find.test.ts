@@ -1,48 +1,41 @@
 /* eslint-disable no-undefined */
 import { getFindOperation } from '@/ops/find';
 import { Item, LocKeyArray } from '@fjell/core';
-import { Definition } from '@fjell/lib';
+import { Definition } from '@/Definition';
 import { ModelStatic } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = Item<'test', 'order'>;
 
 describe('find', () => {
-  type TestItem = Item<'test', 'order'>;
-
   let mockModel: ModelStatic<any>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>>;
+  let mockRegistry: Mocked<Library.Registry>;
+  let definitionMock: Mocked<Definition<TestItem, 'test', 'order'>>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     definitionMock = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any;
 
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
+
     mockModel = {
-      findAll: jest.fn(),
-      getAttributes: jest.fn().mockReturnValue({
+      findAll: vi.fn(),
+      getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
         createdAt: {},
@@ -53,33 +46,47 @@ describe('find', () => {
 
   it('should call finder method when finder exists', async () => {
     // @ts-ignore
-    const mockFinderMethod = jest.fn().mockResolvedValue([{ id: '123', testColumn: 'test' }]);
+    const mockFinderMethod = vi.fn().mockResolvedValue([{ id: '123', testColumn: 'test', orderId: '2324', get: vi.fn().mockReturnThis() }]);
     definitionMock.options = {
       finders: {
         // @ts-ignore
         testFinder: mockFinderMethod
-      }
+      },
+      ...definitionMock.options
     };
 
     const finderParams = { param1: 'value1' };
 
-    const findOperation = getFindOperation([mockModel], definitionMock);
+    const findOperation = getFindOperation([mockModel], definitionMock, mockRegistry);
 
     const result = await findOperation('testFinder', finderParams);
 
     expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, undefined);
-    expect(result).toEqual([{ id: '123', testColumn: 'test' }]);
+    expect(result).toEqual([expect.objectContaining({
+      id: '123',
+      testColumn: 'test',
+      orderId: '2324',
+      key: expect.objectContaining({
+        kt: 'test',
+        pk: '123',
+        loc: expect.arrayContaining([expect.objectContaining({
+          kt: 'order',
+          lk: '2324'
+        })])
+      })
+    })]);
   });
 
   it('should throw error when finder does not exist', async () => {
     definitionMock.options = {
       finders: {
         // @ts-ignore
-        otherFinder: jest.fn()
-      }
+        otherFinder: vi.fn()
+      },
+      ...definitionMock.options
     };
 
-    const findOperation = getFindOperation([mockModel], definitionMock);
+    const findOperation = getFindOperation([mockModel], definitionMock, mockRegistry);
 
     await expect(
       findOperation('nonExistentFinder', {})
@@ -87,9 +94,11 @@ describe('find', () => {
   });
 
   it('should throw error when no finders are defined', async () => {
-    definitionMock.options = {};
+    definitionMock.options = {
+      ...definitionMock.options
+    };
 
-    const findOperation = getFindOperation([mockModel], definitionMock);
+    const findOperation = getFindOperation([mockModel], definitionMock, mockRegistry);
 
     await expect(
       findOperation('nonExistentFinder', {})
@@ -98,12 +107,13 @@ describe('find', () => {
 
   it('should pass finder parameters correctly', async () => {
     // @ts-ignore
-    const mockFinderMethod = jest.fn().mockResolvedValue([]);
+    const mockFinderMethod = vi.fn().mockResolvedValue([]);
     definitionMock.options = {
       finders: {
         // @ts-ignore
         testFinder: mockFinderMethod
-      }
+      },
+      ...definitionMock.options
     };
 
     const finderParams = {
@@ -114,7 +124,7 @@ describe('find', () => {
       arrayParam: ['value1', 'value2']
     };
 
-    const findOperation = getFindOperation([mockModel], definitionMock);
+    const findOperation = getFindOperation([mockModel], definitionMock, mockRegistry);
 
     await findOperation('testFinder', finderParams);
 
@@ -123,18 +133,19 @@ describe('find', () => {
 
   it('should handle locations correctly', async () => {
     // @ts-ignore
-    const mockFinderMethod = jest.fn().mockResolvedValue([]);
+    const mockFinderMethod = vi.fn().mockResolvedValue([]);
     definitionMock.options = {
       finders: {
         // @ts-ignore
         testFinder: mockFinderMethod
-      }
+      },
+      ...definitionMock.options
     };
 
     const finderParams = {};
     const locations = [{ kt: 'order', lk: '456' }] as LocKeyArray<'order'>;
 
-    const findOperation = getFindOperation([mockModel], definitionMock);
+    const findOperation = getFindOperation([mockModel], definitionMock, mockRegistry);
     // @ts-ignore
     await findOperation('testFinder', finderParams, locations);
 

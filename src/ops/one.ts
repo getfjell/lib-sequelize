@@ -1,9 +1,11 @@
+/* eslint-disable indent */
 import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 
 import { Definition } from "@/Definition";
 import LibLogger from '@/logger';
 import { ModelStatic } from "sequelize";
 import { getAllOperation } from "./all";
+import * as Library from "@fjell/lib";
 
 const logger = LibLogger.get('sequelize', 'ops', 'one');
 
@@ -16,16 +18,17 @@ export const getOneOperation = <
   L4 extends string = never,
   L5 extends string = never
 >(
-    models: ModelStatic<any>[],
-    definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  ) => {
+  models: ModelStatic<any>[],
+  definition: Definition<V, S, L1, L2, L3, L4, L5>,
+  registry: Library.Registry
+) => {
   const one = async (
     itemQuery: ItemQuery,
     locations: LocKeyArray<L1, L2, L3, L4, L5> | [] = [],
   ): Promise<V | null> => {
     logger.default('One', { itemQuery, locations });
 
-    const items = await getAllOperation(models, definition)(itemQuery, locations);
+    const items = await getAllOperation(models, definition, registry)(itemQuery, locations);
     if (items.length > 0) {
       return items[0] as V;
     } else {

@@ -1,8 +1,10 @@
+/* eslint-disable indent */
 import { ComKey, Item, LocKeyArray, PriKey, TypesProperties } from "@fjell/core";
 
 import LibLogger from '@/logger';
 import { ModelStatic } from "sequelize";
 import { Definition } from "@/Definition";
+import * as Library from "@fjell/lib";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
 
@@ -15,15 +17,17 @@ export const getCreateOperation = <
   L4 extends string = never,
   L5 extends string = never
 >(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    models: ModelStatic<any>[],
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  ) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  models: ModelStatic<any>[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  definition: Definition<V, S, L1, L2, L3, L4, L5>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  registry: Library.Registry
+) => {
 
   const create = async (
     item: TypesProperties<V, S, L1, L2, L3, L4, L5>,
-    options? :     {
+    options?: {
       key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
       locations?: never;
     } | {

@@ -2,39 +2,21 @@ import { Definition } from '@/Definition';
 import { getRemoveOperation } from '@/ops/remove';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = import('@fjell/core').Item<'test'>;
 
 describe('remove', () => {
-  type TestItem = Item<'test'>;
-
-  let mockModel: jest.Mocked<ModelStatic<any>>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test'>>;
+  let mockModel: Mocked<ModelStatic<any>>;
+  let definitionMock: Mocked<Definition<TestItem, 'test'>>;
+  let mockRegistry: Mocked<Library.Registry>;
 
   beforeEach(() => {
     mockModel = {
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
-      getAttributes: jest.fn().mockReturnValue({
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
+      getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
         deletedAt: {},
@@ -43,6 +25,12 @@ describe('remove', () => {
         isDeleted: {}
       }),
     } as any;
+
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
 
     definitionMock = {
       coordinate: {
@@ -55,8 +43,8 @@ describe('remove', () => {
   it('should soft delete item with PriKey when deletedAt exists', async () => {
     const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
     const mockItem = {
-      save: jest.fn(),
-      get: jest.fn().mockReturnValue({
+      save: vi.fn(),
+      get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test'
       }),
@@ -64,9 +52,9 @@ describe('remove', () => {
     };
 
     // @ts-ignore
-    mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getRemoveOperation([mockModel], definitionMock)(key);
+    const result = await getRemoveOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(mockModel.findByPk).toHaveBeenCalledWith('123');
     expect(mockItem.save).toHaveBeenCalled();
@@ -87,8 +75,8 @@ describe('remove', () => {
     } as ComKey<'test', 'order'>;
 
     const mockItem = {
-      save: jest.fn(),
-      get: jest.fn().mockReturnValue({
+      save: vi.fn(),
+      get: vi.fn().mockReturnValue({
         id: '123',
         orderId: '456',
         testColumn: 'test'
@@ -97,7 +85,7 @@ describe('remove', () => {
       orderId: '456'
     };
 
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>> = {
+    const definitionMock: Mocked<Definition<TestItem, 'test', 'order'>> = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
@@ -105,9 +93,9 @@ describe('remove', () => {
     } as any;
 
     // @ts-ignore
-    mockModel.findOne = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findOne = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getRemoveOperation([mockModel], definitionMock)(key);
+    const result = await getRemoveOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(mockModel.findOne).toHaveBeenCalledWith({
       where: {
@@ -126,15 +114,15 @@ describe('remove', () => {
 
   it('should hard delete when deleteOnRemove is true and no soft delete fields exist', async () => {
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: {},
       testColumn: {}
     });
 
     const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
     const mockItem = {
-      destroy: jest.fn(),
-      get: jest.fn().mockReturnValue({
+      destroy: vi.fn(),
+      get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test'
       }),
@@ -142,13 +130,14 @@ describe('remove', () => {
     };
 
     definitionMock.options = {
-      deleteOnRemove: true
+      ...definitionMock.options,
+      deleteOnRemove: true,
     };
 
     // @ts-ignore
-    mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getRemoveOperation([mockModel], definitionMock)(key);
+    const result = await getRemoveOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(mockModel.findByPk).toHaveBeenCalledWith('123');
     expect(mockItem.destroy).toHaveBeenCalled();
@@ -162,18 +151,19 @@ describe('remove', () => {
 
   it('should throw error when no soft delete fields and deleteOnRemove false', async () => {
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: {},
       testColumn: {}
     });
 
     definitionMock.options = {
-      deleteOnRemove: false
+      ...definitionMock.options,
+      deleteOnRemove: false,
     };
 
     const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
     const mockItem = {
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test'
       }),
@@ -181,11 +171,11 @@ describe('remove', () => {
     };
 
     // @ts-ignore
-    mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
     // @ts-ignore
     await expect(
-      getRemoveOperation([mockModel], definitionMock)(key)
+      getRemoveOperation([mockModel], definitionMock, mockRegistry)(key)
     ).rejects.toThrow('No deletedAt or isDeleted attribute found in model, and deleteOnRemove is not set');
   });
 
@@ -193,7 +183,7 @@ describe('remove', () => {
     const invalidKey = { kt: 'test' } as any;
 
     await expect(
-      getRemoveOperation([mockModel], definitionMock)(invalidKey)
+      getRemoveOperation([mockModel], definitionMock, mockRegistry)(invalidKey)
     ).rejects.toThrow('Key for Remove is not a valid ItemKey');
   });
 });

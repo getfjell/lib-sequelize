@@ -1,27 +1,31 @@
+/* eslint-disable indent */
 import { ComKey, isValidItemKey, PriKey } from "@fjell/core";
 
 import { abbrevIK, isComKey, isPriKey, Item, ItemProperties } from "@fjell/core";
 
 import { Definition } from "@/Definition";
 import { populateEvents } from "@/EventCoordinator";
-import { populateKey } from "@/KeyMaster";
+import { addKey } from "@/KeyMaster";
 import LibLogger from '@/logger';
+import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
 
 const logger = LibLogger.get('sequelize', 'ops', 'remove');
 
 export const getRemoveOperation = <
-V extends Item<S, L1, L2, L3, L4, L5>,
-S extends string,
-L1 extends string = never,
-L2 extends string = never,
-L3 extends string = never,
-L4 extends string = never,
-L5 extends string = never
+  V extends Item<S, L1, L2, L3, L4, L5>,
+  S extends string,
+  L1 extends string = never,
+  L2 extends string = never,
+  L3 extends string = never,
+  L4 extends string = never,
+  L5 extends string = never
 >(
-    models: ModelStatic<any>[],
-    definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  ) => {
+  models: ModelStatic<any>[],
+  definition: Definition<V, S, L1, L2, L3, L4, L5>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  registry: Library.Registry
+) => {
   const { coordinate, options } = definition;
   const { kta } = coordinate;
 
@@ -42,9 +46,9 @@ L5 extends string = never
     let returnItem;
 
     logger.debug('remove: %s', abbrevIK(key));
-    if( isPriKey(key) ) {
+    if (isPriKey(key)) {
       item = await model.findByPk((key as PriKey<S>).pk);
-    } else if( isComKey(key) ) {
+    } else if (isComKey(key)) {
       const comKey = key as ComKey<S, L1, L2, L3, L4, L5>;
       item = await model.findOne({ where: { id: comKey.pk, [comKey?.loc[0]?.kt + 'Id']: comKey?.loc[0]?.lk } });
     }
@@ -52,24 +56,24 @@ L5 extends string = never
     const isDeletedAttribute = model.getAttributes().isDeleted;
     const deletedAtAttribute = model.getAttributes().deletedAt;
 
-    if( isDeletedAttribute || deletedAtAttribute ) {
-      if( model.getAttributes().isDeleted ) {
+    if (isDeletedAttribute || deletedAtAttribute) {
+      if (model.getAttributes().isDeleted) {
         item.isDeleted = true;
       }
-    
-      if( model.getAttributes().deletedAt ) {
+
+      if (model.getAttributes().deletedAt) {
         item.deletedAt = new Date();
       }
 
       // Save the object
       await item?.save();
       returnItem = item?.get({ plain: true }) as ItemProperties<S, L1, L2, L3, L4, L5>;
-      returnItem = populateKey(returnItem, kta);
+      returnItem = addKey(returnItem as any, kta);
       returnItem = populateEvents(returnItem);
-    } else if( options.deleteOnRemove ) {
+    } else if (options.deleteOnRemove) {
       await item?.destroy();
       returnItem = item?.get({ plain: true }) as ItemProperties<S, L1, L2, L3, L4, L5>;
-      returnItem = populateKey(returnItem, kta);
+      returnItem = addKey(returnItem as any, kta);
       returnItem = populateEvents(returnItem);
     } else {
       throw new Error('No deletedAt or isDeleted attribute found in model, and deleteOnRemove is not set');

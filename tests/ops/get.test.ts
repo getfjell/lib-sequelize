@@ -1,45 +1,35 @@
 import { getGetOperation } from '@/ops/get';
-import { ComKey, Item, PriKey } from '@fjell/core';
-import { Definition, NotFoundError } from '@fjell/lib';
+import { ComKey, PriKey } from '@fjell/core';
+import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+import { Definition } from '@/Definition';
+import * as Library from "@fjell/lib";
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = import('@fjell/core').Item<'test'>;
+type TestItemOrder = import('@fjell/core').Item<'test', 'order'>;
 
 describe('get', () => {
-  type TestItem = Item<'test'>;
-
   let mockModel: ModelStatic<any>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>>;
+  let mockRegistry: Mocked<Library.Registry>;
+  let definitionMock: Mocked<Definition<TestItem, 'test', 'order'>>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockModel = {
-      findByPk: jest.fn(),
-      findOne: jest.fn(),
+      findByPk: vi.fn(),
+      findOne: vi.fn(),
     } as any;
 
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
+
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: { type: DataTypes.STRING, allowNull: false },
       testColumn: { type: DataTypes.STRING, allowNull: false }
     });
@@ -48,6 +38,11 @@ describe('get', () => {
       coordinate: {
         kta: ['test'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any;
   });
@@ -57,32 +52,40 @@ describe('get', () => {
     const mockItem = {
       id: '123',
       testColumn: 'test',
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test'
       })
     };
 
     // @ts-ignore
-    mockModel.findByPk = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getGetOperation([mockModel], definitionMock)(key);
+    const result = await getGetOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(result).toEqual({
       id: '123',
       testColumn: 'test',
-      key: { kt: 'test', pk: '123' }
+      key: { kt: 'test', pk: '123' },
+      events: {
+        created: { at: null },
+        updated: { at: null },
+        deleted: { at: null }
+      }
     });
     expect(mockModel.findByPk).toHaveBeenCalledWith('123');
   });
 
   it('should get item with ComKey', async () => {
-    type TestItem = Item<'test', 'order'>;
-
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>> = {
+    const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any;
 
@@ -95,7 +98,7 @@ describe('get', () => {
       id: '123',
       orderId: '456',
       testColumn: 'test',
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         orderId: '456',
         testColumn: 'test'
@@ -103,15 +106,20 @@ describe('get', () => {
     };
 
     // @ts-ignore
-    mockModel.findOne = jest.fn().mockResolvedValue(mockItem);
+    mockModel.findOne = vi.fn().mockResolvedValue(mockItem);
 
-    const result = await getGetOperation([mockModel], definitionMock)(key);
+    const result = await getGetOperation([mockModel], definitionMock, mockRegistry)(key);
 
     expect(result).toEqual({
       id: '123',
       orderId: '456',
       testColumn: 'test',
-      key: { kt: 'test', pk: '123', loc: [{ kt: 'order', lk: '456' }] }
+      key: { kt: 'test', pk: '123', loc: [{ kt: 'order', lk: '456' }] },
+      events: {
+        created: { at: null },
+        updated: { at: null },
+        deleted: { at: null }
+      }
     });
     expect(mockModel.findOne).toHaveBeenCalledWith({
       where: { id: '123', orderId: '456' }
@@ -122,20 +130,23 @@ describe('get', () => {
     const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
 
     // @ts-ignore
-    mockModel.findByPk = jest.fn().mockResolvedValue(null);
+    mockModel.findByPk = vi.fn().mockResolvedValue(null);
 
     await expect(
-      getGetOperation([mockModel], definitionMock)(key)
+      getGetOperation([mockModel], definitionMock, mockRegistry)(key)
     ).rejects.toThrow(NotFoundError);
   });
 
   it('should throw NotFoundError when item not found with ComKey', async () => {
-    type TestItem = Item<'test', 'order'>;
-
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>> = {
+    const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as any;
 
@@ -145,10 +156,10 @@ describe('get', () => {
     } as ComKey<'test', 'order'>;
 
     // @ts-ignore
-    mockModel.findOne = jest.fn().mockResolvedValue(null);
+    mockModel.findOne = vi.fn().mockResolvedValue(null);
 
     await expect(
-      getGetOperation([mockModel], definitionMock)(key)
+      getGetOperation([mockModel], definitionMock, mockRegistry)(key)
     ).rejects.toThrow(NotFoundError);
   });
 

@@ -1,3 +1,4 @@
+/* eslint-disable max-params */
 import * as Library from '@fjell/lib';
 import { Item, ItemTypeArray } from '@fjell/core';
 import { createDefinition } from './Definition';
@@ -16,7 +17,7 @@ export interface Instance<
 > extends Library.Instance<V, S, L1, L2, L3, L4, L5> {
   models: ModelStatic<any>[];
 }
- 
+
 export function createInstance<
   V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,
@@ -28,17 +29,19 @@ export function createInstance<
 >(
   keyTypes: ItemTypeArray<S, L1, L2, L3, L4, L5>,
   models: ModelStatic<any>[],
-  libOptions: Options<V, S, L1, L2, L3, L4, L5> = {},
+  libOptions: Partial<Options<V, S, L1, L2, L3, L4, L5>> = {},
   scopes: string[] = [],
+  registry: Library.Registry
 ): Instance<V, S, L1, L2, L3, L4, L5> {
 
   const definition = createDefinition(keyTypes, scopes, libOptions);
-  const operations = createOperations(models, definition);
+  const operations = createOperations(models, definition, registry);
 
   return {
     definition,
-    operations: Library.wrapOperations(operations, definition),
-    models
+    operations: Library.wrapOperations(operations, definition, registry),
+    models,
+    registry
   }
 
 }

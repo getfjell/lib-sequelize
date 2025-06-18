@@ -2,37 +2,19 @@ import { Definition } from '@/Definition';
 import { getAllOperation } from '@/ops/all';
 import { Item, ItemQuery, LocKeyArray } from '@fjell/core';
 import { ModelStatic, Op } from 'sequelize';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
+import * as Library from "@fjell/lib";
 
-jest.mock('@fjell/logging', () => {
-  return {
-    get: jest.fn().mockReturnThis(),
-    getLogger: jest.fn().mockReturnThis(),
-    default: jest.fn(),
-    error: jest.fn(),
-    warning: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    trace: jest.fn(),
-    emergency: jest.fn(),
-    alert: jest.fn(),
-    critical: jest.fn(),
-    notice: jest.fn(),
-    time: jest.fn().mockReturnThis(),
-    end: jest.fn(),
-    log: jest.fn(),
-  }
-});
+type TestItem = import('@fjell/core').Item<'test'>;
 
 describe('all', () => {
-  type TestItem = Item<'test'>;
-
-  let mockItem: jest.Mocked<TestItem>;
-  let mockModel: jest.Mocked<ModelStatic<any>>;
-  let definitionMock: jest.Mocked<Definition<TestItem, 'test'>>;
+  let mockItem: Mocked<TestItem>;
+  let mockModel: Mocked<ModelStatic<any>>;
+  let mockRegistry: Mocked<Library.Registry>;
+  let definitionMock: Mocked<Definition<TestItem, 'test'>>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // @ts-ignore
     mockItem = {
@@ -41,7 +23,7 @@ describe('all', () => {
         pk: '123'
       },
       testColumn: 'test',
-      get: jest.fn().mockReturnValue({
+      get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test',
         deletedAt: '2024-01-01',
@@ -51,10 +33,16 @@ describe('all', () => {
       })
     } as unknown as TestItem;
 
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
+
     mockModel = {
-      findAll: jest.fn().mockReturnValue([mockItem]),
+      findAll: vi.fn().mockReturnValue([mockItem]),
       associations: {},
-      getAttributes: jest.fn().mockReturnValue({
+      getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
         deletedAt: {},
@@ -65,7 +53,7 @@ describe('all', () => {
     } as any;
 
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: {},
       testColumn: {},
       deletedAt: {},
@@ -78,22 +66,27 @@ describe('all', () => {
     definitionMock = {
       coordinate: {
         kta: ['test']
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
       }
     } as unknown as Definition<TestItem, 'test'>;
 
     // @ts-ignore
     mockModel = {
-      findAll: jest.fn(),
+      findAll: vi.fn(),
       associations: {}
     } as any;
   });
 
   it('should return empty array when no matches found', async () => {
     // @ts-ignore
-    mockModel.findAll = jest.fn().mockResolvedValue([]);
+    mockModel.findAll = vi.fn().mockResolvedValue([]);
 
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: {},
       testColumn: {},
       deletedAt: {},
@@ -103,7 +96,7 @@ describe('all', () => {
     });
 
     const query: ItemQuery = {};
-    const result = await getAllOperation([mockModel], definitionMock)(query, []);
+    const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
 
     expect(result).toEqual([]);
     expect(mockModel.findAll).toHaveBeenCalled();
@@ -115,15 +108,15 @@ describe('all', () => {
       { get: () => ({ id: '2', name: 'Item 2' }) }
     ];
     // @ts-ignore
-    mockModel.findAll = jest.fn().mockResolvedValue(mockItems);
+    mockModel.findAll = vi.fn().mockResolvedValue(mockItems);
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: {},
       name: {}
     });
 
     const query: ItemQuery = {};
-    const result = await getAllOperation([mockModel], definitionMock)(query, []);
+    const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({
@@ -141,11 +134,16 @@ describe('all', () => {
   it('should handle location key constraints', async () => {
     type TestItem = Item<'test', 'order'>;
 
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order'>> = {
+    const definitionMock: Mocked<Definition<TestItem, 'test', 'order'>> = {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
       },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
+      }
     } as any;
 
     // @ts-ignore
@@ -155,7 +153,7 @@ describe('all', () => {
       },
     };
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: {},
       testColumn: {},
       deletedAt: {},
@@ -164,14 +162,14 @@ describe('all', () => {
       isDeleted: {}
     });
     // @ts-ignore
-    mockModel.findAll = jest.fn().mockResolvedValue([]);
+    mockModel.findAll = vi.fn().mockResolvedValue([]);
 
     const query: ItemQuery = {};
     const locations = [{ kt: 'order', lk: '123' }] as LocKeyArray<'order'>;
 
     await getAllOperation<
       Item<'test', 'order'>, 'test', 'order'
-    >([mockModel], definitionMock)(query, locations);
+    >([mockModel], definitionMock, mockRegistry)(query, locations);
 
     expect(mockModel.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -196,17 +194,22 @@ describe('all', () => {
       { kt: 'customer', lk: '456' }
     ] as LocKeyArray<'order', 'customer'>;
 
-    const definitionMock: jest.Mocked<Definition<TestItem, 'test', 'order', 'customer'>> = {
+    const definitionMock: Mocked<Definition<TestItem, 'test', 'order', 'customer'>> = {
       coordinate: {
         kta: ['test', 'order', 'customer'],
         scopes: []
       },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
+      }
     } as any;
 
     await expect(
       getAllOperation<
         Item<'test', 'order', 'customer'>, 'test', 'order', 'customer'
-      >([mockModel], definitionMock)(query, locations)
+      >([mockModel], definitionMock, mockRegistry)(query, locations)
     ).rejects.toThrow('Not implemented for more than one location key');
   });
 
@@ -214,7 +217,7 @@ describe('all', () => {
     // @ts-ignore
     mockModel.associations = {};
     // @ts-ignore
-    mockModel.getAttributes = jest.fn().mockReturnValue({
+    mockModel.getAttributes = vi.fn().mockReturnValue({
       id: {},
       testColumn: {},
       deletedAt: {},
