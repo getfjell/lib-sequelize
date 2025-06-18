@@ -21,7 +21,7 @@ export default defineConfig({
     // }),
     dts({
       entryRoot: 'src',
-      outDir: 'dist',
+      outDir: 'dist/types',
       exclude: ['./tests/**/*.ts'],
       include: ['./src/**/*.ts'],
     }),
@@ -36,17 +36,29 @@ export default defineConfig({
     outDir: 'dist',
     lib: {
       entry: './src/index.ts',
-      formats: ['es'],
+      formats: ['es', 'cjs'],
     },
     rollupOptions: {
       input: 'src/index.ts',
-      output: {
-        format: 'esm',
-        entryFileNames: '[name].js',
-        preserveModules: true,
-        exports: 'named',
-        sourcemap: 'inline',
-      },
+      external: ['@fjell/lib'],
+      output: [
+        {
+          format: 'esm',
+          dir: 'dist/es',
+          entryFileNames: '[name].js',
+          preserveModules: true,
+          exports: 'named',
+          sourcemap: 'inline',
+        },
+        {
+          format: 'cjs',
+          dir: 'dist/cjs',
+          entryFileNames: '[name].cjs',
+          preserveModules: true,
+          exports: 'named',
+          sourcemap: 'inline',
+        },
+      ]
     },
     // Make sure Vite generates ESM-compatible code
     modulePreload: false,
