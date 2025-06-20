@@ -1,10 +1,11 @@
 /* eslint-disable indent */
-import { ComKey, Item, LocKeyArray, PriKey, TypesProperties } from "@fjell/core";
+import { ComKey, isComKey, isPriKey, Item, LocKeyArray, PriKey, TypesProperties, validateKeys } from "@fjell/core";
 
-import LibLogger from '@/logger';
-import { ModelStatic } from "sequelize";
 import { Definition } from "@/Definition";
+import LibLogger from '@/logger';
+import { processRow } from "@/RowProcessor";
 import * as Library from "@fjell/lib";
+import { ModelStatic } from "sequelize";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
 
@@ -17,11 +18,9 @@ export const getCreateOperation = <
   L4 extends string = never,
   L5 extends string = never
 >(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   models: ModelStatic<any>[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   registry: Library.Registry
 ) => {
 
@@ -37,7 +36,65 @@ export const getCreateOperation = <
   ): Promise<V> => {
     logger.default('Create', { item, options });
 
-    throw new Error('Not implemented');
+    const { coordinate, options: { references, aggregations } } = definition;
+    const { kta } = coordinate;
+
+    // Get the primary model (first model in array)
+    const model = models[0];
+    const modelAttributes = model.getAttributes();
+
+    // Validate that all item attributes exist on the model
+    const itemData = { ...item } as any;
+    for (const key of Object.keys(itemData)) {
+      if (!modelAttributes[key]) {
+        throw new Error(`Attribute '${key}' does not exist on model ${model.name}`);
+      }
+    }
+
+    // Handle key options
+    // If a key is supplied, assume its contents are to be assigned to the appropriate ids.
+    // For most cases this will be null as key generation is often through autoIncrement.
+    // If this is a CItem then the locations will be present.
+    if (options?.key) {
+      const key = options.key;
+      if (isPriKey(key)) {
+        // Set the primary key
+        itemData.id = key.pk;
+      } else if (isComKey(key)) {
+        // Set primary key and location keys
+        itemData.id = key.pk;
+
+        // Add location foreign keys
+        const comKey = key as ComKey<S, L1, L2, L3, L4, L5>;
+        for (const locKey of comKey.loc) {
+          const foreignKeyField = locKey.kt + 'Id';
+          if (!modelAttributes[foreignKeyField]) {
+            throw new Error(`Foreign key field '${foreignKeyField}' does not exist on model ${model.name}`);
+          }
+          itemData[foreignKeyField] = locKey.lk;
+        }
+      }
+    }
+
+    // Handle locations options
+    // Handle locations options
+    // This is the most frequent way relationship ids will be set
+    if (options?.locations) {
+      for (const locKey of options.locations) {
+        const foreignKeyField = locKey.kt + 'Id';
+        if (!modelAttributes[foreignKeyField]) {
+          throw new Error(`Foreign key field '${foreignKeyField}' does not exist on model ${model.name}`);
+        }
+        itemData[foreignKeyField] = locKey.lk;
+      }
+    }
+
+    // Create the record
+    const createdRecord = await model.create(itemData);
+
+    // Add key and events
+    const processedRecord = await processRow(createdRecord, kta, references, aggregations, registry);
+    return validateKeys(processedRecord, kta) as V;
   }
 
   return create;

@@ -11,7 +11,6 @@ type TestItemOrder = import('@fjell/core').Item<'test', 'order'>;
 describe('create', () => {
   let mockModel: ModelStatic<any>;
   let mockRegistry: Mocked<Library.Registry>;
-  let definitionMock: Mocked<Definition<TestItem, 'test'>>;
 
   beforeEach(() => {
     mockRegistry = {
@@ -22,11 +21,13 @@ describe('create', () => {
 
     mockModel = {
       create: vi.fn(),
+      name: 'TestModel',
       getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
         createdAt: {},
-        updatedAt: {}
+        updatedAt: {},
+        orderId: {}
       }),
     } as any;
   });
@@ -40,23 +41,34 @@ describe('create', () => {
       coordinate: {
         kta: ['test'],
         scopes: []
+      },
+      options: {
+        references: [],
+        aggregations: []
       }
     } as any;
 
     const mockCreatedItem = {
       get: vi.fn().mockReturnValue({
         id: '123',
-        testColumn: 'test'
+        testColumn: 'test',
+        createdAt: new Date(),
+        updatedAt: new Date()
       })
     };
 
-    // @ts-ignore
     mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
-    await expect(
-      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem)
-    ).rejects.toThrow('Not implemented');
+    const result = await getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem);
 
+    expect(mockModel.create).toHaveBeenCalledWith(expect.objectContaining({
+      testColumn: 'test'
+    }));
+    expect(result.key).toEqual(expect.objectContaining({
+      kt: 'test',
+      pk: expect.any(String)
+    }));
+    expect(result.testColumn).toBe('test');
   });
 
   it('should create item with ComKey using location', async () => {
@@ -64,6 +76,10 @@ describe('create', () => {
       coordinate: {
         kta: ['test', 'order'],
         scopes: []
+      },
+      options: {
+        references: [],
+        aggregations: []
       }
     } as any;
 
@@ -77,17 +93,25 @@ describe('create', () => {
       get: vi.fn().mockReturnValue({
         id: '123',
         orderId: '456',
-        testColumn: 'test'
+        testColumn: 'test',
+        createdAt: new Date(),
+        updatedAt: new Date()
       })
     };
 
-    // @ts-ignore
     mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
-    await expect(
-      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { locations: location })
-    ).rejects.toThrow('Not implemented');
+    const result = await getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { locations: location });
 
+    expect(mockModel.create).toHaveBeenCalledWith(expect.objectContaining({
+      testColumn: 'test',
+      orderId: '456'
+    }));
+    expect(result.key).toEqual({
+      kt: 'test',
+      pk: expect.any(String),
+      loc: [{ kt: 'order', lk: '456' }]
+    });
   });
 
   it('should create item with specified ID', async () => {
@@ -98,7 +122,9 @@ describe('create', () => {
     const mockCreatedItem = {
       get: vi.fn().mockReturnValue({
         id: 'custom-id',
-        testColumn: 'test'
+        testColumn: 'test',
+        createdAt: new Date(),
+        updatedAt: new Date()
       })
     };
 
@@ -108,15 +134,25 @@ describe('create', () => {
       coordinate: {
         kta: ['test'],
         scopes: []
+      },
+      options: {
+        references: [],
+        aggregations: []
       }
     } as any;
 
-    // @ts-ignore
     mockModel.create = vi.fn().mockResolvedValue(mockCreatedItem);
 
-    await expect(
-      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { key })
-    ).rejects.toThrow('Not implemented');
+    const result = await getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { key });
+
+    expect(mockModel.create).toHaveBeenCalledWith(expect.objectContaining({
+      testColumn: 'test',
+      id: 'custom-id'
+    }));
+    expect(result.key).toEqual({
+      kt: 'test',
+      pk: 'custom-id'
+    });
   });
 
   it('should throw error if location key type not found in model', async () => {
@@ -124,11 +160,21 @@ describe('create', () => {
       testColumn: 'test'
     };
 
-    const location = [{ kt: 'invalidType', lk: '456' }] as LocKeyArray<'invalidType'>;
+    const location = [{ kt: 'invalidType', lk: '456' }] as any;
+
+    const definitionMock: Mocked<Definition<TestItem, 'test'>> = {
+      coordinate: {
+        kta: ['test'],
+        scopes: []
+      },
+      options: {
+        references: [],
+        aggregations: []
+      }
+    } as any;
 
     await expect(
-      // @ts-ignore
-      getCreateOperation([mockModel], definitionMock)(newItem, { locations: location })
-    ).rejects.toThrow('Not implemented');
+      getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { locations: location })
+    ).rejects.toThrow('Foreign key field \'invalidTypeId\' does not exist on model TestModel');
   });
 });
