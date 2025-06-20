@@ -20,7 +20,30 @@ describe('QueryBuilder', () => {
         orderField: {},
         categoryId: {},
         domainId: {},
-      })
+      }),
+      associations: {
+        phase: {
+          target: {
+            name: 'Phase',
+            getAttributes: () => ({
+              id: {},
+              code: {},
+              name: {},
+              position: {},
+            })
+          }
+        },
+        user: {
+          target: {
+            name: 'User',
+            getAttributes: () => ({
+              id: {},
+              email: {},
+              name: {},
+            })
+          }
+        }
+      }
     } as any;
   });
 
@@ -126,6 +149,81 @@ describe('QueryBuilder', () => {
       expect(() => addCondition({}, condition, mockModel))
         .toThrow('Operator != not supported');
     });
+
+    // Association tests
+    it('should add condition for association attribute', () => {
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '==',
+        value: 'DESIGN'
+      };
+
+      const result = addCondition({}, condition, mockModel);
+
+      expect(result).toEqual({
+        '$phase.code$': {
+          [Op.eq]: 'DESIGN'
+        }
+      });
+    });
+
+    it('should add condition for association attribute with different operators', () => {
+      const condition: Condition = {
+        column: 'phase.position',
+        operator: '>',
+        value: 1
+      };
+
+      const result = addCondition({}, condition, mockModel);
+
+      expect(result).toEqual({
+        '$phase.position$': {
+          [Op.gt]: 1
+        }
+      });
+    });
+
+    it('should throw error for non-existent association', () => {
+      const condition: Condition = {
+        column: 'nonExistentAssociation.attribute',
+        operator: '==',
+        value: 'test'
+      };
+
+      expect(() => addCondition({}, condition, mockModel))
+        .toThrow('Association nonExistentAssociation not found on model TestModel');
+    });
+
+    it('should throw error for non-existent attribute on associated model', () => {
+      const condition: Condition = {
+        column: 'phase.nonExistentAttribute',
+        operator: '==',
+        value: 'test'
+      };
+
+      expect(() => addCondition({}, condition, mockModel))
+        .toThrow('Attribute nonExistentAttribute not found on associated model Phase for association phase');
+    });
+
+    it('should handle association with missing associations property', () => {
+      const modelWithoutAssociations = {
+        name: 'TestModel',
+        getAttributes: () => ({
+          testColumn: {},
+        }),
+        associations: null
+      } as any;
+
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '==',
+        value: 'test'
+      };
+
+      expect(() => addCondition({}, condition, modelWithoutAssociations))
+        .toThrow('Association phase not found on model TestModel');
+    });
+
   });
 
   describe('addCompoundCondition', () => {
@@ -239,6 +337,111 @@ describe('QueryBuilder', () => {
         limit: 10,
         offset: 5,
         order: [['orderField', 'asc']]
+      });
+    });
+
+    it('should automatically include associations when referenced in conditions', () => {
+      const itemQuery: ItemQuery = {
+        compoundCondition: {
+          compoundType: 'AND',
+          conditions: [
+            {
+              column: 'phase.code',
+              operator: '==',
+              value: 'DESIGN'
+            }
+          ]
+        }
+      };
+
+      const result = buildQuery(itemQuery, mockModel);
+
+      // Check that the query has the correct structure
+      // The compound condition should be added with a Symbol key (Op.and)
+      const whereSymbols = Object.getOwnPropertySymbols(result.where);
+      expect(whereSymbols).toHaveLength(1);
+
+      // Check that the association condition is present
+      const andConditions = result.where[whereSymbols[0]];
+      expect(andConditions).toHaveProperty('$phase.code$');
+
+      // Check that the operator and value are correctly set (as Symbol keys)
+      const phaseCondition = andConditions['$phase.code$'];
+      const phaseSymbols = Object.getOwnPropertySymbols(phaseCondition);
+      expect(phaseSymbols).toHaveLength(1);
+      expect(phaseCondition[phaseSymbols[0]]).toBe('DESIGN');
+
+      // Check that include property exists
+      expect(result).toHaveProperty('include');
+      expect(result.include).toBeInstanceOf(Array);
+      expect(result.include).toHaveLength(1);
+      expect(result.include[0]).toMatchObject({
+        model: mockModel.associations.phase.target,
+        as: 'phase',
+        required: false
+      });
+    });
+
+    it('should automatically include associations when referenced in conditions without deletedAt interference', () => {
+      // Create a model without deletedAt to avoid interference
+      const simpleModel = {
+        name: 'SimpleModel',
+        getAttributes: () => ({
+          testColumn: {},
+        }),
+        associations: {
+          phase: {
+            target: {
+              name: 'Phase',
+              getAttributes: () => ({
+                id: {},
+                code: {},
+                name: {},
+                position: {},
+              })
+            }
+          }
+        }
+      } as any;
+
+      const itemQuery: ItemQuery = {
+        compoundCondition: {
+          compoundType: 'AND',
+          conditions: [
+            {
+              column: 'phase.code',
+              operator: '==',
+              value: 'DESIGN'
+            }
+          ]
+        }
+      };
+
+      const result = buildQuery(itemQuery, simpleModel);
+
+      // Check that the query has the correct structure
+      // The compound condition should be added with a Symbol key (Op.and)
+      const whereSymbols = Object.getOwnPropertySymbols(result.where);
+      expect(whereSymbols).toHaveLength(1);
+
+      // Check that the association condition is present
+      const andConditions = result.where[whereSymbols[0]];
+      expect(andConditions).toHaveProperty('$phase.code$');
+
+      // Check that the operator and value are correctly set (as Symbol keys)
+      const phaseCondition = andConditions['$phase.code$'];
+      const phaseSymbols = Object.getOwnPropertySymbols(phaseCondition);
+      expect(phaseSymbols).toHaveLength(1);
+      expect(phaseCondition[phaseSymbols[0]]).toBe('DESIGN');
+
+      // Check that include property exists
+      expect(result).toHaveProperty('include');
+      expect(result.include).toBeInstanceOf(Array);
+      expect(result.include).toHaveLength(1);
+      expect(result.include[0]).toMatchObject({
+        model: simpleModel.associations.phase.target,
+        as: 'phase',
+        required: false
       });
     });
 
