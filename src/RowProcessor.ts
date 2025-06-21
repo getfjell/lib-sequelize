@@ -29,7 +29,7 @@ export const processRow = async <S extends string,
   logger.default('Processing Row', { row });
   let item = row.get({ plain: true }) as any;
   logger.default('Adding Key to Item with Key Types: %s', stringifyJSON(keyTypes));
-  item = addKey(item, keyTypes);
+  item = addKey(row, item, keyTypes);
   item = populateEvents(item);
   logger.default('Key Added to Item: %s', stringifyJSON(item.key));
   if (referenceDefinitions && referenceDefinitions.length > 0) {

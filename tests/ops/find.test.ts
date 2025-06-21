@@ -34,19 +34,30 @@ describe('find', () => {
     } as unknown as Mocked<Library.Registry>;
 
     mockModel = {
+      name: 'TestModel',
       findAll: vi.fn(),
+      primaryKeyAttribute: 'id',
+      associations: {
+        order: {
+          target: {
+            name: 'Order',
+            getAttributes: () => ({ id: {} })
+          }
+        }
+      },
       getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
         createdAt: {},
-        updatedAt: {}
+        updatedAt: {},
+        orderId: {}
       }),
     } as any;
   });
 
   it('should call finder method when finder exists', async () => {
     // @ts-ignore
-    const mockFinderMethod = vi.fn().mockResolvedValue([{ id: '123', testColumn: 'test', orderId: '2324', get: vi.fn().mockReturnThis() }]);
+    const mockFinderMethod = vi.fn().mockResolvedValue([{ id: '123', testColumn: 'test', orderId: '2324', constructor: mockModel, get: vi.fn().mockReturnThis() }]);
     definitionMock.options = {
       finders: {
         // @ts-ignore

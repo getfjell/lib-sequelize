@@ -88,6 +88,31 @@ export const populateEvents = <
   return item;
 }
 
+export const extractEvents = <
+  S extends string,
+  L1 extends string = never,
+  L2 extends string = never,
+  L3 extends string = never,
+  L4 extends string = never,
+  L5 extends string = never
+>(item: ItemProperties<S, L1, L2, L3, L4, L5>): ItemProperties<S, L1, L2, L3, L4, L5> => {
+  logger.default('Extracting Events to database fields', { item });
+
+  if (item.events) {
+    if (item.events.created?.at) {
+      item.createdAt = item.events.created.at;
+    }
+    if (item.events.updated?.at) {
+      item.updatedAt = item.events.updated.at;
+    }
+    if (item.events.deleted?.at) {
+      item.deletedAt = item.events.deleted.at;
+    }
+  }
+
+  return item;
+}
+
 export const removeEvents = <
   S extends string,
   L1 extends string = never,
