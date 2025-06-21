@@ -6,8 +6,52 @@ import LibLogger from '@/logger';
 import { processRow } from "@/RowProcessor";
 import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
+import { extractEvents, removeEvents } from "@/EventCoordinator";
+import { buildRelationshipChain, buildRelationshipPath } from "@/util/relationshipUtils";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
+
+// Helper function to validate hierarchical chain exists
+async function validateHierarchicalChain(
+  models: ModelStatic<any>[],
+  locKey: { kt: string; lk: any },
+  kta: string[]
+): Promise<void> {
+  // Find the direct parent model that contains this locator
+  const locatorIndex = kta.indexOf(locKey.kt);
+  if (locatorIndex === -1) {
+    throw new Error(`Locator type '${locKey.kt}' not found in kta array`);
+  }
+
+  // Get the model for this locator
+  const locatorModel = models[locatorIndex] || models[0]; // Fallback to primary model
+
+  // Build a query to validate the chain exists
+  const chainResult = buildRelationshipChain(locatorModel, kta, locatorIndex, kta.length - 1);
+
+  if (!chainResult.success) {
+    // If we can't build a chain, just validate the record exists
+    const record = await locatorModel.findByPk(locKey.lk);
+    if (!record) {
+      throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist`);
+    }
+    return;
+  }
+
+  // Validate that the chain exists
+  const queryOptions: any = {
+    where: { id: locKey.lk }
+  };
+
+  if (chainResult.includes && chainResult.includes.length > 0) {
+    queryOptions.include = chainResult.includes;
+  }
+
+  const record = await locatorModel.findOne(queryOptions);
+  if (!record) {
+    throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist or chain is invalid`);
+  }
+}
 
 export const getCreateOperation = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -44,7 +88,12 @@ export const getCreateOperation = <
     const modelAttributes = model.getAttributes();
 
     // Validate that all item attributes exist on the model
-    const itemData = { ...item } as any;
+    let itemData = { ...item } as any;
+
+    // TODO: We need the opposite of processRow, something to step down from fjell to database.
+    itemData = extractEvents(itemData);
+    itemData = removeEvents(itemData);
+
     for (const key of Object.keys(itemData)) {
       if (!modelAttributes[key]) {
         throw new Error(`Attribute '${key}' does not exist on model ${model.name}`);
@@ -61,31 +110,76 @@ export const getCreateOperation = <
         // Set the primary key
         itemData.id = key.pk;
       } else if (isComKey(key)) {
-        // Set primary key and location keys
+        // Set primary key
         itemData.id = key.pk;
 
-        // Add location foreign keys
+        // Process location keys - only set direct foreign keys, validate hierarchical chains
         const comKey = key as ComKey<S, L1, L2, L3, L4, L5>;
+        const directLocations: Array<{ kt: string; lk: any }> = [];
+        const hierarchicalLocations: Array<{ kt: string; lk: any }> = [];
+
+        // Categorize location keys as direct or hierarchical
         for (const locKey of comKey.loc) {
-          const foreignKeyField = locKey.kt + 'Id';
-          if (!modelAttributes[foreignKeyField]) {
-            throw new Error(`Foreign key field '${foreignKeyField}' does not exist on model ${model.name}`);
+          const relationshipInfo = buildRelationshipPath(model, locKey.kt, kta, true);
+
+          if (!relationshipInfo.found) {
+            const errorMessage = `Composite key locator '${locKey.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
+            logger.error(errorMessage, { key: comKey, kta });
+            throw new Error(errorMessage);
           }
+
+          if (relationshipInfo.isDirect) {
+            directLocations.push(locKey);
+          } else {
+            hierarchicalLocations.push(locKey);
+          }
+        }
+
+        // Set direct foreign keys
+        for (const locKey of directLocations) {
+          const foreignKeyField = locKey.kt + 'Id';
           itemData[foreignKeyField] = locKey.lk;
+        }
+
+        // Validate hierarchical chains exist
+        for (const locKey of hierarchicalLocations) {
+          await validateHierarchicalChain(models, locKey, kta);
         }
       }
     }
 
     // Handle locations options
-    // Handle locations options
     // This is the most frequent way relationship ids will be set
     if (options?.locations) {
+      const directLocations: Array<{ kt: string; lk: any }> = [];
+      const hierarchicalLocations: Array<{ kt: string; lk: any }> = [];
+
+      // Categorize location keys as direct or hierarchical
       for (const locKey of options.locations) {
-        const foreignKeyField = locKey.kt + 'Id';
-        if (!modelAttributes[foreignKeyField]) {
-          throw new Error(`Foreign key field '${foreignKeyField}' does not exist on model ${model.name}`);
+        const relationshipInfo = buildRelationshipPath(model, locKey.kt, kta, true);
+
+        if (!relationshipInfo.found) {
+          const errorMessage = `Location key '${locKey.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
+          logger.error(errorMessage, { locations: options.locations, kta });
+          throw new Error(errorMessage);
         }
+
+        if (relationshipInfo.isDirect) {
+          directLocations.push(locKey);
+        } else {
+          hierarchicalLocations.push(locKey);
+        }
+      }
+
+      // Set direct foreign keys
+      for (const locKey of directLocations) {
+        const foreignKeyField = locKey.kt + 'Id';
         itemData[foreignKeyField] = locKey.lk;
+      }
+
+      // Validate hierarchical chains exist
+      for (const locKey of hierarchicalLocations) {
+        await validateHierarchicalChain(models, locKey, kta);
       }
     }
 
