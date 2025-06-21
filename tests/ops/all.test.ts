@@ -16,6 +16,27 @@ describe('all', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    mockRegistry = {
+      get: vi.fn(),
+      libTree: vi.fn(),
+      register: vi.fn(),
+    } as unknown as Mocked<Library.Registry>;
+
+    mockModel = {
+      name: 'TestModel',
+      findAll: vi.fn(),
+      associations: {},
+      primaryKeyAttribute: 'id',
+      getAttributes: vi.fn().mockReturnValue({
+        id: {},
+        testColumn: {},
+        deletedAt: {},
+        createdAt: {},
+        updatedAt: {},
+        isDeleted: {}
+      }),
+    } as any;
+
     // @ts-ignore
     mockItem = {
       key: {
@@ -23,6 +44,7 @@ describe('all', () => {
         pk: '123'
       },
       testColumn: 'test',
+      constructor: mockModel,
       get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test',
@@ -33,24 +55,7 @@ describe('all', () => {
       })
     } as unknown as TestItem;
 
-    mockRegistry = {
-      get: vi.fn(),
-      libTree: vi.fn(),
-      register: vi.fn(),
-    } as unknown as Mocked<Library.Registry>;
-
-    mockModel = {
-      findAll: vi.fn().mockReturnValue([mockItem]),
-      associations: {},
-      getAttributes: vi.fn().mockReturnValue({
-        id: {},
-        testColumn: {},
-        deletedAt: {},
-        createdAt: {},
-        updatedAt: {},
-        isDeleted: {}
-      }),
-    } as any;
+    mockModel.findAll = vi.fn().mockReturnValue([mockItem]);
 
     // @ts-ignore
     mockModel.getAttributes = vi.fn().mockReturnValue({
@@ -74,11 +79,7 @@ describe('all', () => {
       }
     } as unknown as Definition<TestItem, 'test'>;
 
-    // @ts-ignore
-    mockModel = {
-      findAll: vi.fn(),
-      associations: {}
-    } as any;
+    // Remove duplicate mockModel definition - already defined above
   });
 
   it('should return empty array when no matches found', async () => {
@@ -104,8 +105,16 @@ describe('all', () => {
 
   it('should return matched items', async () => {
     const mockItems = [
-      { get: () => ({ id: '1', name: 'Item 1' }) },
-      { get: () => ({ id: '2', name: 'Item 2' }) }
+      {
+        id: '1',
+        constructor: mockModel,
+        get: () => ({ id: '1', name: 'Item 1' })
+      },
+      {
+        id: '2',
+        constructor: mockModel,
+        get: () => ({ id: '2', name: 'Item 2' })
+      }
     ];
     // @ts-ignore
     mockModel.findAll = vi.fn().mockResolvedValue(mockItems);
