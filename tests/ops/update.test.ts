@@ -38,8 +38,10 @@ describe('update', () => {
     };
 
     mockModel = {
+      name: 'TestModel',
       findByPk: vi.fn(),
       findOne: vi.fn(),
+      primaryKeyAttribute: 'id',
       getAttributes: vi.fn().mockReturnValue({
         id: { type: DataTypes.STRING, allowNull: false },
         name: { type: DataTypes.STRING, allowNull: false },
@@ -66,6 +68,7 @@ describe('update', () => {
 
       const mockResponse = {
         ...mockItem,
+        constructor: mockModel,
         save: vi.fn(),
         update: vi.fn().mockImplementation((props) => {
           const updatedItem = { ...mockItem, ...props };
@@ -126,6 +129,7 @@ describe('update', () => {
 
       const mockResponse = {
         ...mockItem,
+        constructor: mockModel,
         save: vi.fn(),
         update: vi.fn().mockImplementation((props) => {
           const updatedItem = { ...mockItem, ...props };

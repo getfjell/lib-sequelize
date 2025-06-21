@@ -35,7 +35,7 @@ export const createOperations = <
   operations.get = getGetOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.remove = getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.find = getFindOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.upsert = () => {
+  operations.upsert = async () => {
     throw new Error('Not implemented');
   };
 
