@@ -10,8 +10,8 @@ import {
   PriKey,
   References
 } from '@fjell/core';
-  
-import { ModelStatic, Op } from 'sequelize';
+
+import { Association, ModelStatic, Op } from 'sequelize';
 import LibLogger from '@/logger';
 
 const logger = LibLogger.get('sequelize', 'QueryBuilder');
@@ -21,15 +21,16 @@ export type QueryOptions = {
   limit?: number;
   offset?: number;
   order?: Array<[string, string]>;
+  include?: Array<any>;
 }
 
 const addDeleteQuery = (options: QueryOptions, model: ModelStatic<any>): QueryOptions => {
   logger.default('Adding Delete Query', { options });
-  if(model.getAttributes().deletedAt) {
+  if (model.getAttributes().deletedAt) {
     options.where['deletedAt'] = {
       [Op.eq]: null
     }
-  } else if(model.getAttributes().isDeleted) {
+  } else if (model.getAttributes().isDeleted) {
     options.where['isDeleted'] = {
       [Op.eq]: false
     }
@@ -37,13 +38,13 @@ const addDeleteQuery = (options: QueryOptions, model: ModelStatic<any>): QueryOp
 
   return options;
 }
-  
+
 const addEventQueries = (
   options: QueryOptions, events: Record<string, EventQuery>, model: ModelStatic<any>): QueryOptions => {
   logger.default('Adding Event Queries', { options, events });
   Object.keys(events).forEach((key: string) => {
 
-    if(!model.getAttributes()[`${key}At`]) {
+    if (!model.getAttributes()[`${key}At`]) {
       throw new Error(`Event ${key} is not supported on this model, column ${key}At not found`);
     }
 
@@ -57,8 +58,8 @@ const addEventQueries = (
       whereClauses = { ...whereClauses, [Op.lt]: new Date(event.end) };
     }
 
-    if(event.by) {
-      if(!model.getAttributes()[`${key}By`]) {
+    if (event.by) {
+      if (!model.getAttributes()[`${key}By`]) {
         throw new Error(`Event ${key} is not supported on this model, column ${key}By not found`);
       }
       whereClauses = { ...whereClauses, [Op.eq]: event.by };
@@ -77,7 +78,7 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
   Object.keys(references).forEach((key: string) => {
     logger.default('Adding Reference Query', { key, references });
 
-    if(!model.getAttributes()[`${key}Id`]) {
+    if (!model.getAttributes()[`${key}Id`]) {
       throw new Error(`Reference ${key} is not supported on this model, column ${key}Id not found`);
     }
 
@@ -95,61 +96,192 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
 }
 
 export const addCompoundCondition = (options: any, compoundCondition: CompoundCondition, model: ModelStatic<any>) => {
-  const where: Record<symbol, any> = {};
-  
+  // Ensure options.where exists
+  options.where = options.where || {};
+
   let compoundOp: symbol;
   const compoundType = compoundCondition.compoundType;
-  if( compoundType === "AND" ) {
+  if (compoundType === "AND") {
     compoundOp = Op.and;
   } else {
     compoundOp = Op.or;
   };
 
-  let conditions: Record<symbol, any> = {};
+  let conditions: Record<string, any> = {};
   compoundCondition.conditions.forEach((condition: Condition | CompoundCondition) => {
-    if(isCondition(condition)) {
-      conditions = addCondition(conditions,condition, model);
+    if (isCondition(condition)) {
+      conditions = addCondition(conditions, condition, model);
     } else {
       throw new Error('Nest Compound conditions not supported');
     }
   });
 
-  where[compoundOp] = conditions;
-  options.where = where;
+  // Merge with existing where conditions instead of replacing
+  if (Object.keys(options.where).length > 0) {
+    // If there are existing conditions, wrap everything in an AND
+    options.where = {
+      [Op.and]: [
+        options.where,
+        { [compoundOp]: conditions }
+      ]
+    };
+  } else {
+    // If no existing conditions, just set the compound condition
+    options.where[compoundOp] = conditions;
+  }
 
   return options;
 }
 
-export const addCondition = (conditions: Record<string, any>, condition: Condition, model: ModelStatic<any>) => {
-  let conditionOp: symbol;
-  const conditionColumn: string = condition.column;
+const getSequelizeOperator = (operator: string): symbol => {
+  if (operator === '==') {
+    return Op.eq;
+  } else if (operator === '<') {
+    return Op.lt;
+  } else if (operator === '>') {
+    return Op.gt;
+  } else if (operator === '<=') {
+    return Op.lte;
+  } else if (operator === '>=') {
+    return Op.gte;
+  } else if (operator === 'in') {
+    return Op.in;
+  } else {
+    throw new Error(`Operator ${operator} not supported`);
+  }
+};
 
-  if(!model.getAttributes()[conditionColumn]) {
+const addAssociationCondition = (
+  conditions: Record<string, any>,
+  condition: Condition,
+  model: ModelStatic<any>
+): Record<string, any> => {
+  const [associationName, attributeName] = condition.column.split('.', 2);
+
+  // Check if the association exists on the model
+  if (!model.associations || !model.associations[associationName]) {
+    throw new Error(`Association ${associationName} not found on model ${model.name}`);
+  }
+
+  const association: Association<any, any> = model.associations[associationName];
+  const associatedModel = association.target;
+
+  // Check if the attribute exists on the associated model
+  if (!associatedModel.getAttributes()[attributeName]) {
+    throw new Error(`Attribute ${attributeName} not found on associated model ${associatedModel.name} for association ${associationName}`);
+  }
+
+  // Use Sequelize's $association.attribute$ syntax for querying associated models
+  const sequelizeAssociationColumn = `$${associationName}.${attributeName}$`;
+  const conditionOp = getSequelizeOperator(condition.operator);
+
+  conditions[sequelizeAssociationColumn] = {
+    [conditionOp]: condition.value
+  };
+
+  return conditions;
+};
+
+const addAttributeCondition = (
+  conditions: Record<string, any>,
+  condition: Condition,
+  model: ModelStatic<any>
+): Record<string, any> => {
+  const conditionColumn = condition.column;
+
+  if (!model.getAttributes()[conditionColumn]) {
     throw new Error(`Condition column ${conditionColumn} not found on model ${model.name}`);
   }
 
-  if(condition.operator === '==') {
-    conditionOp = Op.eq;
-  } else if(condition.operator === '<') {
-    conditionOp = Op.lt;
-  } else if(condition.operator === '>') {
-    conditionOp = Op.gt;
-  } else if(condition.operator === '<=') {
-    conditionOp = Op.lte;
-  } else if(condition.operator === '>=') {
-    conditionOp = Op.gte;
-  } else if(condition.operator === 'in') {
-    conditionOp = Op.in;
-  } else {
-    throw new Error(`Operator ${condition.operator} not supported`);
-  }
+  const conditionOp = getSequelizeOperator(condition.operator);
 
   conditions[conditionColumn] = {
     [conditionOp]: condition.value
-  }
+  };
 
   return conditions;
+};
+
+export const addCondition = (conditions: Record<string, any>, condition: Condition, model: ModelStatic<any>) => {
+  const conditionColumn: string = condition.column;
+
+  // Check if this is an association query (contains a dot)
+  if (conditionColumn.includes('.')) {
+    return addAssociationCondition(conditions, condition, model);
+  }
+
+  // Handle regular column queries
+  return addAttributeCondition(conditions, condition, model);
 }
+
+const collectAssociationsFromConditions = (conditions: any): Set<string> => {
+  const associations = new Set<string>();
+
+  const processObject = (obj: any) => {
+    if (typeof obj === 'object' && obj !== null) {
+      // Check string keys
+      Object.keys(obj).forEach(key => {
+        // Check if this is an association reference ($association.attribute$)
+        if (typeof key === 'string' && key.startsWith('$') && key.endsWith('$') && key.includes('.')) {
+          const associationName = key.substring(1, key.indexOf('.'));
+          associations.add(associationName);
+        }
+
+        // Recursively process nested objects
+        if (typeof obj[key] === 'object') {
+          processObject(obj[key]);
+        }
+      });
+
+      // Also check Symbol keys (for compound conditions like Op.and, Op.or)
+      Object.getOwnPropertySymbols(obj).forEach(symbol => {
+        if (typeof obj[symbol] === 'object') {
+          processObject(obj[symbol]);
+        }
+      });
+    }
+
+    // Handle arrays (for compound conditions that might be arrays)
+    if (Array.isArray(obj)) {
+      obj.forEach(item => {
+        if (typeof item === 'object') {
+          processObject(item);
+        }
+      });
+    }
+  };
+
+  processObject(conditions);
+  return associations;
+};
+
+const addAssociationIncludes = (options: any, model: ModelStatic<any>): any => {
+  // Collect all association names used in conditions
+  const referencedAssociations = collectAssociationsFromConditions(options.where);
+
+  if (referencedAssociations.size > 0) {
+    options.include = options.include || [];
+
+    // Add each referenced association to the include array
+    referencedAssociations.forEach(associationName => {
+      // Check if this association is already included
+      const alreadyIncluded = options.include.some((inc: any) =>
+        (typeof inc === 'string' && inc === associationName) ||
+        (typeof inc === 'object' && inc.association === associationName)
+      );
+
+      if (!alreadyIncluded && model.associations && model.associations[associationName]) {
+        options.include.push({
+          model: model.associations[associationName].target,
+          as: associationName,
+          required: false // Use LEFT JOIN so records without associations are still returned
+        });
+      }
+    });
+  }
+
+  return options;
+};
 
 export const buildQuery = (
   itemQuery: ItemQuery,
@@ -167,7 +299,7 @@ export const buildQuery = (
   }
 
   // If the model has a deletedAt column, we need to add a delete query
-  if(model.getAttributes().deletedAt || model.getAttributes().isDeleted) {
+  if (model.getAttributes().deletedAt || model.getAttributes().isDeleted) {
     options = addDeleteQuery(options, model);
   }
 
@@ -177,24 +309,24 @@ export const buildQuery = (
   if (itemQuery.events) {
     options = addEventQueries(options, itemQuery.events, model);
   }
-  
+
   // TODO: Once we start to support Aggs on the server-side, we'll need to parse agg queries
-  
+
   // Apply a limit to the result set
   if (itemQuery.limit) {
     logger.default('Limiting to', { limit: itemQuery.limit });
     options.limit = itemQuery.limit;
   }
-  
+
   // Apply an offset to the result set
   if (itemQuery.offset) {
     options.offset = itemQuery.offset;
   }
-  
+
   // Add orderBy to the query
   if (itemQuery.orderBy) {
     itemQuery.orderBy.forEach((orderBy: OrderBy) => {
-      if(!model.getAttributes()[orderBy.field]) {
+      if (!model.getAttributes()[orderBy.field]) {
         throw new Error(`Order by field ${orderBy.field} not found on model ${model.name}`);
       }
       options.order = [
@@ -203,6 +335,8 @@ export const buildQuery = (
     });
   }
 
+  // Add includes for any associations referenced in conditions
+  options = addAssociationIncludes(options, model);
+
   return options;
 }
-  

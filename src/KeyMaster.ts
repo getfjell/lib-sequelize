@@ -6,8 +6,52 @@ import {
 } from '@fjell/core';
 
 import LibLogger from '@/logger';
+import { Model, ModelStatic } from 'sequelize';
+import { buildRelationshipPath } from '@/util/relationshipUtils';
 
 const logger = LibLogger.get('sequelize', 'KeyMaster');
+
+// Helper function to extract location key value from item
+const extractLocationKeyValue = (
+  model: ModelStatic<any>,
+  item: any,
+  locatorType: string,
+  kta: string[]
+): any => {
+  logger.default('Extracting location key value', { locatorType, kta });
+
+  const relationshipInfo = buildRelationshipPath(model, locatorType, kta, true);
+
+  if (!relationshipInfo.found) {
+    throw new Error(`Location key '${locatorType}' cannot be resolved on model '${model.name}' or through its relationships.`);
+  }
+
+  if (relationshipInfo.isDirect) {
+    // Direct foreign key field
+    const foreignKeyField = `${locatorType}Id`;
+    const value = item[foreignKeyField];
+    if (typeof value === 'undefined' || value === null) {
+      throw new Error(`Direct foreign key field '${foreignKeyField}' is missing or null in item`);
+    }
+    return value;
+  } else {
+    // Need to traverse relationship
+    // Try to get the value from the loaded relationship object
+    const relationshipObject = item[locatorType];
+    if (relationshipObject && typeof relationshipObject.id !== 'undefined') {
+      return relationshipObject.id;
+    }
+
+    // If the relationship object isn't loaded, we might need to look at the foreign key field
+    // This handles cases where we have the foreign key but not the full object
+    const foreignKeyField = `${locatorType}Id`;
+    if (typeof item[foreignKeyField] !== 'undefined' && item[foreignKeyField] !== null) {
+      return item[foreignKeyField];
+    }
+
+    throw new Error(`Unable to extract location key for '${locatorType}'. Neither the relationship object nor direct foreign key is available.`);
+  }
+};
 
 export const removeKey = <
   S extends string,
@@ -60,31 +104,36 @@ export const addKey = <
   L4 extends string = never,
   L5 extends string = never
 >(
+  model: Model<any, any>,
   item: Partial<Item<S, L1, L2, L3, L4, L5>>,
   keyTypes: AllItemTypeArrays<S, L1, L2, L3, L4, L5>
 ): Item<S, L1, L2, L3, L4, L5> => {
   logger.default('Adding Key', { item });
   const key = {};
+  const modelClass = model.constructor as ModelStatic<any>;
+  const primaryKeyAttr = modelClass.primaryKeyAttribute;
+
   if (Array.isArray(keyTypes) && keyTypes.length > 1) {
     const type = [...keyTypes];
     const pkType = type.shift();
-    Object.assign(key, { kt: pkType, pk: item.id });
-    // TODO: This is really just for primary items
-    if (type.length === 1) {
-      // TODO: This should be looking at the model to get the primary key of the reference item or association
-      const locKeyTypeId = type[0] + 'Id';
-      Object.assign(key, { loc: [{ kt: type[0], lk: item[locKeyTypeId] }] });
-    } else if (type.length === 2) {
-      throw new Error('Not implemented');
-    } else if (type.length === 3) {
-      throw new Error('Not implemented');
-    } else if (type.length === 4) {
-      throw new Error('Not implemented');
-    } else if (type.length === 5) {
-      throw new Error('Not implemented');
+    Object.assign(key, { kt: pkType, pk: item[primaryKeyAttr] });
+
+    // Build location keys for composite key
+    const locationKeys = [];
+    for (const locatorType of type) {
+      try {
+        const lk = extractLocationKeyValue(modelClass, item, locatorType, keyTypes as string[]);
+        locationKeys.push({ kt: locatorType, lk });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to extract location key for '${locatorType}'`, { error: errorMessage, item, keyTypes });
+        throw error;
+      }
     }
+
+    Object.assign(key, { loc: locationKeys });
   } else {
-    Object.assign(key, { kt: keyTypes[0], pk: item.id });
+    Object.assign(key, { kt: keyTypes[0], pk: item[primaryKeyAttr] });
   }
   Object.assign(item, { key });
   return item as Item<S, L1, L2, L3, L4, L5>;

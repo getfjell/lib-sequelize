@@ -6,7 +6,7 @@ import { isPriKey } from "@fjell/core";
 import { ComKey, Item, PriKey, TypesProperties } from "@fjell/core";
 
 import { Definition } from "@/Definition";
-import { removeEvents } from "@/EventCoordinator";
+import { extractEvents, removeEvents } from "@/EventCoordinator";
 import { removeKey } from "@/KeyMaster";
 import LibLogger from '@/logger';
 import { processRow } from "@/RowProcessor";
@@ -67,7 +67,9 @@ export const getUpdateOperation = <
 
       // Remove the key and events
       let updateProps = removeKey(item)
-      updateProps = removeEvents(item);
+      // TODO: We need the opposite of processRow, something to step down from fjell to database.
+      updateProps = extractEvents(updateProps);
+      updateProps = removeEvents(updateProps);
 
       logger.default('Response: %s', stringifyJSON(response));
       logger.default('Update Properties: %s', stringifyJSON(updateProps));

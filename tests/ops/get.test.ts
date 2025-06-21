@@ -18,8 +18,18 @@ describe('get', () => {
     vi.clearAllMocks();
 
     mockModel = {
+      name: 'TestModel',
       findByPk: vi.fn(),
       findOne: vi.fn(),
+      primaryKeyAttribute: 'id',
+      associations: {
+        order: {
+          target: {
+            name: 'Order',
+            getAttributes: () => ({ id: {} })
+          }
+        }
+      },
     } as any;
 
     mockRegistry = {
@@ -52,6 +62,7 @@ describe('get', () => {
     const mockItem = {
       id: '123',
       testColumn: 'test',
+      constructor: mockModel,
       get: vi.fn().mockReturnValue({
         id: '123',
         testColumn: 'test'
@@ -98,6 +109,7 @@ describe('get', () => {
       id: '123',
       orderId: '456',
       testColumn: 'test',
+      constructor: mockModel,
       get: vi.fn().mockReturnValue({
         id: '123',
         orderId: '456',
@@ -122,7 +134,15 @@ describe('get', () => {
       }
     });
     expect(mockModel.findOne).toHaveBeenCalledWith({
-      where: { id: '123', orderId: '456' }
+      where: {
+        id: '123',
+        '$order.orderId$': '456'
+      },
+      include: [{
+        model: mockModel.associations.order.target,
+        as: 'order',
+        required: true
+      }]
     });
   });
 

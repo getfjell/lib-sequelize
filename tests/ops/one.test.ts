@@ -22,6 +22,18 @@ describe('one', () => {
       register: vi.fn(),
     } as unknown as Mocked<Library.Registry>;
 
+    mockModel = {
+      name: 'TestModel',
+      // @ts-ignore
+      findAll: vi.fn(),
+      primaryKeyAttribute: 'id',
+      getAttributes: vi.fn().mockReturnValue({
+        id: { type: DataTypes.STRING, allowNull: false },
+        name: { type: DataTypes.STRING, allowNull: false },
+        status: { type: DataTypes.STRING, allowNull: false },
+      }),
+    } as any as Mocked<ModelStatic<any>>;
+
     // @ts-ignore
     mockItems = [
       {
@@ -32,6 +44,7 @@ describe('one', () => {
           deleted: { at: null },
         },
         name: 'Item 1',
+        constructor: mockModel,
         get: vi.fn().mockReturnValue({
           id: '1',
           name: 'Item 1',
@@ -40,15 +53,8 @@ describe('one', () => {
       },
     ] as Mocked<TestItem>[];
 
-    mockModel = {
-      // @ts-ignore
-      findAll: vi.fn().mockResolvedValue(mockItems),
-      getAttributes: vi.fn().mockReturnValue({
-        id: { type: DataTypes.STRING, allowNull: false },
-        name: { type: DataTypes.STRING, allowNull: false },
-        status: { type: DataTypes.STRING, allowNull: false },
-      }),
-    } as any as Mocked<ModelStatic<any>>;
+    // @ts-ignore
+    mockModel.findAll = vi.fn().mockResolvedValue(mockItems);
 
     definitionMock = {
       coordinate: {

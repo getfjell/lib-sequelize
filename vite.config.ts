@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { VitePluginNode } from 'vite-plugin-node';
 import dts from 'vite-plugin-dts';
 import path from 'path';
@@ -30,6 +30,30 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  // Vitest configuration
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      thresholds: {
+        global: {
+          lines: 97,
+          functions: 100,
+          branches: 96,
+          statements: 97
+        }
+      },
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'coverage/',
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        'vite.config.ts',
+        'eslint.config.mjs'
+      ]
+    }
   },
   build: {
     target: 'esnext',

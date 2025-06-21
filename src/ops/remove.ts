@@ -9,8 +9,48 @@ import { addKey } from "@/KeyMaster";
 import LibLogger from '@/logger';
 import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
+import { buildRelationshipPath } from "@/util/relationshipUtils";
 
 const logger = LibLogger.get('sequelize', 'ops', 'remove');
+
+// Helper function to process composite key and build query options
+const processCompositeKey = (
+  comKey: ComKey<any, any, any, any, any, any>,
+  model: ModelStatic<any>,
+  kta: string[]
+): { where: { [key: string]: any }; include?: any[] } => {
+  const where: { [key: string]: any } = { id: comKey.pk };
+  const includes: any[] = [];
+
+  for (const locator of comKey.loc) {
+    const relationshipInfo = buildRelationshipPath(model, locator.kt, kta);
+
+    if (!relationshipInfo.found) {
+      const errorMessage = `Composite key locator '${locator.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
+      logger.error(errorMessage, { key: comKey, kta });
+      throw new Error(errorMessage);
+    }
+
+    if (relationshipInfo.path) {
+      // This requires a relationship traversal
+      where[relationshipInfo.path] = locator.lk;
+      if (relationshipInfo.includes) {
+        includes.push(...relationshipInfo.includes);
+      }
+    } else {
+      // This is a direct field
+      const fieldName = `${locator.kt}Id`;
+      where[fieldName] = locator.lk;
+    }
+  }
+
+  const result: { where: { [key: string]: any }; include?: any[] } = { where };
+  if (includes.length > 0) {
+    result.include = includes;
+  }
+
+  return result;
+};
 
 export const getRemoveOperation = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -49,8 +89,16 @@ export const getRemoveOperation = <
     if (isPriKey(key)) {
       item = await model.findByPk((key as PriKey<S>).pk);
     } else if (isComKey(key)) {
+      // This is a composite key, so we need to build a where clause based on the composite key's locators
       const comKey = key as ComKey<S, L1, L2, L3, L4, L5>;
-      item = await model.findOne({ where: { id: comKey.pk, [comKey?.loc[0]?.kt + 'Id']: comKey?.loc[0]?.lk } });
+      const queryOptions = processCompositeKey(comKey, model, kta);
+
+      logger.default('Composite key query', { queryOptions });
+      item = await model.findOne(queryOptions);
+    }
+
+    if (!item) {
+      throw new Error(`Item not found for removal with key: ${abbrevIK(key)}`);
     }
 
     const isDeletedAttribute = model.getAttributes().isDeleted;
@@ -68,12 +116,12 @@ export const getRemoveOperation = <
       // Save the object
       await item?.save();
       returnItem = item?.get({ plain: true }) as ItemProperties<S, L1, L2, L3, L4, L5>;
-      returnItem = addKey(returnItem as any, kta);
+      returnItem = addKey(item, returnItem as any, kta);
       returnItem = populateEvents(returnItem);
     } else if (options.deleteOnRemove) {
       await item?.destroy();
       returnItem = item?.get({ plain: true }) as ItemProperties<S, L1, L2, L3, L4, L5>;
-      returnItem = addKey(returnItem as any, kta);
+      returnItem = addKey(item, returnItem as any, kta);
       returnItem = populateEvents(returnItem);
     } else {
       throw new Error('No deletedAt or isDeleted attribute found in model, and deleteOnRemove is not set');
