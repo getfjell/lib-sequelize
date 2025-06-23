@@ -1,6 +1,6 @@
 {
     "name": "@fjell/lib-sequelize",
-    "version": "4.4.2",
+    "version": "4.4.3",
     "license": "Apache-2.0",
     "description": "Sequelize Library for Fjell",
     "engines": {
@@ -30,7 +30,7 @@
     },
     "dependencies": {
         "@fjell/core": "^4.4.3",
-        "@fjell/lib": "^4.4.2",
+        "@fjell/lib": "^4.4.3",
         "@fjell/logging": "^4.4.3",
         "dayjs": "^1.11.13",
         "deepmerge": "^4.3.1",
@@ -65,7 +65,7 @@
         "vite-plugin-node": "^5.0.1",
         "vitest": "^3.2.4"
     },
-    "packageManager": "pnpm@10.11.0",
+    "packageManager": "pnpm@10.12.2",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/getfjell/lib-sequelize.git"
