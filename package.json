@@ -30,7 +30,7 @@
     },
     "dependencies": {
         "@fjell/core": "^4.4.3",
-        "@fjell/lib": "^4.4.2",
+        "@fjell/lib": "^4.4.3",
         "@fjell/logging": "^4.4.3",
         "dayjs": "^1.11.13",
         "deepmerge": "^4.3.1",
