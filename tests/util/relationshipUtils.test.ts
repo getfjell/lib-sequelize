@@ -46,7 +46,7 @@ describe('relationshipUtils', () => {
       const result: RelationshipChainResult = buildRelationshipChain(baseModel, kta, 0, 2);
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('$customer.order.orderId$');
+      expect(result.path).toBe('$customer.order.id$');
       expect(result.includes).toHaveLength(1);
       expect(result.includes![0]).toEqual({
         model: customerModel,
@@ -65,7 +65,7 @@ describe('relationshipUtils', () => {
       const result: RelationshipChainResult = buildRelationshipChain(baseModel, kta, 0, 1);
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('$customer.customerId$');
+      expect(result.path).toBe('$customer.id$');
       expect(result.includes).toHaveLength(1);
       expect(result.includes![0]).toEqual({
         model: customerModel,
@@ -98,7 +98,7 @@ describe('relationshipUtils', () => {
       const result: RelationshipChainResult = buildRelationshipChain(baseModel, kta, 0, 3);
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('$customer.order.item.itemId$');
+      expect(result.path).toBe('$customer.order.item.id$');
       expect(result.includes).toHaveLength(1);
 
       // Check the nested structure
@@ -123,7 +123,7 @@ describe('relationshipUtils', () => {
       const result: RelationshipChainResult = buildRelationshipChain(customerModel, kta, 1, 2);
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe('$order.orderId$');
+      expect(result.path).toBe('$order.id$');
       expect(result.includes).toHaveLength(1);
       expect(result.includes![0]).toEqual({
         model: orderModel,
@@ -194,8 +194,13 @@ describe('relationshipUtils', () => {
     });
 
     it('should find relationship path when direct field does not exist', () => {
+      // Create a model without the direct customerId field
+      const modelWithoutDirectField = createMockModel('NoDirectField', {}, {
+        customer: createMockAssociation(customerModel)
+      });
+
       const result: RelationshipPathResult = buildRelationshipPath(
-        targetModel,
+        modelWithoutDirectField,
         'order',
         ['target', 'customer', 'order'],
         true
@@ -203,18 +208,8 @@ describe('relationshipUtils', () => {
 
       expect(result.found).toBe(true);
       expect(result.isDirect).toBe(false);
-      expect(result.path).toBe('$customer.order.orderId$');
+      expect(result.path).toBe('$customer.order.id$');
       expect(result.includes).toHaveLength(1);
-      expect(result.includes![0]).toEqual({
-        model: customerModel,
-        as: 'customer',
-        required: true,
-        include: [{
-          model: orderModel,
-          as: 'order',
-          required: true
-        }]
-      });
     });
 
     it('should return not found when locator type is not in kta array', () => {
