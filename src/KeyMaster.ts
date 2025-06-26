@@ -35,21 +35,47 @@ const extractLocationKeyValue = (
     }
     return value;
   } else {
-    // Need to traverse relationship
-    // Try to get the value from the loaded relationship object
-    const relationshipObject = item[locatorType];
-    if (relationshipObject && typeof relationshipObject.id !== 'undefined') {
-      return relationshipObject.id;
+    // Need to traverse relationship hierarchy
+    // Find the path through the key type array
+    const locatorIndex = kta.indexOf(locatorType);
+    if (locatorIndex === -1) {
+      throw new Error(`Locator type '${locatorType}' not found in key type array`);
     }
 
-    // If the relationship object isn't loaded, we might need to look at the foreign key field
-    // This handles cases where we have the foreign key but not the full object
+    // Start from the current item (index 0 in kta)
+    let currentObject = item;
+
+    // Traverse through each intermediate relationship to reach the target
+    for (let i = 1; i < locatorIndex; i++) {
+      const intermediateType = kta[i];
+
+      // Check if the intermediate relationship object is loaded
+      if (currentObject[intermediateType] && typeof currentObject[intermediateType] === 'object') {
+        currentObject = currentObject[intermediateType];
+      } else {
+        // Try the foreign key approach if the relationship object isn't loaded
+        const foreignKeyField = `${intermediateType}Id`;
+        if (typeof currentObject[foreignKeyField] !== 'undefined' && currentObject[foreignKeyField] !== null) {
+          // We have the foreign key but not the loaded object, we can't traverse further
+          throw new Error(`Intermediate relationship '${intermediateType}' is not loaded. Cannot traverse to '${locatorType}'. Either include the relationship in your query or ensure it's loaded.`);
+        }
+        throw new Error(`Intermediate relationship '${intermediateType}' is missing in the relationship chain. Expected path: ${kta.slice(0, locatorIndex + 1).join(' → ')}`);
+      }
+    }
+
+    // Now extract the target locator value from the current object
+    // First try to get it from the loaded relationship object
+    if (currentObject[locatorType] && typeof currentObject[locatorType] === 'object' && typeof currentObject[locatorType].id !== 'undefined') {
+      return currentObject[locatorType].id;
+    }
+
+    // If the relationship object isn't loaded, try the foreign key field
     const foreignKeyField = `${locatorType}Id`;
-    if (typeof item[foreignKeyField] !== 'undefined' && item[foreignKeyField] !== null) {
-      return item[foreignKeyField];
+    if (typeof currentObject[foreignKeyField] !== 'undefined' && currentObject[foreignKeyField] !== null) {
+      return currentObject[foreignKeyField];
     }
 
-    throw new Error(`Unable to extract location key for '${locatorType}'. Neither the relationship object nor direct foreign key is available.`);
+    throw new Error(`Unable to extract location key for '${locatorType}'. Neither the relationship object nor direct foreign key is available. Traversal path: ${kta.slice(0, locatorIndex + 1).join(' → ')}`);
   }
 };
 
