@@ -13,9 +13,33 @@ import { processRow } from "@/RowProcessor";
 import { stringifyJSON } from "@/util/general";
 import * as Library from "@fjell/lib";
 import { NotFoundError } from "@fjell/lib";
-import { ModelStatic } from "sequelize";
+import { ModelStatic, Op } from "sequelize";
+import { buildRelationshipPath } from "@/util/relationshipUtils";
 
 const logger = LibLogger.get('sequelize', 'ops', 'update');
+
+// Helper function to merge includes avoiding duplicates
+const mergeIncludes = (existingIncludes: any[], newIncludes: any[]): any[] => {
+  const mergedIncludes = [...existingIncludes];
+
+  for (const newInclude of newIncludes) {
+    const existingIndex = mergedIncludes.findIndex(
+      (existing: any) => existing.as === newInclude.as && existing.model === newInclude.model
+    );
+    if (existingIndex === -1) {
+      mergedIncludes.push(newInclude);
+    } else if (newInclude.include && mergedIncludes[existingIndex].include) {
+      mergedIncludes[existingIndex].include = [
+        ...mergedIncludes[existingIndex].include,
+        ...newInclude.include
+      ];
+    } else if (newInclude.include) {
+      mergedIncludes[existingIndex].include = newInclude.include;
+    }
+  }
+
+  return mergedIncludes;
+};
 
 export const getUpdateOperation = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -54,13 +78,46 @@ export const getUpdateOperation = <
       response = await model.findByPk(priKey.pk);
     } else if (isComKey(key)) {
       const comKey = key as ComKey<S, L1, L2, L3, L4, L5>;
-      // Find the model by using both of the identifiers.
-      response = await model.findOne({
-        where: {
-          [comKey?.loc[0]?.kt + 'Id']: comKey?.loc[0]?.lk,
-          id: comKey?.pk
+
+      // Build query options for composite key with multiple location keys
+      const where: { [key: string]: any } = { id: comKey.pk };
+      const additionalIncludes: any[] = [];
+
+      // Process all location keys in the composite key
+      for (const locator of comKey.loc) {
+        const relationshipInfo = buildRelationshipPath(model, locator.kt, kta, true);
+
+        if (!relationshipInfo.found) {
+          const errorMessage = `Composite key locator '${locator.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
+          logger.error(errorMessage, { key: comKey, kta });
+          throw new Error(errorMessage);
         }
-      });
+
+        if (relationshipInfo.isDirect) {
+          // Direct foreign key field
+          const fieldName = `${locator.kt}Id`;
+          where[fieldName] = locator.lk;
+        } else if (relationshipInfo.path) {
+          // Hierarchical relationship requiring traversal
+          where[relationshipInfo.path] = {
+            [Op.eq]: locator.lk
+          };
+
+          // Add necessary includes for relationship traversal
+          if (relationshipInfo.includes) {
+            additionalIncludes.push(...relationshipInfo.includes);
+          }
+        }
+      }
+
+      // Build final query options
+      const queryOptions: any = { where };
+      if (additionalIncludes.length > 0) {
+        queryOptions.include = mergeIncludes([], additionalIncludes);
+      }
+
+      logger.default('Composite key query for update', { queryOptions });
+      response = await model.findOne(queryOptions);
     }
 
     if (response) {
