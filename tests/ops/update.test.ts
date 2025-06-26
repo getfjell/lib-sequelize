@@ -127,6 +127,15 @@ describe('update', () => {
       };
       const updatedProps = { name: 'Updated Name' };
 
+      // Mock model with locationId as a direct foreign key field
+      // @ts-ignore
+      mockModel.getAttributes = vi.fn().mockReturnValue({
+        id: { type: DataTypes.STRING, allowNull: false },
+        name: { type: DataTypes.STRING, allowNull: false },
+        status: { type: DataTypes.STRING, allowNull: false },
+        locationId: { type: DataTypes.STRING, allowNull: false } // Add locationId as direct foreign key
+      });
+
       const mockResponse = {
         ...mockItem,
         constructor: mockModel,
@@ -191,6 +200,15 @@ describe('update', () => {
           aggregations: {}
         }
       } as any;
+
+      // Mock model with locationId as a direct foreign key field
+      // @ts-ignore
+      mockModel.getAttributes = vi.fn().mockReturnValue({
+        id: { type: DataTypes.STRING, allowNull: false },
+        name: { type: DataTypes.STRING, allowNull: false },
+        status: { type: DataTypes.STRING, allowNull: false },
+        locationId: { type: DataTypes.STRING, allowNull: false } // Add locationId as direct foreign key
+      });
 
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(null);

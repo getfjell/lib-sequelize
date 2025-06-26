@@ -43,8 +43,8 @@ export const buildRelationshipChain = (
     }
 
     // Build the full association path for the target field
-    const targetType = kta[targetIndex];
-    const associationPath = `$${associationParts.join('.')}.${targetType}Id$`;
+    const targetPrimaryKey = currentModel.primaryKeyAttribute || 'id';
+    const associationPath = `$${associationParts.join('.')}.${targetPrimaryKey}$`;
 
     // Build nested includes structure iteratively (clearer than recursion)
     let deepestInclude: any = null;

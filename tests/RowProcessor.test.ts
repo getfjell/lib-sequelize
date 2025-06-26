@@ -7,7 +7,8 @@ import * as Library from '@fjell/lib';
 vi.mock('@/logger', () => ({
   default: {
     get: vi.fn().mockReturnValue({
-      default: vi.fn()
+      default: vi.fn(),
+      debug: vi.fn()
     })
   }
 }));
@@ -65,7 +66,7 @@ describe('RowProcessor', () => {
     (stringifyJSON as Mock).mockImplementation((obj) => JSON.stringify(obj));
     (addKey as Mock).mockImplementation((_row, item) => ({
       ...item,
-      key: { kt: 'test', id: '1' }
+      key: { kt: 'test', pk: '1' }
     }));
     (populateEvents as Mock).mockImplementation((item) => ({
       ...item,
@@ -90,12 +91,12 @@ describe('RowProcessor', () => {
       expect(populateEvents).toHaveBeenCalledWith({
         id: 1,
         name: 'test',
-        key: { kt: 'test', id: '1' }
+        key: { kt: 'test', pk: '1' }
       });
       expect(result).toEqual({
         id: 1,
         name: 'test',
-        key: { kt: 'test', id: '1' },
+        key: { kt: 'test', pk: '1' },
         events: []
       });
     });
@@ -116,7 +117,7 @@ describe('RowProcessor', () => {
       );
       expect(mockLoggerDefault).toHaveBeenCalledWith(
         'Key Added to Item: %s',
-        JSON.stringify({ kt: 'test', id: '1' })
+        JSON.stringify({ kt: 'test', pk: '1' })
       );
     });
 
@@ -145,11 +146,12 @@ describe('RowProcessor', () => {
         expect.objectContaining({
           id: 1,
           name: 'test',
-          key: { kt: 'test', id: '1' },
+          key: { kt: 'test', pk: '1' },
           events: []
         }),
         mockReference,
-        mockRegistry
+        mockRegistry,
+        expect.any(Object)
       );
       expect(mockLoggerDefault).toHaveBeenCalledWith(
         'Processing Reference for %s to %s',
@@ -216,11 +218,12 @@ describe('RowProcessor', () => {
         expect.objectContaining({
           id: 1,
           name: 'test',
-          key: { kt: 'test', id: '1' },
+          key: { kt: 'test', pk: '1' },
           events: []
         }),
         mockAggregation,
-        mockRegistry
+        mockRegistry,
+        expect.any(Object)
       );
       expect(mockLoggerDefault).toHaveBeenCalledWith(
         'Processing Aggregation for %s from %s',
@@ -317,7 +320,7 @@ describe('RowProcessor', () => {
       expect(result).toEqual({
         id: 1,
         name: 'test',
-        key: { kt: 'test', id: '1' },
+        key: { kt: 'test', pk: '1' },
         events: []
       });
     });
@@ -336,7 +339,7 @@ describe('RowProcessor', () => {
       expect(result).toEqual({
         id: 1,
         name: 'test',
-        key: { kt: 'test', id: '1' },
+        key: { kt: 'test', pk: '1' },
         events: []
       });
     });
@@ -345,7 +348,7 @@ describe('RowProcessor', () => {
       const expectedResult = {
         id: 1,
         name: 'test',
-        key: { kt: 'test', id: '1' },
+        key: { kt: 'test', pk: '1' },
         events: []
       };
 
@@ -424,7 +427,7 @@ describe('RowProcessor', () => {
       expect(addKey).toHaveBeenCalledWith(mockRow, complexData, mockKeyTypes);
       expect(result).toEqual({
         ...complexData,
-        key: { kt: 'test', id: '1' },
+        key: { kt: 'test', pk: '1' },
         events: []
       });
     });
