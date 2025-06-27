@@ -2,7 +2,6 @@
 import {
   AllItemTypeArrays,
   Item,
-  ItemProperties
 } from '@fjell/core';
 
 import LibLogger from '@/logger';
@@ -87,8 +86,8 @@ export const removeKey = <
   L4 extends string = never,
   L5 extends string = never
 >(
-  item: ItemProperties<S, L1, L2, L3, L4, L5>
-): ItemProperties<S, L1, L2, L3, L4, L5> => {
+  item: Partial<Item<S, L1, L2, L3, L4, L5>>,
+): Partial<Item<S, L1, L2, L3, L4, L5>> => {
   logger.default('Removing Key', { item });
   delete item.key;
   return item;
