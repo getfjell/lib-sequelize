@@ -29,7 +29,7 @@ export const buildAggregation = async (
     // Check if this aggregation is already cached
     if (context.cache.has(aggregationCacheKey)) {
       const cachedResult = context.cache.get(aggregationCacheKey);
-      logger.debug('Using cached aggregation result', {
+      logger.default('Using cached aggregation result', {
         aggregationCacheKey,
         property: aggregationDefinition.property
       });
