@@ -1,7 +1,7 @@
 /* eslint-disable indent */
 import { ComKey, isValidItemKey, PriKey } from "@fjell/core";
 
-import { abbrevIK, isComKey, isPriKey, Item, ItemProperties } from "@fjell/core";
+import { abbrevIK, isComKey, isPriKey, Item } from "@fjell/core";
 
 import { Definition } from "@/Definition";
 import { populateEvents } from "@/EventCoordinator";
@@ -115,12 +115,12 @@ export const getRemoveOperation = <
 
       // Save the object
       await item?.save();
-      returnItem = item?.get({ plain: true }) as ItemProperties<S, L1, L2, L3, L4, L5>;
+      returnItem = item?.get({ plain: true }) as Partial<Item<S, L1, L2, L3, L4, L5>>;
       returnItem = addKey(item, returnItem as any, kta);
       returnItem = populateEvents(returnItem);
     } else if (options.deleteOnRemove) {
       await item?.destroy();
-      returnItem = item?.get({ plain: true }) as ItemProperties<S, L1, L2, L3, L4, L5>;
+      returnItem = item?.get({ plain: true }) as Partial<Item<S, L1, L2, L3, L4, L5>>;
       returnItem = addKey(item, returnItem as any, kta);
       returnItem = populateEvents(returnItem);
     } else {

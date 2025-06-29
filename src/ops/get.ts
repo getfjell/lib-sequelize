@@ -16,6 +16,7 @@ import { Definition } from '@/Definition';
 import { NotFoundError } from '@fjell/lib';
 import * as Library from "@fjell/lib";
 import { buildRelationshipPath } from "@/util/relationshipUtils";
+import { contextManager } from "@/OperationContext";
 
 const logger = LibLogger.get('sequelize', 'ops', 'get');
 
@@ -76,7 +77,7 @@ export const getGetOperation = <
   const { kta } = coordinate;
 
   const get = async (
-    key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
+    key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>
   ): Promise<V> => {
     logger.default('Get', { key });
     if (!isValidItemKey(key)) {
@@ -106,7 +107,9 @@ export const getGetOperation = <
     if (!item) {
       throw new NotFoundError<S, L1, L2, L3, L4, L5>('get', coordinate, key);
     } else {
-      return validateKeys(await processRow(item, kta, references, aggregations, registry), kta) as V;
+      // Get the current context from context manager
+      const context = contextManager.getCurrentContext();
+      return validateKeys(await processRow(item, kta, references, aggregations, registry, context), kta) as V;
     }
   }
 
