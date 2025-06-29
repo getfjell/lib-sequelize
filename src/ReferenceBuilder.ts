@@ -46,12 +46,12 @@ export const buildReference = async (
   if (context) {
     // Check if we already have this item cached
     if (context.isCached(priKey)) {
-      logger.debug('Using cached reference', { priKey, property: referenceDefinition.property });
+      logger.default('Using cached reference', { priKey, property: referenceDefinition.property });
       referencedItem = context.getCached(priKey);
     }
     // Check if this item is currently being loaded (circular dependency)
     else if (context.isInProgress(priKey)) {
-      logger.warning('Circular dependency detected, creating reference placeholder', {
+      logger.default('Circular dependency detected, creating reference placeholder', {
         priKey,
         property: referenceDefinition.property
       });
