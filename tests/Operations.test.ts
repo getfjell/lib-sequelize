@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ComKey, Item, PriKey, TypesProperties } from '@fjell/core';
+import { ComKey, Item, PriKey } from '@fjell/core';
 import * as Library from '@fjell/lib';
 import { createOperations } from '@/Operations';
 import { Definition } from '@/Definition';
@@ -39,7 +39,7 @@ describe('Operations', () => {
     name: string;
   }
 
-  type TestItemProperties = TypesProperties<TestItem, 'test', 'loc1', 'loc2'>;
+  type TestItemProperties = Partial<Item<'test', 'loc1', 'loc2'>>;
 
   // Mock operation functions
   const mockAllFunction = vi.fn();

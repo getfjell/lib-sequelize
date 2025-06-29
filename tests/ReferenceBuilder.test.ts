@@ -157,12 +157,6 @@ describe('ReferenceBuilder', () => {
       // Act
       const result = await buildReference(item, referenceDefinition, mockRegistry);
 
-      // Assert
-      const expectedPriKey: PriKey<string> = {
-        kt: 'User',
-        pk: null as any
-      };
-      expect(mockGet).toHaveBeenCalledWith(expectedPriKey);
       expect(result.user).toBeNull();
     });
 

@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { ComKey, isComKey, isPriKey, Item, LocKeyArray, PriKey, TypesProperties, validateKeys } from "@fjell/core";
+import { ComKey, isComKey, isPriKey, Item, LocKeyArray, PriKey, validateKeys } from "@fjell/core";
 
 import { Definition } from "@/Definition";
 import LibLogger from '@/logger';
@@ -69,7 +69,7 @@ export const getCreateOperation = <
 ) => {
 
   const create = async (
-    item: TypesProperties<V, S, L1, L2, L3, L4, L5>,
+    item: Partial<Item<S, L1, L2, L3, L4, L5>>,
     options?: {
       key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
       locations?: never;

@@ -1,0 +1,4 @@
+overrides:
+  '@fjell/core': link:../fjell-core
+  '@fjell/lib': link:../fjell-lib
+  '@fjell/logging': link:../fjell-logging

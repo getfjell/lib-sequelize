@@ -132,12 +132,22 @@ describe('one', () => {
       }
     } as any as Mocked<Definition<TestItem, 'test', 'location1', 'location2'>>;
 
+    // Mock model without the associations needed for location keys
+    // @ts-ignore
+    mockModel.associations = {};
+    // @ts-ignore
+    mockModel.getAttributes = vi.fn().mockReturnValue({
+      id: { type: DataTypes.STRING, allowNull: false },
+      name: { type: DataTypes.STRING, allowNull: false },
+      status: { type: DataTypes.STRING, allowNull: false },
+    });
+
     await expect(
       getOneOperation([mockModel], definitionMock, mockRegistry)(
         itemQuery,
         locations as any,
       )
-    ).rejects.toThrow('Not implemented for more than one location key');
+    ).rejects.toThrow("Location key 'location1' cannot be resolved on model 'TestModel' or through its relationships.");
 
   });
 });

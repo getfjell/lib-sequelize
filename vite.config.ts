@@ -64,7 +64,17 @@ export default defineConfig({
     },
     rollupOptions: {
       input: 'src/index.ts',
-      external: ['@fjell/lib'],
+      external: [
+        '@fjell/core',
+        '@fjell/lib',
+        '@fjell/logging',
+        'dayjs',
+        'deepmerge',
+        'multer',
+        'sequelize',
+        'specifier-resolution-node',
+        'winston'
+      ],
       output: [
         {
           format: 'esm',

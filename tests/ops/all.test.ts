@@ -158,7 +158,8 @@ describe('all', () => {
     // @ts-ignore
     mockModel.associations = {
       order: {
-        foreignKey: 'orderId'
+        foreignKey: 'orderId',
+        target: mockModel
       },
     };
     // @ts-ignore
@@ -168,7 +169,8 @@ describe('all', () => {
       deletedAt: {},
       createdAt: {},
       updatedAt: {},
-      isDeleted: {}
+      isDeleted: {},
+      orderId: {} // Add the orderId field as a direct foreign key
     });
     // @ts-ignore
     mockModel.findAll = vi.fn().mockResolvedValue([]);
@@ -180,6 +182,7 @@ describe('all', () => {
       Item<'test', 'order'>, 'test', 'order'
     >([mockModel], definitionMock, mockRegistry)(query, locations);
 
+    // The implementation now treats orderId as a direct foreign key, so it should be in the where clause
     expect(mockModel.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -194,7 +197,7 @@ describe('all', () => {
     );
   });
 
-  it('should throw error for multiple locations', async () => {
+  it('should throw error for multiple locations when relationships cannot be resolved', async () => {
     type TestItem = Item<'test', 'order', 'customer'>;
 
     const query: ItemQuery = {};
@@ -215,11 +218,24 @@ describe('all', () => {
       }
     } as any;
 
+    // Mock model without the associations needed for location keys
+    // @ts-ignore
+    mockModel.associations = {};
+    // @ts-ignore
+    mockModel.getAttributes = vi.fn().mockReturnValue({
+      id: {},
+      testColumn: {},
+      deletedAt: {},
+      createdAt: {},
+      updatedAt: {},
+      isDeleted: {}
+    });
+
     await expect(
       getAllOperation<
         Item<'test', 'order', 'customer'>, 'test', 'order', 'customer'
       >([mockModel], definitionMock, mockRegistry)(query, locations)
-    ).rejects.toThrow('Not implemented for more than one location key');
+    ).rejects.toThrow("Location key 'order' cannot be resolved on model 'TestModel' or through its relationships.");
   });
 
   it('should throw error for invalid location association', async () => {
@@ -240,7 +256,7 @@ describe('all', () => {
 
     await expect(
       // @ts-ignore
-      getAllOperation<Item<'test'>, 'test'>([mockModel], definitionMock)(query, locations)
-    ).rejects.toThrow('Location key type not found in model');
+      getAllOperation<Item<'test'>, 'test'>([mockModel], definitionMock, mockRegistry)(query, locations)
+    ).rejects.toThrow("Location key 'invalidType' cannot be resolved on model 'TestModel' or through its relationships.");
   });
 });
