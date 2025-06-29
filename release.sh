@@ -44,7 +44,7 @@ echo "Pull request created: $PR_URL"
 
 echo "Waiting for PR #$PR_NUM checks to complete..."
 while true; do
-  STATUS=$(gh pr checks "$PR_NUM" --json status,conclusion | jq -r 'if length == 0 then "PENDING" else if any(.status != "COMPLETED") then "PENDING" else if any(.conclusion != "SUCCESS") then "FAILURE" else "SUCCESS" end end end' || echo "FAILURE")
+  STATUS=$(gh pr checks "$PR_NUM" --json state | jq -r 'if length == 0 then "PENDING" else if any(.state == "PENDING") then "PENDING" else if any(.state == "FAILURE" or .state == "ERROR") then "FAILURE" else "SUCCESS" end end end' || echo "FAILURE")
   echo "PR status: $STATUS"
   if [[ "$STATUS" == "SUCCESS" ]]; then
     echo "All checks passed!"
