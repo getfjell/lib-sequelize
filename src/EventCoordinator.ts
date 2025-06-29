@@ -1,6 +1,6 @@
 import {
   Evented,
-  ItemProperties,
+  Item,
   ManagedEvents
 } from '@fjell/core';
 import deepmerge from 'deepmerge';
@@ -16,8 +16,8 @@ export const createEvents = <
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
->(item: ItemProperties<S, L1, L2, L3, L4, L5>):
-  ItemProperties<S, L1, L2, L3, L4, L5> => {
+>(item: Partial<Item<S, L1, L2, L3, L4, L5>>):
+  Partial<Item<S, L1, L2, L3, L4, L5>> => {
   logger.default('Creating Events', { item });
   const currentDate = new Date();
 
@@ -42,8 +42,7 @@ export const createEvents = <
     };
   }
 
-  return deepmerge(item, { events }) as
-    ItemProperties<S, L1, L2, L3, L4, L5>;
+  return deepmerge(item, { events }) as Partial<Item<S, L1, L2, L3, L4, L5>>;
 }
 
 export const updateEvents = <
@@ -53,8 +52,8 @@ export const updateEvents = <
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
->(item: ItemProperties<S, L1, L2, L3, L4, L5>):
-  ItemProperties<S, L1, L2, L3, L4, L5> => {
+>(item: Partial<Item<S, L1, L2, L3, L4, L5>>):
+  Partial<Item<S, L1, L2, L3, L4, L5>> => {
   logger.default('Updating Events', { item });
   const currentDate = new Date();
   const events: Evented = {
@@ -67,7 +66,7 @@ export const updateEvents = <
     events.created = { at: currentDate };
   }
 
-  return deepmerge(item, { events }) as ItemProperties<S, L1, L2, L3, L4, L5>;
+  return deepmerge(item, { events }) as Partial<Item<S, L1, L2, L3, L4, L5>>;
 }
 //#endregion
 
@@ -78,7 +77,7 @@ export const populateEvents = <
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
->(item: ItemProperties<S, L1, L2, L3, L4, L5>): ItemProperties<S, L1, L2, L3, L4, L5> => {
+>(item: Partial<Item<S, L1, L2, L3, L4, L5>>): Partial<Item<S, L1, L2, L3, L4, L5>> => {
   const events: ManagedEvents = {
     created: { at: item.createdAt || null },
     updated: { at: item.updatedAt || null },
@@ -95,7 +94,7 @@ export const extractEvents = <
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
->(item: ItemProperties<S, L1, L2, L3, L4, L5>): ItemProperties<S, L1, L2, L3, L4, L5> => {
+>(item: Partial<Item<S, L1, L2, L3, L4, L5>>): Partial<Item<S, L1, L2, L3, L4, L5>> => {
   logger.default('Extracting Events to database fields', { item });
 
   if (item.events) {
@@ -120,7 +119,7 @@ export const removeEvents = <
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
->(item: ItemProperties<S, L1, L2, L3, L4, L5>): ItemProperties<S, L1, L2, L3, L4, L5> => {
+>(item: Partial<Item<S, L1, L2, L3, L4, L5>>): Partial<Item<S, L1, L2, L3, L4, L5>> => {
   logger.default('Removing Events', { item });
   delete item.events;
   return item;
