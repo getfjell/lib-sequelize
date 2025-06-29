@@ -136,7 +136,7 @@ describe('get', () => {
     expect(mockModel.findOne).toHaveBeenCalledWith({
       where: {
         id: '123',
-        '$order.orderId$': '456'
+        '$order.id$': '456'
       },
       include: [{
         model: mockModel.associations.order.target,

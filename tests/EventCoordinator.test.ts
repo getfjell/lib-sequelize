@@ -23,7 +23,9 @@ describe('EventCoordinator', () => {
         id: '123',
         name: 'test',
         events: {
-          created: { at: existingDate }
+          created: { at: existingDate },
+          updated: { at: existingDate },
+          deleted: { at: null }
         }
       };
 
@@ -39,6 +41,9 @@ describe('EventCoordinator', () => {
         id: '123',
         name: 'test',
         events: {
+          created: { at: new Date('2023-01-01') },
+          updated: { at: new Date('2023-01-01') },
+          deleted: { at: null },
           birthday: { at: new Date('2023-01-01') },
         }
       };
