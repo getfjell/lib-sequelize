@@ -6,7 +6,6 @@ tests/
 
 .DS_Store
 .eslintrc.json
-babel.config.js
 cloudbuild.yaml
 jest.config.ts
 tsconfig.json
