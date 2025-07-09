@@ -68,12 +68,8 @@ export default defineConfig({
         '@fjell/core',
         '@fjell/lib',
         '@fjell/logging',
-        'dayjs',
         'deepmerge',
-        'multer',
-        'sequelize',
-        'specifier-resolution-node',
-        'winston'
+        'sequelize'
       ],
       output: [
         {
