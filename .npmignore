@@ -6,7 +6,6 @@ tests/
 
 .DS_Store
 .eslintrc.json
-babel.config.js
 cloudbuild.yaml
 jest.config.ts
 tsconfig.json
@@ -21,3 +20,4 @@ vite.config.ts
 pnpm-lock.yaml
 pnpm-workspace.yaml
 eslint.config.mjs
+.kodrdriv/
