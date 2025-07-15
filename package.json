@@ -40,6 +40,7 @@
         "@fjell/core": "^4.4.7",
         "@fjell/lib": "^4.4.10",
         "@fjell/logging": "^4.4.7",
+        "dayjs": "^1.11.13",
         "deepmerge": "^4.3.1",
         "sequelize": "^6.37.7"
     },

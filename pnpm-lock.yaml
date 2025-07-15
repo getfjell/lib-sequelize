@@ -4,19 +4,27 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@fjell/core': link:../fjell-core
+  '@fjell/lib': link:../fjell-lib
+  '@fjell/logging': link:../fjell-logging
+
 importers:
 
   .:
     dependencies:
       '@fjell/core':
-        specifier: ^4.4.7
-        version: 4.4.7
+        specifier: link:../fjell-core
+        version: link:../fjell-core
       '@fjell/lib':
-        specifier: ^4.4.10
-        version: 4.4.10
+        specifier: link:../fjell-lib
+        version: link:../fjell-lib
       '@fjell/logging':
-        specifier: ^4.4.7
-        version: 4.4.7
+        specifier: link:../fjell-logging
+        version: link:../fjell-logging
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.13
       deepmerge:
         specifier: ^4.3.1
         version: 4.3.1
@@ -303,16 +311,6 @@ packages:
   '@eslint/plugin-kit@0.3.3':
     resolution: {integrity: sha512-1+WqvgNMhmlAambTvT3KPtCl/Ibr68VldY2XY40SL1CE0ZXiakFR/cbTspaF5HsnpDMvcYYoJHfl4980NBjGag==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@fjell/core@4.4.7':
-    resolution: {integrity: sha512-urHgEX6uLrbZKiYjhOJx6WZ7dylBvsAxoIfyhA+WE8JasiqFWUzg2YNX5DNOYsqruTe6FSM1dQ/dbHqz/wAFbQ==}
-
-  '@fjell/lib@4.4.10':
-    resolution: {integrity: sha512-f6jRMu6e/zryPkviVdGhBOw+cbDPxH1R9XrNesrg7rwIST3+7c2Wm2FG1g8Ucz1ClZVgw0Fxe0GEnONZwPnq+Q==}
-    engines: {node: '>=21'}
-
-  '@fjell/logging@4.4.7':
-    resolution: {integrity: sha512-ned1kfEpFZSDraH/KRaRodoozyBB7PwlrQuiAmBiUUadfBKx6mx56fZIFRlzb/XUHZIypw237I+4P/bsx7cEzg==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -934,6 +932,9 @@ packages:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
+  dayjs@1.11.13:
+    resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
+
   de-indent@1.0.2:
     resolution: {integrity: sha512-e/1zu3xH5MQryN2zdVaF0OrdNLUbvWxzMbi+iNA6Bky7l1RoP8a2fIbRocyHclXt/arDrrR6lL3TqFD9pMQTsg==}
 
@@ -1299,10 +1300,6 @@ packages:
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
-
-  luxon@3.7.1:
-    resolution: {integrity: sha512-RkRWjA926cTvz5rAb1BqyWkKbbjzCGchDUIKMCUvNi17j6f6j8uHGDV82Aqcqtzd+icoYpELmG3ksgGiFNNcNg==}
-    engines: {node: '>=12'}
 
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
@@ -2020,20 +2017,6 @@ snapshots:
       '@eslint/core': 0.15.1
       levn: 0.4.1
 
-  '@fjell/core@4.4.7':
-    dependencies:
-      '@fjell/logging': 4.4.7
-      deepmerge: 4.3.1
-      luxon: 3.7.1
-
-  '@fjell/lib@4.4.10':
-    dependencies:
-      '@fjell/core': 4.4.7
-      '@fjell/logging': 4.4.7
-      deepmerge: 4.3.1
-
-  '@fjell/logging@4.4.7': {}
-
   '@humanfs/core@0.19.1': {}
 
   '@humanfs/node@0.16.6':
@@ -2684,6 +2667,8 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
+  dayjs@1.11.13: {}
+
   de-indent@1.0.2: {}
 
   debounce@2.2.0: {}
@@ -3061,8 +3046,6 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
-
-  luxon@3.7.1: {}
 
   magic-string@0.30.17:
     dependencies:
