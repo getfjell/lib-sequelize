@@ -37,9 +37,9 @@
         "prepublishOnly": "pnpm run clean && pnpm run build"
     },
     "dependencies": {
-        "@fjell/core": "^4.4.6",
+        "@fjell/core": "^4.4.7",
         "@fjell/lib": "^4.4.10",
-        "@fjell/logging": "^4.4.6",
+        "@fjell/logging": "^4.4.7",
         "deepmerge": "^4.3.1",
         "sequelize": "^6.37.7"
     },
