@@ -1,20 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Item, ItemTypeArray } from '@fjell/core';
+import { Item } from '@fjell/core';
 import * as Library from '@fjell/lib';
 import { ModelStatic } from 'sequelize';
-import { createInstance, Instance } from '@/Instance';
-import { createDefinition } from '@/Definition';
+import { createInstance, Instance, isInstance } from '@/Instance';
+import { createOptions } from '@/Options';
 import { createOperations } from '@/Operations';
-import { Options } from '@/Options';
+import { createCoordinate } from '@fjell/registry';
+import { Registry } from '@/Registry';
 
 // Mock the dependencies
-vi.mock('@/Definition');
+vi.mock('@/Options');
 vi.mock('@/Operations');
+vi.mock('@fjell/registry');
 vi.mock('@fjell/lib');
 
-const mockCreateDefinition = vi.mocked(createDefinition);
+const mockCreateOptions = vi.mocked(createOptions);
 const mockCreateOperations = vi.mocked(createOperations);
-const mockLibraryWrapOperations = vi.mocked(Library.wrapOperations);
+const mockCreateCoordinate = vi.mocked(createCoordinate);
+const mockLibraryCreateInstance = vi.mocked(Library.createInstance);
 
 // Mock Sequelize models
 const mockModel1 = {
@@ -28,341 +31,271 @@ const mockModel2 = {
 } as ModelStatic<any>;
 
 describe('Instance', () => {
-  const mockDefinition = {
-    coordinate: { kt: ['customer'], scopes: ['test'] },
-    operations: {},
-    queries: {},
-    options: {
-      deleteOnRemove: false,
-      references: [],
-      aggregations: [],
-    },
+  const mockRegistry = {
+    type: 'lib',
+    get: vi.fn(),
+    set: vi.fn(),
+    remove: vi.fn(),
+    clear: vi.fn(),
+    list: vi.fn(),
+    createInstance: vi.fn(),
+    register: vi.fn(),
+    instanceTree: {},
+  } as unknown as Registry;
+
+  const mockCoordinate = {
+    kta: ['test'],
+    scopes: ['sequelize', 'test'],
+  };
+
+  const mockOptions = {
+    deleteOnRemove: false,
+    references: [],
+    aggregations: [],
+    hooks: {},
+    validators: {},
+    finders: {},
+    actions: {},
+    allActions: {},
+    facets: {},
+    allFacets: {},
   };
 
   const mockOperations = {
     all: vi.fn(),
     one: vi.fn(),
+    get: vi.fn(),
+    find: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
-    get: vi.fn(),
     remove: vi.fn(),
-    find: vi.fn(),
     upsert: vi.fn(),
   };
 
-  const mockWrappedOperations = {
-    ...mockOperations,
-    wrapped: true,
+  const mockLibInstance = {
+    coordinate: mockCoordinate,
+    registry: mockRegistry,
+    operations: mockOperations,
+    options: mockOptions,
   };
-
-  const mockRegistry = {
-    instances: new Map(),
-    get: vi.fn(),
-    set: vi.fn(),
-  } as unknown as Library.Registry;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockCreateDefinition.mockReturnValue(mockDefinition as any);
+    mockCreateCoordinate.mockReturnValue(mockCoordinate as any);
+    mockCreateOptions.mockReturnValue(mockOptions as any);
     mockCreateOperations.mockReturnValue(mockOperations as any);
-    mockLibraryWrapOperations.mockReturnValue(mockWrappedOperations as any);
+    mockLibraryCreateInstance.mockReturnValue(mockLibInstance as any);
   });
 
   describe('createInstance', () => {
-    it('should create instance with single key type', () => {
-      const keyTypes: ItemTypeArray<'customer'> = ['customer'];
+    it('should create instance with single model and basic options', () => {
       const models = [mockModel1];
-      const libOptions: Partial<Options<any, any>> = { deleteOnRemove: true };
-      const scopes = ['test'];
+      const options = { deleteOnRemove: true };
 
-      const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
+      const result = createInstance(mockRegistry, mockCoordinate as any, models, options as any);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, options);
+      expect(mockLibraryCreateInstance).toHaveBeenCalledWith(mockRegistry, mockCoordinate, mockOperations, options);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
+        ...mockLibInstance,
         models,
-        registry: mockRegistry,
       });
     });
 
-    it('should create instance with multiple key types', () => {
-      const keyTypes: ItemTypeArray<'order', 'customer'> = ['order', 'customer'];
+    it('should create instance with multiple models', () => {
       const models = [mockModel1, mockModel2];
-      const libOptions: Partial<Options<any, any, any>> = {
-        deleteOnRemove: false,
-        references: [{ column: 'customerId', kta: ['customer'], property: 'customer' }],
-      };
-      const scopes = ['test', 'production'];
+      const options = { deleteOnRemove: false };
 
-      const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
+      const result = createInstance(mockRegistry, mockCoordinate as any, models, options as any);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, options);
+      expect(mockLibraryCreateInstance).toHaveBeenCalledWith(mockRegistry, mockCoordinate, mockOperations, options);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
+        ...mockLibInstance,
         models,
-        registry: mockRegistry,
-      });
-    });
-
-    it('should create instance with default libOptions when not provided', () => {
-      const keyTypes: ItemTypeArray<'product'> = ['product'];
-      const models = [mockModel1];
-      const scopes = ['default'];
-
-      const result = createInstance(keyTypes, models, {}, scopes, mockRegistry);
-
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, {});
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
-
-      expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
-        registry: mockRegistry,
-      });
-    });
-
-    it('should create instance with empty scopes array', () => {
-      const keyTypes: ItemTypeArray<'item'> = ['item'];
-      const models = [mockModel1];
-      const libOptions: Partial<Options<any, any>> = {
-        aggregations: [{ kta: ['order'], property: 'orders', cardinality: 'many' }],
-      };
-      const scopes: string[] = [];
-
-      const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
-
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
-
-      expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
-        registry: mockRegistry,
-      });
-    });
-
-    it('should create instance with complex key type hierarchy', () => {
-      const keyTypes: ItemTypeArray<'orderLine', 'order', 'customer'> = ['orderLine', 'order', 'customer'];
-      const models = [mockModel1, mockModel2];
-      const libOptions: Partial<Options<any, any, any, any>> = {
-        deleteOnRemove: true,
-        references: [
-          { column: 'orderId', kta: ['order'], property: 'order' },
-          { column: 'customerId', kta: ['customer'], property: 'customer' },
-        ],
-        aggregations: [
-          { kta: ['orderLine'], property: 'orderLines', cardinality: 'many' },
-        ],
-      };
-      const scopes = ['test', 'integration'];
-
-      const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
-
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
-
-      expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
-        registry: mockRegistry,
       });
     });
 
     it('should create instance with empty models array', () => {
-      const keyTypes: ItemTypeArray<'test'> = ['test'];
       const models: ModelStatic<any>[] = [];
-      const libOptions: Partial<Options<any, any>> = {};
-      const scopes = ['test'];
+      const options = {};
 
-      const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
+      const result = createInstance(mockRegistry, mockCoordinate as any, models, options as any);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, options);
+      expect(mockLibraryCreateInstance).toHaveBeenCalledWith(mockRegistry, mockCoordinate, mockOperations, options);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models: [],
-        registry: mockRegistry,
-      });
-    });
-
-    it('should create instance with minimal parameters', () => {
-      const keyTypes: ItemTypeArray<'minimal'> = ['minimal'];
-      const models = [mockModel1];
-
-      const result = createInstance(keyTypes, models, {}, [], mockRegistry);
-
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, [], {});
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
-
-      expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
+        ...mockLibInstance,
         models,
-        registry: mockRegistry,
       });
     });
 
-    it('should preserve models reference in returned instance', () => {
-      const keyTypes: ItemTypeArray<'reference'> = ['reference'];
-      const models = [mockModel1, mockModel2];
-      const scopes = ['test'];
+    it('should create instance with complex options', () => {
+      const models = [mockModel1];
+      const options = {
+        deleteOnRemove: true,
+        references: [{ column: 'userId', kta: ['user'], property: 'user' }],
+        aggregations: [{ kta: ['order'], property: 'orders', cardinality: 'many' as const }],
+        hooks: {
+          preCreate: vi.fn(),
+          postCreate: vi.fn(),
+        },
+      };
 
-      const result = createInstance(keyTypes, models, {}, scopes, mockRegistry);
+      const result = createInstance(mockRegistry, mockCoordinate as any, models, options as any);
 
-      expect(result.models).toBe(models);
-      expect(result.models).toHaveLength(2);
-      expect(result.models[0]).toBe(mockModel1);
-      expect(result.models[1]).toBe(mockModel2);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, options);
+      expect(mockLibraryCreateInstance).toHaveBeenCalledWith(mockRegistry, mockCoordinate, mockOperations, options);
+
+      expect(result).toEqual({
+        ...mockLibInstance,
+        models,
+      });
     });
 
-    it('should preserve registry reference in returned instance', () => {
-      const keyTypes: ItemTypeArray<'registry'> = ['registry'];
+    it('should create instance and maintain type safety', () => {
+      interface TestItem extends Item<'test'> {
+        name: string;
+        value: number;
+      }
+
       const models = [mockModel1];
-      const scopes = ['test'];
+      const options = { deleteOnRemove: true };
 
-      const result = createInstance(keyTypes, models, {}, scopes, mockRegistry);
+      const result: Instance<TestItem, 'test'> = createInstance<TestItem, 'test'>(
+        mockRegistry,
+        mockCoordinate as any,
+        models,
+        options as any
+      );
 
+      expect(result).toBeDefined();
+      expect(result.models).toBe(models);
+      expect(result.coordinate).toBe(mockCoordinate);
       expect(result.registry).toBe(mockRegistry);
     });
 
-    it('should call all dependencies with correct parameters', () => {
-      const keyTypes: ItemTypeArray<'verification'> = ['verification'];
-      const models = [mockModel1];
-      const libOptions: Partial<Options<any, any>> = { deleteOnRemove: true };
-      const scopes = ['verify'];
-
-      createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
-
-      expect(mockCreateDefinition).toHaveBeenCalledTimes(1);
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-
-      expect(mockCreateOperations).toHaveBeenCalledTimes(1);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-
-      expect(mockLibraryWrapOperations).toHaveBeenCalledTimes(1);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
-    });
-
-    it('should handle different registry instances', () => {
+    it('should create instance with different registry', () => {
       const differentRegistry = {
-        instances: new Map(),
+        type: 'lib',
         get: vi.fn(),
         set: vi.fn(),
-      } as unknown as Library.Registry;
+        remove: vi.fn(),
+        clear: vi.fn(),
+        list: vi.fn(),
+        createInstance: vi.fn(),
+        register: vi.fn(),
+        instanceTree: {},
+      } as unknown as Registry;
 
-      const keyTypes: ItemTypeArray<'different'> = ['different'];
       const models = [mockModel1];
-      const scopes = ['test'];
+      const options = {};
 
-      const result = createInstance(keyTypes, models, {}, scopes, differentRegistry);
+      const result = createInstance(differentRegistry, mockCoordinate as any, models, options as any);
 
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, differentRegistry);
-      expect(mockLibraryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, differentRegistry);
-      expect(result.registry).toBe(differentRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, differentRegistry, options);
+      expect(mockLibraryCreateInstance).toHaveBeenCalledWith(differentRegistry, mockCoordinate, mockOperations, options);
+
+      expect(result.registry).toBe(mockLibInstance.registry); // Since we mock the return value
+    });
+
+    it('should call createOperations with correct parameters', () => {
+      const models = [mockModel1, mockModel2];
+      const options = { deleteOnRemove: true };
+
+      createInstance(mockRegistry, mockCoordinate as any, models, options as any);
+
+      expect(mockCreateOperations).toHaveBeenCalledTimes(1);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, options);
+    });
+
+    it('should call Library.createInstance with correct parameters', () => {
+      const models = [mockModel1];
+      const options = {};
+
+      createInstance(mockRegistry, mockCoordinate as any, models, options as any);
+
+      expect(mockLibraryCreateInstance).toHaveBeenCalledTimes(1);
+      expect(mockLibraryCreateInstance).toHaveBeenCalledWith(mockRegistry, mockCoordinate, mockOperations, options);
+    });
+
+    it('should return instance with models property', () => {
+      const models = [mockModel1, mockModel2];
+      const options = { deleteOnRemove: false };
+
+      const result = createInstance(mockRegistry, mockCoordinate as any, models, options as any);
+
+      expect(result.models).toBe(models);
+      expect(Array.isArray(result.models)).toBe(true);
+      expect(result.models.length).toBe(2);
     });
   });
 
-  describe('Instance interface', () => {
-    it('should extend Library.Instance and include models property', () => {
-      // This test verifies the type structure at compile time
-      const instance: Instance<Item<'test'>, 'test'> = {
-        definition: mockDefinition as any,
-        operations: mockWrappedOperations as any,
+  describe('isInstance', () => {
+    it('should return true for valid instance', () => {
+      const instance = {
+        coordinate: mockCoordinate,
+        operations: mockOperations,
+        options: mockOptions,
+        registry: mockRegistry,
         models: [mockModel1],
-        registry: mockRegistry,
       };
 
-      expect(instance).toBeDefined();
-      expect(instance.definition).toBeDefined();
-      expect(instance.operations).toBeDefined();
-      expect(instance.models).toBeDefined();
-      expect(instance.registry).toBeDefined();
-      expect(Array.isArray(instance.models)).toBe(true);
+      const result = isInstance(instance);
+
+      expect(result).toBe(true);
     });
 
-    it('should allow different model configurations', () => {
-      const instanceWithMultipleModels: Instance<Item<'multi'>, 'multi'> = {
-        definition: mockDefinition as any,
-        operations: mockWrappedOperations as any,
-        models: [mockModel1, mockModel2],
+    it('should return false for instance without models', () => {
+      const instance = {
+        coordinate: mockCoordinate,
+        operations: mockOperations,
+        options: mockOptions,
         registry: mockRegistry,
+        // Missing models property
       };
 
-      const instanceWithNoModels: Instance<Item<'empty'>, 'empty'> = {
-        definition: mockDefinition as any,
-        operations: mockWrappedOperations as any,
-        models: [],
+      const result = isInstance(instance);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for instance with non-array models', () => {
+      const instance = {
+        coordinate: mockCoordinate,
+        operations: mockOperations,
+        options: mockOptions,
         registry: mockRegistry,
+        models: 'not an array',
       };
 
-      expect(instanceWithMultipleModels.models).toHaveLength(2);
-      expect(instanceWithNoModels.models).toHaveLength(0);
-    });
-  });
+      const result = isInstance(instance);
 
-  describe('error handling', () => {
-    it('should propagate errors from createDefinition', () => {
-      const error = new Error('Definition creation failed');
-      mockCreateDefinition.mockImplementation(() => {
-        throw error;
-      });
-
-      const keyTypes: ItemTypeArray<'error'> = ['error'];
-      const models = [mockModel1];
-      const scopes = ['test'];
-
-      expect(() => {
-        createInstance(keyTypes, models, {}, scopes, mockRegistry);
-      }).toThrow('Definition creation failed');
+      expect(result).toBe(false);
     });
 
-    it('should propagate errors from createOperations', () => {
-      const error = new Error('Operations creation failed');
-      mockCreateOperations.mockImplementation(() => {
-        throw error;
-      });
-
-      const keyTypes: ItemTypeArray<'error'> = ['error'];
-      const models = [mockModel1];
-      const scopes = ['test'];
-
-      expect(() => {
-        createInstance(keyTypes, models, {}, scopes, mockRegistry);
-      }).toThrow('Operations creation failed');
+    it('should return false for null or undefined', () => {
+      expect(isInstance(null)).toBe(false);
+      // eslint-disable-next-line no-undefined
+      expect(isInstance(undefined)).toBe(false);
     });
 
-    it('should propagate errors from Library.wrapOperations', () => {
-      const error = new Error('Wrap operations failed');
-      mockLibraryWrapOperations.mockImplementation(() => {
-        throw error;
-      });
+    it('should return false for empty object', () => {
+      const result = isInstance({});
 
-      const keyTypes: ItemTypeArray<'error'> = ['error'];
-      const models = [mockModel1];
-      const scopes = ['test'];
+      expect(result).toBe(false);
+    });
 
-      expect(() => {
-        createInstance(keyTypes, models, {}, scopes, mockRegistry);
-      }).toThrow('Wrap operations failed');
+    it('should return false for instance missing required properties', () => {
+      expect(isInstance({ coordinate: mockCoordinate })).toBe(false);
+      expect(isInstance({ operations: mockOperations })).toBe(false);
+      expect(isInstance({ options: mockOptions })).toBe(false);
+      expect(isInstance({ registry: mockRegistry })).toBe(false);
+      expect(isInstance({ models: [mockModel1] })).toBe(false);
     });
   });
 });

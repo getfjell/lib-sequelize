@@ -1,7 +1,5 @@
 import * as Library from '@fjell/lib';
 import { Item } from '@fjell/core';
-import deepmerge from 'deepmerge';
-import { clean } from './util/general';
 
 export interface AggregationDefinition {
   kta: string[];
@@ -29,7 +27,7 @@ export interface Options<
   aggregations: AggregationDefinition[];
 }
 
-const DEFAULT_OPTIONS: Options<any, any, any, any, any, any, any> = {
+const DEFAULT_SEQUELIZE_OPTIONS = {
   deleteOnRemove: false,
   references: [],
   aggregations: [],
@@ -43,7 +41,17 @@ export const createOptions = <
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
->(libOptions?: Partial<Options<V, S, L1, L2, L3, L4, L5>>): Options<V, S, L1, L2, L3, L4, L5> => {
-  const options = Library.createOptions(libOptions);
-  return deepmerge(DEFAULT_OPTIONS, clean(options)) as Options<V, S, L1, L2, L3, L4, L5>;
+>(sequelizeOptions?: Partial<Options<V, S, L1, L2, L3, L4, L5>>): Options<V, S, L1, L2, L3, L4, L5> => {
+  // Create the base lib options
+  const baseOptions = Library.createOptions(sequelizeOptions);
+
+  // Add Sequelize-specific defaults
+  const result = {
+    ...baseOptions,
+    deleteOnRemove: sequelizeOptions?.deleteOnRemove ?? DEFAULT_SEQUELIZE_OPTIONS.deleteOnRemove,
+    references: sequelizeOptions?.references ?? DEFAULT_SEQUELIZE_OPTIONS.references,
+    aggregations: sequelizeOptions?.aggregations ?? DEFAULT_SEQUELIZE_OPTIONS.aggregations,
+  };
+
+  return result as Options<V, S, L1, L2, L3, L4, L5>;
 }
