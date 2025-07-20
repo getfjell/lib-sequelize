@@ -20,10 +20,10 @@ vi.mock('@/RowProcessor', () => ({
     const key = kta.length === 1
       ? { kt: kta[0], pk: data.id }
       : {
-        kt: kta[0],
-        pk: data.id,
-        loc: kta.slice(1).map((kt) => ({ kt, lk: data[`${kt}Id`] || 'mock-id' })).filter(loc => loc.lk)
-      };
+          kt: kta[0],
+          pk: data.id,
+          loc: kta.slice(1).map((kt) => ({ kt, lk: data[`${kt}Id`] || 'mock-id' })).filter(loc => loc.lk)
+        };
 
     return {
       ...data,

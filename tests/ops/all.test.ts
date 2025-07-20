@@ -1,3 +1,4 @@
+/* eslint-disable no-undefined */
 import { Definition } from '@/Definition';
 import { getAllOperation } from '@/ops/all';
 import { Item, ItemQuery, LocKeyArray } from '@fjell/core';

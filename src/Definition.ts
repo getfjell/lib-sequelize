@@ -1,6 +1,5 @@
 import { Item, ItemTypeArray } from '@fjell/core';
-import { Options, createOptions } from './Options';
-import * as Library from '@fjell/lib';
+import { createOptions, Options } from './Options';
 import LibLogger from './logger';
 import { createCoordinate } from './Coordinate';
 
@@ -28,10 +27,10 @@ export const createDefinition = <
   L4 extends string = never,
   L5 extends string = never
 >(
-  kta: ItemTypeArray<S, L1, L2, L3, L4, L5>,
-  scopes: string[],
-  libOptions?: Partial<Options<V, S, L1, L2, L3, L4, L5>>,
-): Definition<V, S, L1, L2, L3, L4, L5> => {
+    kta: ItemTypeArray<S, L1, L2, L3, L4, L5>,
+    scopes: string[],
+    libOptions?: Partial<Options<V, S, L1, L2, L3, L4, L5>>,
+  ): Definition<V, S, L1, L2, L3, L4, L5> => {
   logger.debug('createDefinition', { kta, scopes, libOptions });
   const coordinate = createCoordinate(kta, scopes);
   const options = createOptions<V, S, L1, L2, L3, L4, L5>(libOptions);

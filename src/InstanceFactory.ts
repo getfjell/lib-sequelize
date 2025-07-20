@@ -38,9 +38,9 @@ export const createInstanceFactory = <
   L4 extends string = never,
   L5 extends string = never
 >(
-  models: ModelStatic<any>[],
-  options: Options<V, S, L1, L2, L3, L4, L5>
-): BaseInstanceFactory<S, L1, L2, L3, L4, L5> => {
+    models: ModelStatic<any>[],
+    options: Options<V, S, L1, L2, L3, L4, L5>
+  ): BaseInstanceFactory<S, L1, L2, L3, L4, L5> => {
   return (coordinate: Coordinate<S, L1, L2, L3, L4, L5>, context: { registry: BaseRegistry, registryHub?: RegistryHub }) => {
     logger.debug("Creating Sequelize instance", {
       coordinate,

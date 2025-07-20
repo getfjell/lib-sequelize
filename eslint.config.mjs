@@ -30,7 +30,7 @@ export default [{
     "no-unused-vars": "off",
 
     "max-len": ["warn", {
-      code: 200,
+      code: 500,
     }],
 
     "max-depth": ["error", 4],
