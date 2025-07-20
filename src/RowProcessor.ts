@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-/* eslint-disable max-params */
+ 
 import { AllItemTypeArrays, Item } from "@fjell/core";
 import { Model } from "sequelize";
 

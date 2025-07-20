@@ -17,6 +17,7 @@ import { NotFoundError } from '@fjell/lib';
 import * as Library from "@fjell/lib";
 import { buildRelationshipPath } from "@/util/relationshipUtils";
 import { contextManager } from "@/OperationContext";
+import { stringifyJSON } from "@/util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'get');
 
@@ -79,11 +80,13 @@ export const getGetOperation = <
   const get = async (
     key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>
   ): Promise<V> => {
-    logger.default('Get', { key });
     if (!isValidItemKey(key)) {
       logger.error('Key for Get is not a valid ItemKey: %j', key);
       throw new Error('Key for Get is not a valid ItemKey');
     }
+
+    logger.debug(`GET operation called on ${models[0].name} with ${isPriKey(key) ? `primary key: pk=${key.pk}` : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`}`);
+    logger.default(`Get configured for ${models[0].name} with ${isPriKey(key) ? 'primary' : 'composite'} key`);
 
     const itemKey = key;
 
@@ -94,6 +97,7 @@ export const getGetOperation = <
 
     if (isPriKey(itemKey)) {
       // This is the easy case because we can just find the item by its primary key
+      logger.trace(`[GET] Executing ${model.name}.findByPk() with pk: ${(itemKey as PriKey<S>).pk}`);
       item = await model.findByPk((itemKey as PriKey<S>).pk);
     } else if (isComKey(itemKey)) {
       // This is a composite key, so we need to build a where clause based on the composite key's locators
@@ -101,6 +105,7 @@ export const getGetOperation = <
       const queryOptions = processCompositeKey(comKey, model, kta);
 
       logger.default('Composite key query', { queryOptions });
+      logger.trace(`[GET] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)}`);
       item = await model.findOne(queryOptions);
     }
 
@@ -109,7 +114,10 @@ export const getGetOperation = <
     } else {
       // Get the current context from context manager
       const context = contextManager.getCurrentContext();
-      return validateKeys(await processRow(item, kta, references, aggregations, registry, context), kta) as V;
+      const result = validateKeys(await processRow(item, kta, references, aggregations, registry, context), kta) as V;
+
+      logger.debug(`[GET] Retrieved ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${item.id}`}`);
+      return result;
     }
   }
 

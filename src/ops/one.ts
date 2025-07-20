@@ -26,12 +26,16 @@ export const getOneOperation = <
     itemQuery: ItemQuery,
     locations: LocKeyArray<L1, L2, L3, L4, L5> | [] = [],
   ): Promise<V | null> => {
-    logger.default('One', { itemQuery, locations });
+    logger.debug(`ONE operation called on ${models[0].name} with ${locations.length} location filters: ${locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
+    logger.default(`One configured for ${models[0].name} delegating to all operation`);
 
     const items = await getAllOperation(models, definition, registry)(itemQuery, locations);
     if (items.length > 0) {
-      return items[0] as V;
+      const result = items[0] as V;
+      logger.debug(`[ONE] Found ${models[0].name} record with key: ${(result as any).key ? JSON.stringify((result as any).key) : 'unknown'}`);
+      return result;
     } else {
+      logger.debug(`[ONE] No ${models[0].name} record found`);
       return null;
     }
   }

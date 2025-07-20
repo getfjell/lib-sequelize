@@ -1,11 +1,12 @@
-/* eslint-disable max-params */
+
 import { Instance as AbstractSequelizeInstance } from '@/Instance';
 import { Item, ItemTypeArray } from '@fjell/core';
 import { Contained } from '@fjell/lib';
-import { createDefinition } from '@/Definition';
 import { createOperations } from '@/Operations';
 import { ModelStatic } from 'sequelize';
-import * as Library from "@fjell/lib";
+import { Registry } from '@/Registry';
+import { createOptions, Options } from '@/Options';
+import { createCoordinate } from '@/Coordinate';
 
 export interface Instance<
   V extends Item<S>,
@@ -30,19 +31,26 @@ export function createInstance<
 >(
   keyTypes: ItemTypeArray<S, L1, L2, L3, L4, L5>,
   models: ModelStatic<any>[],
-  libOptions: Contained.Options<V, S, L1, L2, L3, L4, L5> = {},
+  libOptions: Partial<Options<V, S, L1, L2, L3, L4, L5>> = {},
   scopes: string[] = [],
-  registry: Library.Registry
+  registry: Registry
 ): Instance<V, S, L1, L2, L3, L4, L5> {
 
-  const definition = createDefinition(keyTypes, scopes, libOptions);
-  const operations = createOperations(models, definition, registry);
+  // Create coordinate and options separately following new pattern
+  const coordinate = createCoordinate(keyTypes, scopes);
+  const options = createOptions(libOptions);
+
+  // Create operations with the new signature
+  const operations = createOperations<V, S, L1, L2, L3, L4, L5>(models, coordinate, registry, options);
+
+  // Wrap operations for contained pattern
+  const wrappedOperations = Contained.wrapOperations(operations, options as any, coordinate, registry);
 
   return {
-    definition,
-    operations: Contained.wrapOperations(operations, definition, registry),
+    coordinate,
+    registry,
+    operations: wrappedOperations,
+    options,
     models,
-    registry
   } as Instance<V, S, L1, L2, L3, L4, L5>;
-
 }

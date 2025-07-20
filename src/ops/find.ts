@@ -6,6 +6,7 @@ import LibLogger from '@/logger';
 import { ModelStatic } from "sequelize";
 import { processRow } from "@/RowProcessor";
 import * as Library from "@fjell/lib";
+import { stringifyJSON } from "@/util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'find');
 
@@ -31,20 +32,26 @@ export const getFindOperation = <
     locations?: LocKeyArray<L1, L2, L3, L4, L5> | [],
 
   ): Promise<V[]> => {
-    logger.default('Find', { finder, finderParams, locations });
+    logger.debug(`FIND operation called on ${models[0].name} with finder '${finder}' and ${locations?.length || 0} location filters: ${locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
+    logger.default(`Find configured for ${models[0].name} using finder '${finder}' with ${Object.keys(finderParams).length} params`);
 
     // Note that we execute the createFinders function here because we want to make sure we're always getting the
     // most up to date methods.
     if (finders && finders[finder]) {
       const finderMethod = finders[finder];
       if (finderMethod) {
+        logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(finderParams)}, locations: ${stringifyJSON(locations)}`);
         const results = await finderMethod(finderParams, locations);
         if (results && results.length > 0) {
-          return (await Promise.all(results.map(async (row: any) => {
+          const processedResults = (await Promise.all(results.map(async (row: any) => {
             const processedRow = await processRow(row, definition.coordinate.kta, references, aggregations, registry);
             return validateKeys(processedRow, definition.coordinate.kta);
           })) as V[]);
+
+          logger.debug(`[FIND] Found ${processedResults.length} ${models[0].name} records using finder '${finder}'`);
+          return processedResults;
         } else {
+          logger.debug(`[FIND] Found 0 ${models[0].name} records using finder '${finder}'`);
           return [];
         }
       } else {

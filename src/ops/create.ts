@@ -8,8 +8,74 @@ import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
 import { extractEvents, removeEvents } from "@/EventCoordinator";
 import { buildRelationshipChain, buildRelationshipPath } from "@/util/relationshipUtils";
+import { stringifyJSON } from "@/util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
+
+// Helper function to translate PostgreSQL errors to meaningful messages
+function translateDatabaseError(error: any, itemData: any, modelName: string): Error {
+  const originalMessage = error.message || '';
+  const errorCode = error.original?.code;
+  const constraint = error.original?.constraint;
+  const detail = error.original?.detail;
+
+  logger.error('Database error during create operation', {
+    errorCode,
+    constraint,
+    detail,
+    originalMessage,
+    modelName,
+    itemData: JSON.stringify(itemData, null, 2)
+  });
+
+  // Handle specific PostgreSQL error codes
+  switch (errorCode) {
+    case '23505': // unique_violation
+      if (constraint) {
+        return new Error(`Duplicate value violates unique constraint '${constraint}'. ${detail || ''}`);
+      }
+      return new Error(`Duplicate value detected. This record already exists. ${detail || ''}`);
+
+    case '23503': // foreign_key_violation
+      if (constraint) {
+        return new Error(`Foreign key constraint '${constraint}' violated. Referenced record does not exist. ${detail || ''}`);
+      }
+      return new Error(`Referenced record does not exist. Check that all related records are valid. ${detail || ''}`);
+
+    case '23502': // not_null_violation
+      const column = error.original?.column;
+      if (column) {
+        return new Error(`Required field '${column}' cannot be null`);
+      }
+      return new Error(`Required field is missing or null`);
+
+    case '23514': // check_violation
+      if (constraint) {
+        return new Error(`Check constraint '${constraint}' violated. ${detail || ''}`);
+      }
+      return new Error(`Data validation failed. Check constraint violated. ${detail || ''}`);
+
+    case '22001': // string_data_right_truncation
+      return new Error(`Data too long for field. Check string lengths. ${detail || ''}`);
+
+    case '22003': // numeric_value_out_of_range
+      return new Error(`Numeric value out of range. Check number values. ${detail || ''}`);
+
+    case '42703': // undefined_column
+      const undefinedColumn = error.original?.column;
+      if (undefinedColumn) {
+        return new Error(`Column '${undefinedColumn}' does not exist in table '${modelName}'`);
+      }
+      return new Error(`Referenced column does not exist`);
+
+    case '42P01': // undefined_table
+      return new Error(`Table '${modelName}' does not exist`);
+
+    default:
+      // For unknown errors, provide the original message with context
+      return new Error(`Database error in ${modelName}.create(): ${originalMessage}. Item data: ${JSON.stringify(itemData, null, 2)}`);
+  }
+}
 
 // Helper function to validate hierarchical chain exists
 async function validateHierarchicalChain(
@@ -17,39 +83,47 @@ async function validateHierarchicalChain(
   locKey: { kt: string; lk: any },
   kta: string[]
 ): Promise<void> {
-  // Find the direct parent model that contains this locator
-  const locatorIndex = kta.indexOf(locKey.kt);
-  if (locatorIndex === -1) {
-    throw new Error(`Locator type '${locKey.kt}' not found in kta array`);
-  }
-
-  // Get the model for this locator
-  const locatorModel = models[locatorIndex] || models[0]; // Fallback to primary model
-
-  // Build a query to validate the chain exists
-  const chainResult = buildRelationshipChain(locatorModel, kta, locatorIndex, kta.length - 1);
-
-  if (!chainResult.success) {
-    // If we can't build a chain, just validate the record exists
-    const record = await locatorModel.findByPk(locKey.lk);
-    if (!record) {
-      throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist`);
+  try {
+    // Find the direct parent model that contains this locator
+    const locatorIndex = kta.indexOf(locKey.kt);
+    if (locatorIndex === -1) {
+      throw new Error(`Locator type '${locKey.kt}' not found in kta array`);
     }
-    return;
-  }
 
-  // Validate that the chain exists
-  const queryOptions: any = {
-    where: { id: locKey.lk }
-  };
+    // Get the model for this locator
+    const locatorModel = models[locatorIndex] || models[0]; // Fallback to primary model
 
-  if (chainResult.includes && chainResult.includes.length > 0) {
-    queryOptions.include = chainResult.includes;
-  }
+    // Build a query to validate the chain exists
+    const chainResult = buildRelationshipChain(locatorModel, kta, locatorIndex, kta.length - 1);
 
-  const record = await locatorModel.findOne(queryOptions);
-  if (!record) {
-    throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist or chain is invalid`);
+    if (!chainResult.success) {
+      // If we can't build a chain, just validate the record exists
+      const record = await locatorModel.findByPk(locKey.lk);
+      if (!record) {
+        throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist`);
+      }
+      return;
+    }
+
+    // Validate that the chain exists
+    const queryOptions: any = {
+      where: { id: locKey.lk }
+    };
+
+    if (chainResult.includes && chainResult.includes.length > 0) {
+      queryOptions.include = chainResult.includes;
+    }
+
+    const record = await locatorModel.findOne(queryOptions);
+    if (!record) {
+      throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist or chain is invalid`);
+    }
+  } catch (error: any) {
+    // Add context to validation errors
+    if (error.original) {
+      throw translateDatabaseError(error, { locKey, kta }, locKey.kt);
+    }
+    throw error;
   }
 }
 
@@ -78,7 +152,8 @@ export const getCreateOperation = <
       locations: LocKeyArray<L1, L2, L3, L4, L5>,
     },
   ): Promise<V> => {
-    logger.default('Create', { item, options });
+    logger.debug(`CREATE operation called on ${models[0].name} with ${options?.key ? `key: pk=${options.key.pk}, loc=[${isComKey(options.key) ? (options.key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ') : ''}]` : options?.locations ? `locations: ${options.locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ')}` : 'no constraints'}`);
+    logger.default(`Create configured for ${models[0].name} with ${Object.keys(item).length} item fields`);
 
     const { coordinate, options: { references, aggregations } } = definition;
     const { kta } = coordinate;
@@ -94,10 +169,21 @@ export const getCreateOperation = <
     itemData = extractEvents(itemData);
     itemData = removeEvents(itemData);
 
+    // Validate that all item attributes exist on the model
+    const invalidAttributes: string[] = [];
     for (const key of Object.keys(itemData)) {
       if (!modelAttributes[key]) {
-        throw new Error(`Attribute '${key}' does not exist on model ${model.name}`);
+        invalidAttributes.push(key);
       }
+    }
+
+    if (invalidAttributes.length > 0) {
+      const availableAttributes = Object.keys(modelAttributes).join(', ');
+      throw new Error(
+        `Invalid attributes for model '${model.name}': [${invalidAttributes.join(', ')}]. ` +
+        `Available attributes: [${availableAttributes}]. ` +
+        `Item data: ${JSON.stringify(itemData, null, 2)}`
+      );
     }
 
     // Handle key options
@@ -123,8 +209,12 @@ export const getCreateOperation = <
           const relationshipInfo = buildRelationshipPath(model, locKey.kt, kta, true);
 
           if (!relationshipInfo.found) {
-            const errorMessage = `Composite key locator '${locKey.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
-            logger.error(errorMessage, { key: comKey, kta });
+            const associations = model.associations ? Object.keys(model.associations) : [];
+            const errorMessage = `Composite key locator '${locKey.kt}' cannot be resolved on model '${model.name}' or through its relationships. ` +
+              `Available associations: [${associations.join(', ')}]. ` +
+              `KTA: [${kta.join(', ')}]. ` +
+              `Composite key: ${JSON.stringify(comKey, null, 2)}`;
+            logger.error(errorMessage, { key: comKey, kta, associations });
             throw new Error(errorMessage);
           }
 
@@ -137,6 +227,10 @@ export const getCreateOperation = <
 
         // Set direct foreign keys
         for (const locKey of directLocations) {
+          if (locKey.lk == null || locKey.lk === '') {
+            logger.error(`Composite key location '${locKey.kt}' has undefined/null lk value`, { locKey, key: comKey });
+            throw new Error(`Composite key location '${locKey.kt}' has undefined/null lk value`);
+          }
           const foreignKeyField = locKey.kt + 'Id';
           itemData[foreignKeyField] = locKey.lk;
         }
@@ -159,8 +253,12 @@ export const getCreateOperation = <
         const relationshipInfo = buildRelationshipPath(model, locKey.kt, kta, true);
 
         if (!relationshipInfo.found) {
-          const errorMessage = `Location key '${locKey.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
-          logger.error(errorMessage, { locations: options.locations, kta });
+          const associations = model.associations ? Object.keys(model.associations) : [];
+          const errorMessage = `Location key '${locKey.kt}' cannot be resolved on model '${model.name}' or through its relationships. ` +
+            `Available associations: [${associations.join(', ')}]. ` +
+            `KTA: [${kta.join(', ')}]. ` +
+            `Locations: ${JSON.stringify(options.locations, null, 2)}`;
+          logger.error(errorMessage, { locations: options.locations, kta, associations });
           throw new Error(errorMessage);
         }
 
@@ -173,6 +271,10 @@ export const getCreateOperation = <
 
       // Set direct foreign keys
       for (const locKey of directLocations) {
+        if (locKey.lk == null || locKey.lk === '') {
+          logger.error(`Location option '${locKey.kt}' has undefined/null lk value`, { locKey, locations: options.locations });
+          throw new Error(`Location option '${locKey.kt}' has undefined/null lk value`);
+        }
         const foreignKeyField = locKey.kt + 'Id';
         itemData[foreignKeyField] = locKey.lk;
       }
@@ -184,11 +286,19 @@ export const getCreateOperation = <
     }
 
     // Create the record
-    const createdRecord = await model.create(itemData);
+    try {
+      logger.trace(`[CREATE] Executing ${model.name}.create() with data: ${stringifyJSON(itemData)}`);
+      const createdRecord = await model.create(itemData);
 
-    // Add key and events
-    const processedRecord = await processRow(createdRecord, kta, references, aggregations, registry);
-    return validateKeys(processedRecord, kta) as V;
+      // Add key and events
+      const processedRecord = await processRow(createdRecord, kta, references, aggregations, registry);
+      const result = validateKeys(processedRecord, kta) as V;
+
+      logger.debug(`[CREATE] Created ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${createdRecord.id}`}`);
+      return result;
+    } catch (error: any) {
+      throw translateDatabaseError(error, itemData, model.name);
+    }
   }
 
   return create;

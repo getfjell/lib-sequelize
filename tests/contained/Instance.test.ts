@@ -4,12 +4,14 @@ import * as Library from '@fjell/lib';
 import { Contained } from '@fjell/lib';
 import { ModelStatic } from 'sequelize';
 import { createInstance, Instance } from '@/contained/Instance';
-import { createDefinition } from '@/Definition';
 import { createOperations } from '@/Operations';
+import { createOptions } from '@/Options';
+import { createCoordinate } from '@/Coordinate';
 
 // Mock the dependencies
-vi.mock('@/Definition');
 vi.mock('@/Operations');
+vi.mock('@/Options');
+vi.mock('@/Coordinate');
 vi.mock('@fjell/lib', () => ({
   __esModule: true,
   ...vi.importActual('@fjell/lib'),
@@ -18,7 +20,8 @@ vi.mock('@fjell/lib', () => ({
   },
 }));
 
-const mockCreateDefinition = vi.mocked(createDefinition);
+const mockCreateCoordinate = vi.mocked(createCoordinate);
+const mockCreateOptions = vi.mocked(createOptions);
 const mockCreateOperations = vi.mocked(createOperations);
 const mockContainedWrapOperations = vi.mocked(Contained.wrapOperations);
 
@@ -47,18 +50,15 @@ const mockModel2 = {
 } as unknown as ModelStatic<any>;
 
 describe('contained/Instance', () => {
-  const mockDefinition = {
-    coordinate: {
-      kta: ['customer'],
-      scopes: ['test']
-    },
-    operations: {},
-    queries: {},
-    options: {
-      deleteOnRemove: false,
-      references: [],
-      aggregations: [],
-    },
+  const mockCoordinate = {
+    kta: ['customer'],
+    scopes: ['test']
+  };
+
+  const mockOptions = {
+    deleteOnRemove: false,
+    references: [],
+    aggregations: [],
   };
 
   const mockOperations = {
@@ -89,7 +89,8 @@ describe('contained/Instance', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockCreateDefinition.mockReturnValue(mockDefinition as any);
+    mockCreateCoordinate.mockReturnValue(mockCoordinate as any);
+    mockCreateOptions.mockReturnValue(mockOptions as any);
     mockCreateOperations.mockReturnValue(mockOperations as any);
     mockContainedWrapOperations.mockReturnValue(mockWrappedOperations as any);
   });
@@ -98,7 +99,7 @@ describe('contained/Instance', () => {
     it('should create instance with single key type', () => {
       const keyTypes: ItemTypeArray<'customer'> = ['customer'];
       const models = [mockModel1];
-      const libOptions: Contained.Options<any, any> = {
+      const libOptions = {
         hooks: {
           preCreate: vi.fn(),
           postCreate: vi.fn(),
@@ -108,22 +109,24 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
     it('should create instance with multiple key types', () => {
-      const keyTypes: ItemTypeArray<'order', 'customer'> = ['order', 'customer'];
+      const keyTypes: ItemTypeArray<'customer', 'location'> = ['customer', 'location'];
       const models = [mockModel1, mockModel2];
-      const libOptions: Contained.Options<any, any, any> = {
+      const libOptions = {
         validators: {
           onCreate: vi.fn(),
           onUpdate: vi.fn(),
@@ -133,15 +136,17 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
@@ -152,22 +157,24 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, {}, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, {});
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+      expect(mockCreateOptions).toHaveBeenCalledWith({});
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
     it('should create instance with empty scopes array', () => {
       const keyTypes: ItemTypeArray<'item'> = ['item'];
       const models = [mockModel1];
-      const libOptions: Contained.Options<any, any> = {
+      const libOptions = {
         finders: {
           byName: vi.fn(),
         },
@@ -176,62 +183,64 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
     it('should create instance with complex key type hierarchy', () => {
-      const keyTypes: ItemTypeArray<'orderLine', 'order', 'customer'> = ['orderLine', 'order', 'customer'];
+      const keyTypes: ItemTypeArray<'order', 'customer', 'organization'> = ['order', 'customer', 'organization'];
       const models = [mockModel1, mockModel2];
-      const libOptions: Contained.Options<any, any, any, any> = {
-        hooks: {
-          preCreate: vi.fn(),
-          postCreate: vi.fn(),
-          preUpdate: vi.fn(),
-          postUpdate: vi.fn(),
-        },
+      const libOptions = {
+        deleteOnRemove: true,
+        aggregations: [{ kta: ['test'], property: 'count', cardinality: 'one' as const }],
       };
-      const scopes = ['test', 'integration'];
+      const scopes = ['enterprise'];
 
       const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
     it('should create instance with empty models array', () => {
       const keyTypes: ItemTypeArray<'test'> = ['test'];
       const models: ModelStatic<any>[] = [];
-      const libOptions: Contained.Options<any, any> = {};
+      const libOptions = {};
       const scopes = ['test'];
 
       const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models: [],
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models: [],
       });
     });
 
@@ -241,15 +250,17 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, {}, [], mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, [], {});
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, []);
+      expect(mockCreateOptions).toHaveBeenCalledWith({});
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
@@ -279,7 +290,7 @@ describe('contained/Instance', () => {
     it('should call all dependencies with correct parameters', () => {
       const keyTypes: ItemTypeArray<'verification'> = ['verification'];
       const models = [mockModel1];
-      const libOptions: Contained.Options<any, any> = {
+      const libOptions = {
         validators: {
           onCreate: vi.fn(),
         },
@@ -288,14 +299,17 @@ describe('contained/Instance', () => {
 
       createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledTimes(1);
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
+      expect(mockCreateCoordinate).toHaveBeenCalledTimes(1);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+
+      expect(mockCreateOptions).toHaveBeenCalledTimes(1);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
 
       expect(mockCreateOperations).toHaveBeenCalledTimes(1);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
 
       expect(mockContainedWrapOperations).toHaveBeenCalledTimes(1);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
     });
 
     it('should handle different registry instances', () => {
@@ -314,15 +328,15 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, {}, scopes, differentRegistry);
 
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, differentRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, differentRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, differentRegistry, mockOptions);
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, differentRegistry);
       expect(result.registry).toBe(differentRegistry);
     });
 
     it('should handle complex libOptions with hooks and finders', () => {
       const keyTypes: ItemTypeArray<'complex'> = ['complex'];
       const models = [mockModel1];
-      const libOptions: Contained.Options<any, any> = {
+      const libOptions = {
         hooks: {
           preCreate: vi.fn(),
           postCreate: vi.fn(),
@@ -338,31 +352,27 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
     it('should handle up to 5 key type levels', () => {
       const keyTypes: ItemTypeArray<'level1', 'level2', 'level3', 'level4', 'level5'> =
         ['level1', 'level2', 'level3', 'level4', 'level5'];
-      const models = [mockModel1, mockModel2];
-      const libOptions: Contained.Options<any, any, any, any, any, any> = {
-        finders: {
-          byLevel: vi.fn(),
-        },
-      };
-      const scopes = ['multi-level'];
+      const models = [mockModel1];
+      const scopes = ['test'];
 
-      const result = createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
+      const result = createInstance(keyTypes, models, {}, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
       expect(result).toBeDefined();
-      expect(result.models).toEqual(models);
+      expect(result.models).toBe(models);
     });
   });
 
@@ -370,14 +380,16 @@ describe('contained/Instance', () => {
     it('should extend AbstractSequelizeInstance and include models property', () => {
       // This test verifies the type structure at compile time
       const instance: Instance<Item<'test'>, 'test'> = {
-        definition: mockDefinition as any,
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [mockModel1],
         registry: mockRegistry,
       };
 
       expect(instance).toBeDefined();
-      expect(instance.definition).toBeDefined();
+      expect(instance.coordinate).toBeDefined();
+      expect(instance.options).toBeDefined();
       expect(instance.operations).toBeDefined();
       expect(instance.models).toBeDefined();
       expect(instance.registry).toBeDefined();
@@ -386,14 +398,16 @@ describe('contained/Instance', () => {
 
     it('should allow different model configurations', () => {
       const instanceWithMultipleModels: Instance<Item<'multi'>, 'multi'> = {
-        definition: mockDefinition as any,
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [mockModel1, mockModel2],
         registry: mockRegistry,
       };
 
       const instanceWithNoModels: Instance<Item<'empty'>, 'empty'> = {
-        definition: mockDefinition as any,
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [],
         registry: mockRegistry,
@@ -404,8 +418,9 @@ describe('contained/Instance', () => {
     });
 
     it('should maintain type safety with generic parameters', () => {
-      const instance: Instance<Item<'typed', 'location'>, 'typed', 'location'> = {
-        definition: mockDefinition as any,
+      const instance: Instance<Item<'typed'>, 'typed'> = {
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [mockModel1],
         registry: mockRegistry,
@@ -417,9 +432,9 @@ describe('contained/Instance', () => {
   });
 
   describe('error handling', () => {
-    it('should propagate errors from createDefinition', () => {
-      const error = new Error('Definition creation failed');
-      mockCreateDefinition.mockImplementation(() => {
+    it('should propagate errors from createCoordinate', () => {
+      const error = new Error('Coordinate creation failed');
+      mockCreateCoordinate.mockImplementation(() => {
         throw error;
       });
 
@@ -429,7 +444,22 @@ describe('contained/Instance', () => {
 
       expect(() => {
         createInstance(keyTypes, models, {}, scopes, mockRegistry);
-      }).toThrow('Definition creation failed');
+      }).toThrow('Coordinate creation failed');
+    });
+
+    it('should propagate errors from createOptions', () => {
+      const error = new Error('Options creation failed');
+      mockCreateOptions.mockImplementation(() => {
+        throw error;
+      });
+
+      const keyTypes: ItemTypeArray<'error'> = ['error'];
+      const models = [mockModel1];
+      const scopes = ['test'];
+
+      expect(() => {
+        createInstance(keyTypes, models, {}, scopes, mockRegistry);
+      }).toThrow('Options creation failed');
     });
 
     it('should propagate errors from createOperations', () => {
@@ -469,7 +499,8 @@ describe('contained/Instance', () => {
       // Test with empty libOptions (should use default {})
       const result = createInstance(keyTypes, models, {}, [], mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, [], {});
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, []);
+      expect(mockCreateOptions).toHaveBeenCalledWith({});
       expect(result).toBeDefined();
     });
 
@@ -482,7 +513,7 @@ describe('contained/Instance', () => {
         createInstance(keyTypes, nullModels, {}, scopes, mockRegistry);
       }).not.toThrow();
 
-      expect(mockCreateOperations).toHaveBeenCalledWith(nullModels, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(nullModels, mockCoordinate, mockRegistry, mockOptions);
     });
   });
 
@@ -490,7 +521,7 @@ describe('contained/Instance', () => {
     it('should pass through all parameters correctly', () => {
       const keyTypes: ItemTypeArray<'integration'> = ['integration'];
       const models = [mockModel1, mockModel2];
-      const libOptions: Contained.Options<any, any> = {
+      const libOptions = {
         hooks: {
           preCreate: vi.fn(),
           postCreate: vi.fn(),
@@ -498,26 +529,32 @@ describe('contained/Instance', () => {
         validators: {
           onCreate: vi.fn(),
         },
-        finders: {
-          byName: vi.fn(),
-        },
       };
       const scopes = ['integration', 'test'];
 
-      createInstance(keyTypes, models, libOptions, scopes, mockRegistry);
+      createInstance(keyTypes, models, libOptions as any, scopes, mockRegistry);
 
-      // Verify exact parameter passing
-      expect(mockCreateDefinition).toHaveBeenCalledWith(keyTypes, scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      // Verify createCoordinate call
+      expect(mockCreateCoordinate).toHaveBeenCalledWith(keyTypes, scopes);
+
+      // Verify createOptions call
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+
+      // Verify createOperations call
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+
+      // Verify Contained.wrapOperations call
+      expect(mockContainedWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
     });
 
     it('should handle dependency return values correctly', () => {
-      const customDefinition = { ...mockDefinition, custom: true };
+      const customCoordinate = { ...mockCoordinate, custom: true };
+      const customOptions = { ...mockOptions, custom: true };
       const customOperations = { ...mockOperations, custom: true };
       const customWrappedOperations = { ...mockWrappedOperations, custom: true };
 
-      mockCreateDefinition.mockReturnValue(customDefinition as any);
+      mockCreateCoordinate.mockReturnValue(customCoordinate as any);
+      mockCreateOptions.mockReturnValue(customOptions as any);
       mockCreateOperations.mockReturnValue(customOperations as any);
       mockContainedWrapOperations.mockReturnValue(customWrappedOperations as any);
 
@@ -527,16 +564,22 @@ describe('contained/Instance', () => {
 
       const result = createInstance(keyTypes, models, {}, scopes, mockRegistry);
 
-      expect(result.definition).toBe(customDefinition);
+      expect(result.coordinate).toBe(customCoordinate);
+      expect(result.options).toBe(customOptions);
       expect(result.operations).toBe(customWrappedOperations);
     });
 
     it('should maintain correct execution order', () => {
       const executionOrder: string[] = [];
 
-      mockCreateDefinition.mockImplementation(() => {
-        executionOrder.push('createDefinition');
-        return mockDefinition as any;
+      mockCreateCoordinate.mockImplementation(() => {
+        executionOrder.push('createCoordinate');
+        return mockCoordinate as any;
+      });
+
+      mockCreateOptions.mockImplementation(() => {
+        executionOrder.push('createOptions');
+        return mockOptions as any;
       });
 
       mockCreateOperations.mockImplementation(() => {
@@ -555,7 +598,7 @@ describe('contained/Instance', () => {
 
       createInstance(keyTypes, models, {}, scopes, mockRegistry);
 
-      expect(executionOrder).toEqual(['createDefinition', 'createOperations', 'wrapOperations']);
+      expect(executionOrder).toEqual(['createCoordinate', 'createOptions', 'createOperations', 'wrapOperations']);
     });
   });
 });

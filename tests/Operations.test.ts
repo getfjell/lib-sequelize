@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ComKey, Item, PriKey } from '@fjell/core';
-import * as Library from '@fjell/lib';
+import { Item } from '@fjell/core';
 import { createOperations } from '@/Operations';
-import { Definition } from '@/Definition';
 import { ModelStatic } from 'sequelize';
+import { Options } from '@/Options';
 
 // Mock all the operation modules
 vi.mock('@/ops/all');
@@ -39,67 +38,71 @@ describe('Operations', () => {
     name: string;
   }
 
-  type TestItemProperties = Partial<Item<'test', 'loc1', 'loc2'>>;
+  interface AnotherTestItem extends Item<'another'> {
+    id: string;
+    value: number;
+  }
 
-  // Mock operation functions
-  const mockAllFunction = vi.fn();
-  const mockOneFunction = vi.fn();
-  const mockCreateFunction = vi.fn();
-  const mockUpdateFunction = vi.fn();
-  const mockGetFunction = vi.fn();
-  const mockRemoveFunction = vi.fn();
-  const mockFindFunction = vi.fn();
+  const mockRegistry = {
+    type: 'lib',
+    get: vi.fn(),
+    set: vi.fn(),
+    remove: vi.fn(),
+    clear: vi.fn(),
+    list: vi.fn(),
+  } as any;
 
-  // Mock models
-  const mockModels = [
+  const mockCoordinate = {
+    kta: ['test', 'loc1', 'loc2'],
+    scopes: ['sequelize', 'test'],
+  };
+
+  const mockOptions: Options<TestItem, 'test', 'loc1', 'loc2'> = {
+    deleteOnRemove: false,
+    references: [],
+    aggregations: [],
+    hooks: {},
+    validators: {},
+    finders: {},
+    actions: {},
+    allActions: {},
+    facets: {},
+    allFacets: {},
+  };
+
+  const mockModels: ModelStatic<any>[] = [
     {
       name: 'TestModel',
-      findAll: vi.fn(),
-      findOne: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      destroy: vi.fn(),
-      associations: {},
-    }
-  ] as unknown as ModelStatic<any>[];
+      tableName: 'test_table',
+    } as ModelStatic<any>,
+  ];
 
-  // Mock definition
-  const mockDefinition = {
-    coordinate: {
-      kt: 'test',
-      kta: ['test', 'loc1', 'loc2'],
-      scopes: ['sequelize']
-    },
-    options: {
-      deleteOnRemove: false,
-      references: [],
-      aggregations: []
-    }
-  } as unknown as Definition<TestItem, 'test', 'loc1', 'loc2'>;
-
-  // Mock registry
-  const mockRegistry = {
+  const mockOperationFunctions = {
+    all: vi.fn(),
+    one: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    get: vi.fn(),
+    remove: vi.fn(),
     find: vi.fn(),
-    register: vi.fn(),
-    get: vi.fn()
-  } as unknown as Library.Registry;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup mock return values
-    mockGetAllOperation.mockReturnValue(mockAllFunction);
-    mockGetOneOperation.mockReturnValue(mockOneFunction);
-    mockGetCreateOperation.mockReturnValue(mockCreateFunction);
-    mockGetUpdateOperation.mockReturnValue(mockUpdateFunction);
-    mockGetGetOperation.mockReturnValue(mockGetFunction);
-    mockGetRemoveOperation.mockReturnValue(mockRemoveFunction);
-    mockGetFindOperation.mockReturnValue(mockFindFunction);
+    // Mock all operation creation functions to return mock functions
+    mockGetAllOperation.mockReturnValue(mockOperationFunctions.all);
+    mockGetOneOperation.mockReturnValue(mockOperationFunctions.one);
+    mockGetCreateOperation.mockReturnValue(mockOperationFunctions.create);
+    mockGetUpdateOperation.mockReturnValue(mockOperationFunctions.update);
+    mockGetGetOperation.mockReturnValue(mockOperationFunctions.get);
+    mockGetRemoveOperation.mockReturnValue(mockOperationFunctions.remove);
+    mockGetFindOperation.mockReturnValue(mockOperationFunctions.find);
   });
 
   describe('createOperations', () => {
     it('should create operations object with all required methods', () => {
-      const operations = createOperations(mockModels, mockDefinition, mockRegistry);
+      const operations = createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
       expect(operations).toBeDefined();
       expect(operations.all).toBeDefined();
@@ -113,70 +116,35 @@ describe('Operations', () => {
     });
 
     it('should call all operation factory functions with correct parameters', () => {
-      createOperations(mockModels, mockDefinition, mockRegistry);
+      const definition = { coordinate: mockCoordinate, options: mockOptions };
+      createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
-      expect(mockGetAllOperation).toHaveBeenCalledWith(mockModels, mockDefinition, mockRegistry);
-      expect(mockGetOneOperation).toHaveBeenCalledWith(mockModels, mockDefinition, mockRegistry);
-      expect(mockGetCreateOperation).toHaveBeenCalledWith(mockModels, mockDefinition, mockRegistry);
-      expect(mockGetUpdateOperation).toHaveBeenCalledWith(mockModels, mockDefinition, mockRegistry);
-      expect(mockGetGetOperation).toHaveBeenCalledWith(mockModels, mockDefinition, mockRegistry);
-      expect(mockGetRemoveOperation).toHaveBeenCalledWith(mockModels, mockDefinition, mockRegistry);
-      expect(mockGetFindOperation).toHaveBeenCalledWith(mockModels, mockDefinition, mockRegistry);
+      expect(mockGetAllOperation).toHaveBeenCalledWith(mockModels, definition, mockRegistry);
+      expect(mockGetOneOperation).toHaveBeenCalledWith(mockModels, definition, mockRegistry);
+      expect(mockGetCreateOperation).toHaveBeenCalledWith(mockModels, definition, mockRegistry);
+      expect(mockGetUpdateOperation).toHaveBeenCalledWith(mockModels, definition, mockRegistry);
+      expect(mockGetGetOperation).toHaveBeenCalledWith(mockModels, definition, mockRegistry);
+      expect(mockGetRemoveOperation).toHaveBeenCalledWith(mockModels, definition, mockRegistry);
+      expect(mockGetFindOperation).toHaveBeenCalledWith(mockModels, definition, mockRegistry);
     });
 
-    it('should assign correct operation functions to operations object', () => {
-      const operations = createOperations(mockModels, mockDefinition, mockRegistry);
+    it('should return operations object with correct function references', () => {
+      const operations = createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
-      expect(operations.all).toBe(mockAllFunction);
-      expect(operations.one).toBe(mockOneFunction);
-      expect(operations.create).toBe(mockCreateFunction);
-      expect(operations.update).toBe(mockUpdateFunction);
-      expect(operations.get).toBe(mockGetFunction);
-      expect(operations.remove).toBe(mockRemoveFunction);
-      expect(operations.find).toBe(mockFindFunction);
-    });
-
-    it('should throw error when upsert is called', async () => {
-      const operations = createOperations(mockModels, mockDefinition, mockRegistry);
-
-      const key = { kt: 'test', pk: '123' } as PriKey<'test'>;
-      const itemProperties = { name: 'test' } as TestItemProperties;
-
-      await expect(operations.upsert(key, itemProperties)).rejects.toThrow('Not implemented');
+      expect(operations.all).toBe(mockOperationFunctions.all);
+      expect(operations.one).toBe(mockOperationFunctions.one);
+      expect(operations.create).toBe(mockOperationFunctions.create);
+      expect(operations.update).toBe(mockOperationFunctions.update);
+      expect(operations.get).toBe(mockOperationFunctions.get);
+      expect(operations.remove).toBe(mockOperationFunctions.remove);
+      expect(operations.find).toBe(mockOperationFunctions.find);
     });
 
     it('should work with empty models array', () => {
       const emptyModels: ModelStatic<any>[] = [];
-      const operations = createOperations(emptyModels, mockDefinition, mockRegistry);
+      const operations = createOperations(emptyModels, mockCoordinate as any, mockRegistry, mockOptions);
 
       expect(operations).toBeDefined();
-      expect(mockGetAllOperation).toHaveBeenCalledWith(emptyModels, mockDefinition, mockRegistry);
-    });
-
-    it('should work with multiple models', () => {
-      const multipleModels = [
-        mockModels[0],
-        {
-          name: 'AnotherTestModel',
-          findAll: vi.fn(),
-          findOne: vi.fn(),
-          create: vi.fn(),
-          update: vi.fn(),
-          destroy: vi.fn(),
-          associations: {},
-        }
-      ] as unknown as ModelStatic<any>[];
-
-      const operations = createOperations(multipleModels, mockDefinition, mockRegistry);
-
-      expect(operations).toBeDefined();
-      expect(mockGetAllOperation).toHaveBeenCalledWith(multipleModels, mockDefinition, mockRegistry);
-    });
-
-    it('should preserve function signatures for all operations', () => {
-      const operations = createOperations(mockModels, mockDefinition, mockRegistry);
-
-      // Test that all operations can be called with expected parameters
       expect(typeof operations.all).toBe('function');
       expect(typeof operations.one).toBe('function');
       expect(typeof operations.create).toBe('function');
@@ -187,33 +155,59 @@ describe('Operations', () => {
       expect(typeof operations.upsert).toBe('function');
     });
 
-    it('should handle different generic types', () => {
-      interface AnotherTestItem extends Item<'another'> {
-        id: string;
-        value: number;
-      }
+    it('should work with multiple models', () => {
+      const multipleModels = [
+        { name: 'Model1', tableName: 'table1' } as ModelStatic<any>,
+        { name: 'Model2', tableName: 'table2' } as ModelStatic<any>,
+      ];
 
-      const anotherDefinition = {
-        coordinate: {
-          kt: 'another',
-          kta: ['another'],
-          scopes: ['sequelize']
-        },
-        options: {
-          deleteOnRemove: true,
-          references: [],
-          aggregations: []
-        }
-      } as unknown as Definition<AnotherTestItem, 'another'>;
-
-      const operations = createOperations(mockModels, anotherDefinition, mockRegistry);
+      const operations = createOperations(multipleModels, mockCoordinate as any, mockRegistry, mockOptions);
 
       expect(operations).toBeDefined();
-      expect(mockGetAllOperation).toHaveBeenCalledWith(mockModels, anotherDefinition, mockRegistry);
+      expect(operations.all).toBe(mockOperationFunctions.all);
+      expect(operations.one).toBe(mockOperationFunctions.one);
     });
 
-    it('should call each operation factory function exactly once', () => {
-      createOperations(mockModels, mockDefinition, mockRegistry);
+    it('should handle different coordinate types', () => {
+      const operations = createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
+
+      expect(operations).toBeDefined();
+      expect(typeof operations.all).toBe('function');
+      expect(typeof operations.one).toBe('function');
+      expect(typeof operations.create).toBe('function');
+      expect(typeof operations.update).toBe('function');
+      expect(typeof operations.get).toBe('function');
+      expect(typeof operations.remove).toBe('function');
+      expect(typeof operations.find).toBe('function');
+      expect(typeof operations.upsert).toBe('function');
+    });
+
+    it('should handle different option configurations', () => {
+      const customOptions: Options<AnotherTestItem, 'another'> = {
+        deleteOnRemove: true,
+        references: [{ column: 'userId', kta: ['user'], property: 'user' }],
+        aggregations: [{ kta: ['order'], property: 'orders', cardinality: 'many' }],
+        hooks: {
+          preCreate: vi.fn(),
+          postCreate: vi.fn(),
+        },
+        validators: {},
+        finders: {},
+        actions: {},
+        allActions: {},
+        facets: {},
+        allFacets: {},
+      };
+
+      const anotherCoordinate = { kta: ['another'], scopes: ['sequelize'] };
+      const operations = createOperations(mockModels, anotherCoordinate as any, mockRegistry, customOptions);
+
+      expect(operations).toBeDefined();
+      expect(typeof operations.all).toBe('function');
+    });
+
+    it('should call operation factory functions exactly once each', () => {
+      createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
       expect(mockGetAllOperation).toHaveBeenCalledTimes(1);
       expect(mockGetOneOperation).toHaveBeenCalledTimes(1);
@@ -224,42 +218,41 @@ describe('Operations', () => {
       expect(mockGetFindOperation).toHaveBeenCalledTimes(1);
     });
 
-    it('should return the same operation functions on subsequent calls', () => {
-      const operations1 = createOperations(mockModels, mockDefinition, mockRegistry);
-      const operations2 = createOperations(mockModels, mockDefinition, mockRegistry);
+    it('should create new operations object on each call', () => {
+      const operations1 = createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
+      const operations2 = createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
-      // Should create new operation objects but use the same factory functions
       expect(operations1).not.toBe(operations2);
-      expect(operations1.all).toBe(mockAllFunction);
-      expect(operations2.all).toBe(mockAllFunction);
-    });
-  });
-
-  describe('upsert implementation', () => {
-    it('should throw error with specific message', async () => {
-      const operations = createOperations(mockModels, mockDefinition, mockRegistry);
-
-      try {
-        await operations.upsert({} as PriKey<'test'>, {} as TestItemProperties);
-        expect.fail('Should have thrown an error');
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Not implemented');
-      }
+      expect(operations1.all).toBe(operations2.all); // Same mock function
+      expect(operations1.create).toBe(operations2.create); // Same mock function
     });
 
-    it('should throw error regardless of parameters', async () => {
-      const operations = createOperations(mockModels, mockDefinition, mockRegistry);
+    it('should include upsert operation that throws error', async () => {
+      const operations = createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
-      const testCases = [
-        [{ kt: 'test', pk: '1' } as PriKey<'test'>, { name: 'test1' } as TestItemProperties],
-        [{ kt: 'test', pk: '2' } as PriKey<'test'>, { name: 'test2' } as TestItemProperties],
-        [{ kt: 'test', pk: '3', loc: [{ kt: 'loc1', lk: 'a' }] } as ComKey<'test', 'loc1'>, { name: 'test3' } as TestItemProperties]
-      ];
+      expect(operations.upsert).toBeDefined();
+      expect(typeof operations.upsert).toBe('function');
 
-      for (const [key, props] of testCases) {
-        await expect(operations.upsert(key as any, props as any)).rejects.toThrow('Not implemented');
-      }
+      await expect(operations.upsert({} as any, {} as any)).rejects.toThrow('Not implemented');
+    });
+
+    it('should maintain type safety for operation functions', () => {
+      const operations = createOperations<TestItem, 'test', 'loc1', 'loc2'>(
+        mockModels,
+        mockCoordinate as any,
+        mockRegistry,
+        mockOptions
+      );
+
+      expect(operations).toBeDefined();
+      expect(typeof operations.all).toBe('function');
+      expect(typeof operations.one).toBe('function');
+      expect(typeof operations.create).toBe('function');
+      expect(typeof operations.update).toBe('function');
+      expect(typeof operations.get).toBe('function');
+      expect(typeof operations.remove).toBe('function');
+      expect(typeof operations.find).toBe('function');
+      expect(typeof operations.upsert).toBe('function');
     });
   });
 });

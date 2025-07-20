@@ -3,9 +3,21 @@ import { buildReference } from '@/ReferenceBuilder';
 import { ReferenceDefinition } from '@/Options';
 import { PriKey } from '@fjell/core';
 import * as Library from '@fjell/lib';
+import { OperationContext } from '@/OperationContext';
 
 // Mock the @fjell/lib module
 vi.mock('@fjell/lib');
+
+// Mock the logger
+vi.mock('@/logger', () => ({
+  default: {
+    get: vi.fn().mockReturnValue({
+      default: vi.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
+    }),
+  },
+}));
 
 describe('ReferenceBuilder', () => {
   describe('buildReference', () => {
@@ -208,6 +220,169 @@ describe('ReferenceBuilder', () => {
       expect(result.metadata).toEqual(originalItem.metadata);
       expect(result.tags).toEqual(originalItem.tags);
       expect(result.user).toEqual(referencedUser); // Only new property added
+    });
+
+    describe('with context', () => {
+      let mockContext: OperationContext;
+
+      beforeEach(() => {
+        mockContext = {
+          isCached: vi.fn().mockReturnValue(false),
+          getCached: vi.fn(),
+          isInProgress: vi.fn().mockReturnValue(false),
+          markInProgress: vi.fn(),
+          setCached: vi.fn(),
+          markComplete: vi.fn(),
+        } as any;
+      });
+
+      it('should use cached reference when available', async () => {
+        // Arrange
+        const item = { userId: 123, name: 'Test Item' };
+        const referenceDefinition: ReferenceDefinition = {
+          kta: ['User'],
+          column: 'userId',
+          property: 'user'
+        };
+
+        const cachedUser = { id: 123, name: 'Cached User' };
+        const priKey: PriKey<string> = { kt: 'User', pk: 123 as any };
+
+        mockRegistryGet.mockReturnValue(mockLibraryInstance);
+        vi.mocked(mockContext.isCached).mockReturnValue(true);
+        (mockContext.getCached as any).mockReturnValue(cachedUser);
+
+        // Act
+        const result = await buildReference(item, referenceDefinition, mockRegistry, mockContext);
+
+        // Assert
+        expect(mockContext.isCached).toHaveBeenCalledWith(priKey);
+        expect(mockContext.getCached).toHaveBeenCalledWith(priKey);
+        expect(result.user).toEqual(cachedUser);
+        expect(mockGet).not.toHaveBeenCalled(); // Should not call get operation
+      });
+
+      it('should handle circular dependency by creating placeholder', async () => {
+        // Arrange
+        const item = { userId: 123, name: 'Test Item' };
+        const referenceDefinition: ReferenceDefinition = {
+          kta: ['User'],
+          column: 'userId',
+          property: 'user'
+        };
+
+        const priKey: PriKey<string> = { kt: 'User', pk: 123 as any };
+
+        mockRegistryGet.mockReturnValue(mockLibraryInstance);
+        (mockContext.isCached as any).mockReturnValue(false);
+        (mockContext.isInProgress as any).mockReturnValue(true);
+
+        // Act
+        const result = await buildReference(item, referenceDefinition, mockRegistry, mockContext);
+
+        // Assert
+        expect(mockContext.isCached).toHaveBeenCalledWith(priKey);
+        expect(mockContext.isInProgress).toHaveBeenCalledWith(priKey);
+        expect(result.user).toEqual({ key: priKey });
+        expect(mockGet).not.toHaveBeenCalled(); // Should not call get operation
+      });
+
+      it('should load and cache new reference', async () => {
+        // Arrange
+        const item = { userId: 123, name: 'Test Item' };
+        const referenceDefinition: ReferenceDefinition = {
+          kta: ['User'],
+          column: 'userId',
+          property: 'user'
+        };
+
+        const loadedUser = { id: 123, name: 'Loaded User' };
+        const priKey: PriKey<string> = { kt: 'User', pk: 123 as any };
+
+        mockRegistryGet.mockReturnValue(mockLibraryInstance);
+        (mockContext.isCached as any).mockReturnValue(false);
+        (mockContext.isInProgress as any).mockReturnValue(false);
+        mockGet.mockResolvedValue(loadedUser);
+
+        // Act
+        const result = await buildReference(item, referenceDefinition, mockRegistry, mockContext);
+
+        // Assert
+        expect(mockContext.isCached).toHaveBeenCalledWith(priKey);
+        expect(mockContext.isInProgress).toHaveBeenCalledWith(priKey);
+        expect(mockContext.markInProgress).toHaveBeenCalledWith(priKey);
+        expect(mockGet).toHaveBeenCalledWith(priKey);
+        expect(mockContext.setCached).toHaveBeenCalledWith(priKey, loadedUser);
+        expect(mockContext.markComplete).toHaveBeenCalledWith(priKey);
+        expect(result.user).toEqual(loadedUser);
+      });
+
+      it('should mark as complete even if get operation fails', async () => {
+        // Arrange
+        const item = { userId: 123, name: 'Test Item' };
+        const referenceDefinition: ReferenceDefinition = {
+          kta: ['User'],
+          column: 'userId',
+          property: 'user'
+        };
+
+        const priKey: PriKey<string> = { kt: 'User', pk: 123 as any };
+        const error = new Error('Get operation failed');
+
+        mockRegistryGet.mockReturnValue(mockLibraryInstance);
+        (mockContext.isCached as any).mockReturnValue(false);
+        (mockContext.isInProgress as any).mockReturnValue(false);
+        mockGet.mockRejectedValue(error);
+
+        // Act & Assert
+        await expect(buildReference(item, referenceDefinition, mockRegistry, mockContext))
+          .rejects.toThrow('Get operation failed');
+
+        expect(mockContext.markInProgress).toHaveBeenCalledWith(priKey);
+        expect(mockContext.markComplete).toHaveBeenCalledWith(priKey);
+      });
+
+      it('should handle null column value with context', async () => {
+        // Arrange
+        const item = { userId: null, name: 'Test Item' };
+        const referenceDefinition: ReferenceDefinition = {
+          kta: ['User'],
+          column: 'userId',
+          property: 'user'
+        };
+
+        mockRegistryGet.mockReturnValue(mockLibraryInstance);
+
+        // Act
+        const result = await buildReference(item, referenceDefinition, mockRegistry, mockContext);
+
+        // Assert
+        expect(result.user).toBeNull();
+        expect(mockContext.isCached).not.toHaveBeenCalled();
+        expect(mockContext.isInProgress).not.toHaveBeenCalled();
+        expect(mockGet).not.toHaveBeenCalled();
+      });
+
+      it('should handle undefined column value with context', async () => {
+        // Arrange
+        const item = { name: 'Test Item' }; // userId is undefined
+        const referenceDefinition: ReferenceDefinition = {
+          kta: ['User'],
+          column: 'userId',
+          property: 'user'
+        };
+
+        mockRegistryGet.mockReturnValue(mockLibraryInstance);
+
+        // Act
+        const result = await buildReference(item, referenceDefinition, mockRegistry, mockContext);
+
+        // Assert
+        expect(result.user).toBeNull();
+        expect(mockContext.isCached).not.toHaveBeenCalled();
+        expect(mockContext.isInProgress).not.toHaveBeenCalled();
+        expect(mockGet).not.toHaveBeenCalled();
+      });
     });
   });
 });

@@ -2,6 +2,7 @@
 import { Item } from "@fjell/core";
 
 import * as Library from "@fjell/lib";
+import { Registry } from "./Registry";
 import { getAllOperation } from "./ops/all";
 import { getCreateOperation } from "./ops/create";
 import { getFindOperation } from "./ops/find";
@@ -10,7 +11,7 @@ import { getOneOperation } from "./ops/one";
 import { getRemoveOperation } from "./ops/remove";
 import { getUpdateOperation } from "./ops/update";
 import { ModelStatic } from "sequelize";
-import { Definition } from "./Definition";
+import { Coordinate } from "@fjell/registry";
 
 export const createOperations = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -22,11 +23,15 @@ export const createOperations = <
   L5 extends string = never,
 >(
   models: Array<ModelStatic<any>>,
-  definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  registry: Library.Registry
+  coordinate: Coordinate<S, L1, L2, L3, L4, L5>,
+  registry: Registry,
+  options: import('./Options').Options<V, S, L1, L2, L3, L4, L5>
 ): Library.Operations<V, S, L1, L2, L3, L4, L5> => {
 
   const operations = {} as Library.Operations<V, S, L1, L2, L3, L4, L5>;
+
+  // Create a definition-like object for backward compatibility with existing operation functions
+  const definition = { coordinate, options };
 
   operations.all = getAllOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.one = getOneOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);

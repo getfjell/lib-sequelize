@@ -20,10 +20,10 @@ vi.mock('@/RowProcessor', () => ({
     const key = kta.length === 1
       ? { kt: kta[0], pk: data.id }
       : {
-        kt: kta[0],
-        pk: data.id,
-        loc: kta.slice(1).map((kt) => ({ kt, lk: data[`${kt}Id`] || 'mock-id' })).filter(loc => loc.lk)
-      };
+          kt: kta[0],
+          pk: data.id,
+          loc: kta.slice(1).map((kt) => ({ kt, lk: data[`${kt}Id`] || 'mock-id' })).filter(loc => loc.lk)
+        };
 
     return {
       ...data,
@@ -68,6 +68,7 @@ describe('create', () => {
       findOne: vi.fn(),
       name: 'TestModel',
       primaryKeyAttribute: 'id',
+      associations: {},
       getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
@@ -84,6 +85,7 @@ describe('create', () => {
       findOne: vi.fn(),
       name: 'OrderModel',
       primaryKeyAttribute: 'id',
+      associations: {},
       getAttributes: vi.fn().mockReturnValue({
         id: {},
         orderColumn: {},
@@ -275,7 +277,7 @@ describe('create', () => {
 
     await expect(
       getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem)
-    ).rejects.toThrow('Attribute \'invalidColumn\' does not exist on model TestModel');
+    ).rejects.toThrow('Invalid attributes for model \'TestModel\': [invalidColumn]');
   });
 
   it('should handle event extraction and removal', async () => {

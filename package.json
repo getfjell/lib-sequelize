@@ -1,72 +1,73 @@
 {
-    "name": "@fjell/lib-sequelize",
-    "version": "4.4.8",
-    "license": "Apache-2.0",
-    "keywords": [
-        "library",
-        "persistence",
-        "database",
-        "orm",
-        "sequelize",
-        "fjell"
-    ],
-    "description": "Sequelize Library for Fjell",
-    "engines": {
-        "node": ">=21"
-    },
-    "main": "./dist/cjs/index.cjs",
-    "module": "./dist/es/index.js",
-    "type": "module",
-    "types": "./dist/types/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/types/index.d.ts",
-            "import": "./dist/es/index.js",
-            "require": "./dist/cjs/index.cjs"
-        }
-    },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "build": "tsc --noEmit && vite build",
-        "dev": "vite build --watch",
-        "lint": "eslint . --ext .ts --fix",
-        "clean": "rimraf dist",
-        "test": "vitest run --coverage",
-        "prepublishOnly": "pnpm run clean && pnpm run build"
-    },
-    "dependencies": {
-        "@fjell/core": "^4.4.7",
-        "@fjell/lib": "^4.4.10",
-        "@fjell/logging": "^4.4.7",
-        "dayjs": "^1.11.13",
-        "deepmerge": "^4.3.1",
-        "sequelize": "^6.37.7"
-    },
-    "devDependencies": {
-        "@eslint/eslintrc": "^3.3.1",
-        "@eslint/js": "^9.31.0",
-        "@swc/core": "^1.12.14",
-        "@tsconfig/recommended": "^1.0.10",
-        "@types/node": "^24.0.14",
-        "@typescript-eslint/eslint-plugin": "^8.37.0",
-        "@typescript-eslint/parser": "^8.37.0",
-        "@vitest/coverage-v8": "^3.2.4",
-        "@vitest/ui": "^3.2.4",
-        "eslint": "^9.31.0",
-        "rimraf": "^6.0.1",
-        "ts-node": "^10.9.2",
-        "tsc-alias": "^1.8.16",
-        "typescript": "^5.8.3",
-        "vite": "^7.0.4",
-        "vite-plugin-dts": "^4.5.4",
-        "vite-plugin-node": "^7.0.0",
-        "vitest": "^3.2.4"
-    },
-    "packageManager": "pnpm@10.13.1",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/getfjell/lib-sequelize.git"
+  "name": "@fjell/lib-sequelize",
+  "version": "4.4.10",
+  "license": "Apache-2.0",
+  "keywords": [
+    "library",
+    "persistence",
+    "database",
+    "orm",
+    "sequelize",
+    "fjell"
+  ],
+  "description": "Sequelize Library for Fjell",
+  "engines": {
+    "node": ">=21"
+  },
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/es/index.js",
+  "type": "module",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.js",
+      "require": "./dist/cjs/index.cjs"
     }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm run lint && tsc --noEmit && vite build",
+    "dev": "vite build --watch",
+    "lint": "eslint . --ext .ts --fix",
+    "clean": "rimraf dist",
+    "test": "vitest run --coverage",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "dependencies": {
+    "@fjell/core": "^4.4.7",
+    "@fjell/lib": "^4.4.11",
+    "@fjell/logging": "^4.4.7",
+    "@fjell/registry": "^4.4.7",
+    "dayjs": "^1.11.13",
+    "deepmerge": "^4.3.1",
+    "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.31.0",
+    "@swc/core": "^1.13.1",
+    "@tsconfig/recommended": "^1.0.10",
+    "@types/node": "^24.0.15",
+    "@typescript-eslint/eslint-plugin": "^8.37.0",
+    "@typescript-eslint/parser": "^8.37.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "eslint": "^9.31.0",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.5",
+    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-node": "^7.0.0",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.13.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getfjell/lib-sequelize.git"
+  }
 }
