@@ -13,7 +13,17 @@ vi.mock('@fjell/core', async () => {
   };
 });
 
+// Mock the OperationContext module
+vi.mock('@/OperationContext', () => ({
+  contextManager: {
+    withContext: vi.fn().mockImplementation((ctx, fn) => fn()),
+    getCurrentContext: vi.fn()
+  },
+  serializeKey: vi.fn().mockReturnValue('test-key')
+}));
+
 import { ikToLKA } from '@fjell/core';
+import { contextManager, serializeKey } from '@/OperationContext';
 
 type TestItem = Item<'test', never, never, never, never, never>;
 
@@ -23,6 +33,8 @@ describe('buildAggregation', () => {
   let mockLibraryInstance: any;
   let aggregationDefinition: AggregationDefinition;
   const mockIkToLKA = vi.mocked(ikToLKA);
+  const mockContextManager = vi.mocked(contextManager);
+  const mockSerializeKey = vi.mocked(serializeKey);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,11 +49,11 @@ describe('buildAggregation', () => {
       testProperty: 'initial value'
     } as unknown as TestItem;
 
-    // Mock library instance with operations
+    // Mock library instance with operations that return promises
     mockLibraryInstance = {
       operations: {
-        one: vi.fn(),
-        all: vi.fn()
+        one: vi.fn().mockResolvedValue(null),
+        all: vi.fn().mockResolvedValue([])
       },
       definition: {},
       registry: {} as any
@@ -63,6 +75,11 @@ describe('buildAggregation', () => {
 
     // Mock ikToLKA to return a location key array
     mockIkToLKA.mockReturnValue([{ kt: 'test', lk: '123' }] as any);
+
+    // Reset context manager mocks
+    mockContextManager.withContext.mockImplementation((ctx, fn) => fn());
+    // getCurrentContext returns undefined by default
+    mockSerializeKey.mockReturnValue('test-key');
   });
 
   describe('Happy path scenarios', () => {
@@ -348,6 +365,78 @@ describe('buildAggregation', () => {
       expect(mockIkToLKA).toHaveBeenCalledWith(compositeKeyItem.key);
       expect(mockLibraryInstance.operations.one).toHaveBeenCalledWith({}, complexLocation);
       expect((result as any).relatedItems).toEqual({ id: 'composite-result' });
+    });
+  });
+
+  describe('caching behavior', () => {
+    it('should use cached aggregation result when available', async () => {
+      const cachedResult = { id: 'cached-result', name: 'Cached Item' };
+      const cacheKey = 'related_one_test-key';
+
+      const mockContext = {
+        cache: new Map([[cacheKey, cachedResult]]),
+        inProgress: new Set()
+      } as any;
+
+      const result = await buildAggregation(mockItem as any, aggregationDefinition, mockRegistry, mockContext);
+
+      // Should use cached result without calling operations
+      expect(mockLibraryInstance.operations.one).not.toHaveBeenCalled();
+      expect(mockLibraryInstance.operations.all).not.toHaveBeenCalled();
+      expect(result.relatedItems).toEqual(cachedResult);
+    });
+
+    it('should handle fallback context creation when no context provided', async () => {
+      aggregationDefinition.cardinality = 'one';
+      mockLibraryInstance.operations.one.mockResolvedValue({ id: 'fallback-result' });
+
+      const result = await buildAggregation(mockItem as any, aggregationDefinition, mockRegistry);
+
+      expect(mockContextManager.withContext).toHaveBeenCalled();
+      expect((result as any).relatedItems).toEqual({ id: 'fallback-result' });
+    });
+
+    it('should cache results after successful aggregation', async () => {
+      const mockContext = {
+        cache: new Map(),
+        inProgress: new Set()
+      } as any;
+
+      aggregationDefinition.cardinality = 'many';
+      const aggregationResult = [{ id: 'item1' }, { id: 'item2' }];
+      mockLibraryInstance.operations.all.mockResolvedValue(aggregationResult);
+
+      const result = await buildAggregation(mockItem as any, aggregationDefinition, mockRegistry, mockContext);
+
+      expect((result as any).relatedItems).toEqual(aggregationResult);
+      // Check that result was cached
+      expect(mockContext.cache.size).toBeGreaterThan(0);
+    });
+  });
+
+  describe('error conditions', () => {
+    it('should throw error when library instance not found', async () => {
+      mockRegistry.get.mockReturnValue(null);
+
+      await expect(
+        buildAggregation(mockItem as any, aggregationDefinition, mockRegistry)
+      ).rejects.toThrow('Library instance not found for key type array: related');
+    });
+
+    it('should handle different cardinality values', async () => {
+      // Test 'one' cardinality
+      aggregationDefinition.cardinality = 'one';
+      mockLibraryInstance.operations.one.mockResolvedValue({ id: 'one-result' });
+
+      let result = await buildAggregation(mockItem as any, aggregationDefinition, mockRegistry);
+      expect((result as any).relatedItems).toEqual({ id: 'one-result' });
+
+      // Test 'many' cardinality
+      aggregationDefinition.cardinality = 'many';
+      mockLibraryInstance.operations.all.mockResolvedValue([{ id: 'many-result' }]);
+
+      result = await buildAggregation(mockItem as any, aggregationDefinition, mockRegistry);
+      expect((result as any).relatedItems).toEqual([{ id: 'many-result' }]);
     });
   });
 });

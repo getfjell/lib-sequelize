@@ -1,5 +1,8 @@
 import { ItemTypeArray } from '@fjell/core';
-import * as Library from '@fjell/lib';
+import { Coordinate, createCoordinate as createBaseCoordinate } from '@fjell/registry';
+import LibLogger from './logger';
+
+const logger = LibLogger.get('Coordinate');
 
 export const SCOPE_SEQUELIZE = 'sequelize';
 
@@ -10,7 +13,11 @@ export const createCoordinate = <
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
->(kta: ItemTypeArray<S, L1, L2, L3, L4, L5>, scopes?: string[]) => {
-  const coordinate = Library.createCoordinate(kta,[SCOPE_SEQUELIZE, ...(scopes || [])])
+>(kta: ItemTypeArray<S, L1, L2, L3, L4, L5>, scopes?: string[]): Coordinate<S, L1, L2, L3, L4, L5> => {
+  logger.debug('createCoordinate', { kta, scopes });
+  const coordinate = createBaseCoordinate(kta, [SCOPE_SEQUELIZE, ...(scopes || [])]);
   return coordinate;
 };
+
+// Re-export the Coordinate type
+export type { Coordinate } from '@fjell/registry';
