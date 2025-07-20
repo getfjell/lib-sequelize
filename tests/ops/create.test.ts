@@ -68,6 +68,7 @@ describe('create', () => {
       findOne: vi.fn(),
       name: 'TestModel',
       primaryKeyAttribute: 'id',
+      associations: {},
       getAttributes: vi.fn().mockReturnValue({
         id: {},
         testColumn: {},
@@ -84,6 +85,7 @@ describe('create', () => {
       findOne: vi.fn(),
       name: 'OrderModel',
       primaryKeyAttribute: 'id',
+      associations: {},
       getAttributes: vi.fn().mockReturnValue({
         id: {},
         orderColumn: {},
@@ -275,7 +277,7 @@ describe('create', () => {
 
     await expect(
       getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem)
-    ).rejects.toThrow('Attribute \'invalidColumn\' does not exist on model TestModel');
+    ).rejects.toThrow('Invalid attributes for model \'TestModel\': [invalidColumn]');
   });
 
   it('should handle event extraction and removal', async () => {
