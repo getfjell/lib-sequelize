@@ -10,11 +10,12 @@ import { extractEvents, removeEvents } from "@/EventCoordinator";
 import { removeKey } from "@/KeyMaster";
 import LibLogger from '@/logger';
 import { processRow } from "@/RowProcessor";
-import { stringifyJSON } from "@/util/general";
+
 import * as Library from "@fjell/lib";
 import { NotFoundError } from "@fjell/lib";
 import { ModelStatic, Op } from "sequelize";
 import { buildRelationshipPath } from "@/util/relationshipUtils";
+import { stringifyJSON } from "@/util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'update');
 
@@ -62,6 +63,7 @@ export const getUpdateOperation = <
     key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
     item: Partial<Item<S, L1, L2, L3, L4, L5>>,
   ): Promise<V> => {
+    logger.debug(`UPDATE operation called on ${models[0].name} with ${isPriKey(key) ? `primary key: pk=${key.pk}` : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`}`);
     const { coordinate } = definition;
     const { kta } = coordinate;
 
@@ -75,6 +77,7 @@ export const getUpdateOperation = <
     if (isPriKey(key)) {
       // Find the model by using the PK
       const priKey = key as PriKey<S>;
+      logger.trace(`[UPDATE] Executing ${model.name}.findByPk() with pk: ${priKey.pk}`);
       response = await model.findByPk(priKey.pk);
     } else if (isComKey(key)) {
       const comKey = key as ComKey<S, L1, L2, L3, L4, L5>;
@@ -116,7 +119,8 @@ export const getUpdateOperation = <
         queryOptions.include = mergeIncludes([], additionalIncludes);
       }
 
-      logger.default('Composite key query for update', { queryOptions });
+      logger.default(`Update composite key query for ${model.name} with where fields: ${queryOptions.where ? Object.keys(queryOptions.where).join(', ') : 'none'}`);
+      logger.trace(`[UPDATE] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)}`);
       response = await model.findOne(queryOptions);
     }
 
@@ -128,15 +132,18 @@ export const getUpdateOperation = <
       updateProps = extractEvents(updateProps);
       updateProps = removeEvents(updateProps);
 
-      logger.default('Response: %s', stringifyJSON(response));
-      logger.default('Update Properties: %s', stringifyJSON(updateProps));
+      logger.default(`Update found ${model.name} record to modify`);
+      logger.default(`Update properties configured: ${Object.keys(updateProps).join(', ')}`);
 
       // Update the object
+      logger.trace(`[UPDATE] Executing ${model.name}.update() with properties: ${stringifyJSON(updateProps)}`);
       response = await response.update(updateProps);
 
       // Populate the key and events
       const processedItem = await processRow(response, kta, references, aggregations, registry);
       const returnItem = validateKeys(processedItem, kta);
+
+      logger.debug(`[UPDATE] Updated ${model.name} with key: ${(returnItem as any).key ? JSON.stringify((returnItem as any).key) : `id=${response.id}`}`);
       return returnItem as V;
     } else {
       throw new NotFoundError<S, L1, L2, L3, L4, L5>('update', coordinate, key);

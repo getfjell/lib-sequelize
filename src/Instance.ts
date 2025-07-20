@@ -1,11 +1,24 @@
-/* eslint-disable max-params */
+
 import * as Library from '@fjell/lib';
-import { Item, ItemTypeArray } from '@fjell/core';
-import { createDefinition } from './Definition';
+import { Item } from '@fjell/core';
+import { Coordinate } from '@fjell/registry';
+import { Registry } from './Registry';
 import { createOperations } from './Operations';
 import { ModelStatic } from 'sequelize';
 import { Options } from './Options';
+import SequelizeLogger from './logger';
 
+const logger = SequelizeLogger.get("Instance");
+
+/**
+ * The Sequelize Instance interface extends the fjell-lib Instance
+ * and adds Sequelize-specific functionality:
+ * - models: Array of Sequelize model classes for this instance
+ *
+ * @template V - The type of the data model item, extending Item
+ * @template S - The string literal type representing the model's key type
+ * @template L1-L5 - Optional string literal types for location hierarchy levels
+ */
 export interface Instance<
   V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,
@@ -15,10 +28,15 @@ export interface Instance<
   L4 extends string = never,
   L5 extends string = never
 > extends Library.Instance<V, S, L1, L2, L3, L4, L5> {
+  /** Array of Sequelize model classes associated with this instance */
   models: ModelStatic<any>[];
 }
 
-export function createInstance<
+/**
+ * Creates a new Sequelize instance that extends the fjell-lib instance
+ * with Sequelize-specific functionality
+ */
+export const createInstance = <
   V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,
   L1 extends string = never,
@@ -27,21 +45,34 @@ export function createInstance<
   L4 extends string = never,
   L5 extends string = never
 >(
-  keyTypes: ItemTypeArray<S, L1, L2, L3, L4, L5>,
+  registry: Registry,
+  coordinate: Coordinate<S, L1, L2, L3, L4, L5>,
   models: ModelStatic<any>[],
-  libOptions: Partial<Options<V, S, L1, L2, L3, L4, L5>> = {},
-  scopes: string[] = [],
-  registry: Library.Registry
-): Instance<V, S, L1, L2, L3, L4, L5> {
+  options: Options<V, S, L1, L2, L3, L4, L5>
+): Instance<V, S, L1, L2, L3, L4, L5> => {
+  logger.debug("createInstance", { coordinate, models, registry, options });
 
-  const definition = createDefinition(keyTypes, scopes, libOptions);
-  const operations = createOperations(models, definition, registry);
+  // Create Sequelize-specific operations
+  const operations = createOperations<V, S, L1, L2, L3, L4, L5>(models, coordinate, registry, options);
+
+  // Create the base fjell-lib instance
+  const libInstance = Library.createInstance(registry, coordinate, operations, options);
 
   return {
-    definition,
-    operations: Library.wrapOperations(operations, definition, registry),
+    ...libInstance,
     models,
-    registry
-  }
+  };
+}
 
+/**
+ * Type guard to check if an object is a Sequelize Instance
+ */
+export const isInstance = (instance: any): instance is Instance<any, any, any, any, any, any, any> => {
+  return instance != null &&
+    instance.coordinate != null &&
+    instance.operations != null &&
+    instance.options != null &&
+    instance.registry != null &&
+    instance.models != null &&
+    Array.isArray(instance.models);
 }

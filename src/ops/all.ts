@@ -1,3 +1,4 @@
+/* eslint-disable no-undefined */
 /* eslint-disable indent */
 import { validateKeys } from "@fjell/core";
 
@@ -11,6 +12,7 @@ import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 import { ModelStatic, Op } from "sequelize";
 import { buildRelationshipPath } from "@/util/relationshipUtils";
 import { contextManager } from "@/OperationContext";
+import { stringifyJSON } from "@/util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'all');
 
@@ -58,7 +60,7 @@ export const getAllOperation = <
     itemQuery: ItemQuery,
     locations?: LocKeyArray<L1, L2, L3, L4, L5> | [] | undefined
   ): Promise<V[]> => {
-    logger.default('All', { itemQuery, locations });
+    logger.debug(`ALL operation called on ${models[0].name} with ${locations?.length || 0} location filters: ${locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
     const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locations || [];
 
     // @ts-ignore
@@ -93,26 +95,43 @@ export const getAllOperation = <
 
       // Handle direct location keys (simple foreign key constraints)
       for (const locKey of directLocations) {
+        if (locKey.lk === undefined || locKey.lk == null || locKey.lk === '' || (typeof locKey.lk === 'object' && Object.keys(locKey.lk).length === 0)) {
+          logger.error(`Location key '${locKey.kt}' has invalid lk value: ${stringifyJSON(locKey.lk)}`, { locKey, locations: loc });
+          throw new Error(`Location key '${locKey.kt}' has invalid lk value: ${stringifyJSON(locKey.lk)}`);
+        }
         const foreignKeyField = locKey.kt + 'Id';
-        options.where = {
-          ...options.where,
-          [foreignKeyField]: {
-            [Op.eq]: locKey.lk
-          }
+
+        // Check if this field already has a condition from the itemQuery
+        if (options.where[foreignKeyField]) {
+          logger.debug(`[ALL] Field ${foreignKeyField} already constrained by itemQuery, skipping location constraint to avoid conflicts`);
+          continue; // Skip this location constraint to avoid conflicts
+        }
+
+        logger.trace(`[ALL] Setting direct location where clause: ${foreignKeyField} = ${stringifyJSON(locKey.lk)} (type: ${typeof locKey.lk})`);
+        options.where[foreignKeyField] = {
+          [Op.eq]: locKey.lk
         };
       }
 
       // Handle hierarchical location keys (requires relationship traversal)
       for (const locKey of hierarchicalLocations) {
+        if (locKey.lk === undefined || locKey.lk == null || locKey.lk === '' || (typeof locKey.lk === 'object' && Object.keys(locKey.lk).length === 0)) {
+          logger.error(`Hierarchical location key '${locKey.kt}' has invalid lk value: ${stringifyJSON(locKey.lk)}`, { locKey, locations: loc });
+          throw new Error(`Hierarchical location key '${locKey.kt}' has invalid lk value: ${stringifyJSON(locKey.lk)}`);
+        }
         const relationshipInfo = buildRelationshipPath(model, locKey.kt, kta);
 
         if (relationshipInfo.found && relationshipInfo.path) {
+          // Check if this field already has a condition from the itemQuery
+          if (options.where[relationshipInfo.path]) {
+            logger.debug(`[ALL] Field ${relationshipInfo.path} already constrained by itemQuery, skipping hierarchical location constraint to avoid conflicts`);
+            continue; // Skip this location constraint to avoid conflicts
+          }
+
           // Add the relationship constraint using the path
-          options.where = {
-            ...options.where,
-            [relationshipInfo.path]: {
-              [Op.eq]: locKey.lk
-            }
+          logger.trace(`[ALL] Setting hierarchical location where clause: ${relationshipInfo.path} = ${stringifyJSON(locKey.lk)} (type: ${typeof locKey.lk})`);
+          options.where[relationshipInfo.path] = {
+            [Op.eq]: locKey.lk
           };
 
           // Add necessary includes for the relationship traversal
@@ -122,15 +141,21 @@ export const getAllOperation = <
         }
       }
 
-            // Merge additional includes with existing includes
+      // Merge additional includes with existing includes
       if (additionalIncludes.length > 0) {
         const existingIncludes = options.include || [];
         options.include = mergeIncludes(existingIncludes, additionalIncludes);
       }
     }
 
-    logger.default('Configured this Item Query', { itemQuery, options });
+    logger.default(`All query configured for ${model.name} with where fields: ${options.where ? Object.keys(options.where).join(', ') : 'none'}, includes: ${options.include?.length || 0}`);
 
+    try {
+      logger.trace(`[ALL] Executing ${model.name}.findAll() with options: ${JSON.stringify(options, null, 2)}`);
+    } catch {
+      // Fallback for cases where JSON.stringify fails on Sequelize operators
+      logger.trace(`[ALL] Executing ${model.name}.findAll() with options containing non-serializable operators (${Object.keys(options.where || {}).length} where conditions)`);
+    }
     const matchingItems = await model.findAll(options);
 
     // this.logger.default('Matching Items', { matchingItems });
@@ -139,13 +164,15 @@ export const getAllOperation = <
     const context = contextManager.getCurrentContext();
 
     // TODO: Move this Up!
-    return (await Promise.all(matchingItems.map(async (row: any) => {
+    const results = (await Promise.all(matchingItems.map(async (row: any) => {
       const processedRow = await processRow(row, coordinate.kta, references, aggregations, registry, context);
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];
+
+    logger.debug(`[ALL] Returning ${results.length} ${model.name} records`);
+    return results;
   }
 
   return all;
 
 }
-

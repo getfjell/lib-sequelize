@@ -48,8 +48,8 @@ export const buildAggregation = async (
     // Based on cardinality, use either one or all operation
     if (aggregationDefinition.cardinality === 'one') {
       // For one-to-one relationship, use the one operation
-      return libraryInstance.operations.one({}, location)
-        .then(result => {
+      return (libraryInstance as any).operations.one({}, location)
+        .then((result: any) => {
           if (context) {
             context.cache.set(aggregationCacheKey, result);
           }
@@ -58,8 +58,8 @@ export const buildAggregation = async (
         });
     } else {
       // For one-to-many relationship, use the all operation
-      return libraryInstance.operations.all({}, location)
-        .then(results => {
+      return (libraryInstance as any).operations.all({}, location)
+        .then((results: any) => {
           if (context) {
             context.cache.set(aggregationCacheKey, results);
           }

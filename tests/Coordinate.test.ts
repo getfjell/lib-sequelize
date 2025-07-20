@@ -1,4 +1,4 @@
-import { createCoordinate, SCOPE_SEQUELIZE } from '@/Coordinate';
+import { createCoordinate, SCOPE_SEQUELIZE } from '@/index';
 import { ItemTypeArray } from '@fjell/core';
 import { describe, expect, it } from 'vitest';
 
@@ -85,7 +85,7 @@ describe('Coordinate', () => {
       const coordinate = createCoordinate(kta, customScopes);
 
       expect(coordinate.scopes).toEqual([SCOPE_SEQUELIZE, ...customScopes]);
-      expect(coordinate.scopes.filter(scope => scope === 'sequelize').length).toBe(3);
+      expect(coordinate.scopes.filter((scope: string) => scope === 'sequelize').length).toBe(3);
     });
 
     it('should create coordinate with toString function that returns formatted string', () => {

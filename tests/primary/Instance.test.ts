@@ -4,12 +4,18 @@ import * as Library from '@fjell/lib';
 import { Primary } from '@fjell/lib';
 import { ModelStatic } from 'sequelize';
 import { createInstance, Instance } from '@/primary/Instance';
-import { createDefinition } from '@/Definition';
 import { createOperations } from '@/Operations';
+import { createOptions } from '@/Options';
+import { createCoordinate } from '@fjell/registry';
 
 // Mock the dependencies
-vi.mock('@/Definition');
 vi.mock('@/Operations');
+vi.mock('@/Options');
+vi.mock('@fjell/registry', () => ({
+  __esModule: true,
+  ...vi.importActual('@fjell/registry'),
+  createCoordinate: vi.fn(),
+}));
 vi.mock('@/logger', () => ({
   default: {
     get: vi.fn().mockReturnValue({
@@ -28,7 +34,8 @@ vi.mock('@fjell/lib', () => ({
   },
 }));
 
-const mockCreateDefinition = vi.mocked(createDefinition);
+const mockCreateCoordinate = vi.mocked(createCoordinate);
+const mockCreateOptions = vi.mocked(createOptions);
 const mockCreateOperations = vi.mocked(createOperations);
 const mockPrimaryWrapOperations = vi.mocked(Primary.wrapOperations);
 
@@ -57,18 +64,15 @@ const mockModel2 = {
 } as unknown as ModelStatic<any>;
 
 describe('primary/Instance', () => {
-  const mockDefinition = {
-    coordinate: {
-      kta: ['customer'],
-      scopes: ['test']
-    },
-    operations: {},
-    queries: {},
-    options: {
-      deleteOnRemove: false,
-      references: [],
-      aggregations: [],
-    },
+  const mockCoordinate = {
+    kta: ['customer'],
+    scopes: ['test']
+  };
+
+  const mockOptions = {
+    deleteOnRemove: false,
+    references: [],
+    aggregations: [],
   };
 
   const mockOperations = {
@@ -99,7 +103,8 @@ describe('primary/Instance', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockCreateDefinition.mockReturnValue(mockDefinition as any);
+    mockCreateCoordinate.mockReturnValue(mockCoordinate as any);
+    mockCreateOptions.mockReturnValue(mockOptions as any);
     mockCreateOperations.mockReturnValue(mockOperations as any);
     mockPrimaryWrapOperations.mockReturnValue(mockWrappedOperations as any);
   });
@@ -118,15 +123,17 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
@@ -143,15 +150,17 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
@@ -162,15 +171,17 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, {}, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, {});
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
+      expect(mockCreateOptions).toHaveBeenCalledWith({});
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
@@ -186,15 +197,17 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize']);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
@@ -206,15 +219,17 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models: [],
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models: [],
       });
     });
 
@@ -224,15 +239,17 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, {}, [], mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], [], {});
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize']);
+      expect(mockCreateOptions).toHaveBeenCalledWith({});
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
@@ -271,14 +288,17 @@ describe('primary/Instance', () => {
 
       createInstance(keyType, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledTimes(1);
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
+      expect(mockCreateCoordinate).toHaveBeenCalledTimes(1);
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
+
+      expect(mockCreateOptions).toHaveBeenCalledTimes(1);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
 
       expect(mockCreateOperations).toHaveBeenCalledTimes(1);
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
 
       expect(mockPrimaryWrapOperations).toHaveBeenCalledTimes(1);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
     });
 
     it('should handle different registry instances', () => {
@@ -297,8 +317,8 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, {}, scopes, differentRegistry);
 
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, differentRegistry);
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, differentRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, differentRegistry, mockOptions);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, differentRegistry);
       expect(result.registry).toBe(differentRegistry);
     });
 
@@ -321,16 +341,17 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, libOptions, scopes, mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
       expect(result).toEqual({
-        definition: mockDefinition,
-        operations: mockWrappedOperations,
-        models,
+        coordinate: mockCoordinate,
         registry: mockRegistry,
+        operations: mockWrappedOperations,
+        options: mockOptions,
+        models,
       });
     });
 
-    it('should convert single keyType to array for createDefinition', () => {
+    it('should convert single keyType to array for createCoordinate', () => {
       const keyType = 'single';
       const models = [mockModel1];
       const scopes = ['test'];
@@ -338,24 +359,29 @@ describe('primary/Instance', () => {
       createInstance(keyType, models, {}, scopes, mockRegistry);
 
       // Verify that the single keyType is wrapped in an array
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, {});
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
     });
 
     it('should handle string key types correctly', () => {
-      const stringKeyTypes = ['order', 'customer', 'product'];
+      const stringKeyTypes = ['order', 'customer', 'product', 'user', 'item'];
 
       for (const keyType of stringKeyTypes) {
         createInstance(keyType as any, [mockModel1], {}, ['test'], mockRegistry);
-        expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], ['test'], {});
+        expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', 'test']);
       }
     });
 
     it('should maintain correct execution order', () => {
       const executionOrder: string[] = [];
 
-      mockCreateDefinition.mockImplementation(() => {
-        executionOrder.push('createDefinition');
-        return mockDefinition as any;
+      mockCreateCoordinate.mockImplementation(() => {
+        executionOrder.push('createCoordinate');
+        return mockCoordinate as any;
+      });
+
+      mockCreateOptions.mockImplementation(() => {
+        executionOrder.push('createOptions');
+        return mockOptions as any;
       });
 
       mockCreateOperations.mockImplementation(() => {
@@ -374,15 +400,17 @@ describe('primary/Instance', () => {
 
       createInstance(keyType, models, {}, scopes, mockRegistry);
 
-      expect(executionOrder).toEqual(['createDefinition', 'createOperations', 'wrapOperations']);
+      expect(executionOrder).toEqual(['createCoordinate', 'createOptions', 'createOperations', 'wrapOperations']);
     });
 
     it('should handle dependency return values correctly', () => {
-      const customDefinition = { ...mockDefinition, custom: true };
+      const customCoordinate = { ...mockCoordinate, custom: true };
+      const customOptions = { ...mockOptions, custom: true };
       const customOperations = { ...mockOperations, custom: true };
       const customWrappedOperations = { ...mockWrappedOperations, custom: true };
 
-      mockCreateDefinition.mockReturnValue(customDefinition as any);
+      mockCreateCoordinate.mockReturnValue(customCoordinate as any);
+      mockCreateOptions.mockReturnValue(customOptions as any);
       mockCreateOperations.mockReturnValue(customOperations as any);
       mockPrimaryWrapOperations.mockReturnValue(customWrappedOperations as any);
 
@@ -392,7 +420,8 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, {}, scopes, mockRegistry);
 
-      expect(result.definition).toBe(customDefinition);
+      expect(result.coordinate).toBe(customCoordinate);
+      expect(result.options).toBe(customOptions);
       expect(result.operations).toBe(customWrappedOperations);
     });
   });
@@ -401,14 +430,16 @@ describe('primary/Instance', () => {
     it('should extend AbstractSequelizeInstance and include models property', () => {
       // This test verifies the type structure at compile time
       const instance: Instance<Item<'test'>, 'test'> = {
-        definition: mockDefinition as any,
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [mockModel1],
         registry: mockRegistry,
       };
 
       expect(instance).toBeDefined();
-      expect(instance.definition).toBeDefined();
+      expect(instance.coordinate).toBeDefined();
+      expect(instance.options).toBeDefined();
       expect(instance.operations).toBeDefined();
       expect(instance.models).toBeDefined();
       expect(instance.registry).toBeDefined();
@@ -417,14 +448,16 @@ describe('primary/Instance', () => {
 
     it('should allow different model configurations', () => {
       const instanceWithMultipleModels: Instance<Item<'multi'>, 'multi'> = {
-        definition: mockDefinition as any,
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [mockModel1, mockModel2],
         registry: mockRegistry,
       };
 
       const instanceWithNoModels: Instance<Item<'empty'>, 'empty'> = {
-        definition: mockDefinition as any,
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [],
         registry: mockRegistry,
@@ -436,7 +469,8 @@ describe('primary/Instance', () => {
 
     it('should maintain type safety with generic parameters', () => {
       const instance: Instance<Item<'typed'>, 'typed'> = {
-        definition: mockDefinition as any,
+        coordinate: mockCoordinate as any,
+        options: mockOptions as any,
         operations: mockWrappedOperations as any,
         models: [mockModel1],
         registry: mockRegistry,
@@ -448,9 +482,9 @@ describe('primary/Instance', () => {
   });
 
   describe('error handling', () => {
-    it('should propagate errors from createDefinition', () => {
-      const error = new Error('Definition creation failed');
-      mockCreateDefinition.mockImplementation(() => {
+    it('should propagate errors from createCoordinate', () => {
+      const error = new Error('Coordinate creation failed');
+      mockCreateCoordinate.mockImplementation(() => {
         throw error;
       });
 
@@ -460,7 +494,22 @@ describe('primary/Instance', () => {
 
       expect(() => {
         createInstance(keyType, models, {}, scopes, mockRegistry);
-      }).toThrow('Definition creation failed');
+      }).toThrow('Coordinate creation failed');
+    });
+
+    it('should propagate errors from createOptions', () => {
+      const error = new Error('Options creation failed');
+      mockCreateOptions.mockImplementation(() => {
+        throw error;
+      });
+
+      const keyType = 'error';
+      const models = [mockModel1];
+      const scopes = ['test'];
+
+      expect(() => {
+        createInstance(keyType, models, {}, scopes, mockRegistry);
+      }).toThrow('Options creation failed');
     });
 
     it('should propagate errors from createOperations', () => {
@@ -500,7 +549,8 @@ describe('primary/Instance', () => {
       // Test with empty libOptions (should use default {})
       const result = createInstance(keyType, models, {}, [], mockRegistry);
 
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], [], {});
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize']);
+      expect(mockCreateOptions).toHaveBeenCalledWith({});
       expect(result).toBeDefined();
     });
 
@@ -513,7 +563,7 @@ describe('primary/Instance', () => {
         createInstance(keyType, nullModels, {}, scopes, mockRegistry);
       }).not.toThrow();
 
-      expect(mockCreateOperations).toHaveBeenCalledWith(nullModels, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(nullModels, mockCoordinate, mockRegistry, mockOptions);
     });
   });
 
@@ -524,7 +574,7 @@ describe('primary/Instance', () => {
       keyTypes.forEach(keyType => {
         const result = createInstance(keyType as any, [mockModel1], {}, ['test'], mockRegistry);
         expect(result).toBeDefined();
-        expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], ['test'], {});
+        expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', 'test']);
       });
     });
 
@@ -541,7 +591,7 @@ describe('primary/Instance', () => {
 
       scopeConfigurations.forEach(scopes => {
         createInstance(keyType, [mockModel1], {}, scopes, mockRegistry);
-        expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, {});
+        expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
       });
     });
 
@@ -564,7 +614,7 @@ describe('primary/Instance', () => {
 
       libOptionsConfigurations.forEach(libOptions => {
         createInstance(keyType, models, libOptions as any, scopes, mockRegistry);
-        expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
+        expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
       });
     });
   });
@@ -586,14 +636,17 @@ describe('primary/Instance', () => {
 
       createInstance(keyType, models, libOptions as any, scopes, mockRegistry);
 
-      // Verify createDefinition call
-      expect(mockCreateDefinition).toHaveBeenCalledWith([keyType], scopes, libOptions);
+      // Verify createCoordinate call
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
+
+      // Verify createOptions call
+      expect(mockCreateOptions).toHaveBeenCalledWith(libOptions);
 
       // Verify createOperations call
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
 
       // Verify Primary.wrapOperations call
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
     });
 
     it('should create instance with proper relationships between dependencies', () => {
@@ -603,25 +656,34 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, {}, scopes, mockRegistry);
 
-      // The definition should be passed to operations creation
-      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockDefinition, mockRegistry);
+      // The coordinate should be created first
+      expect(mockCreateCoordinate).toHaveBeenCalledWith([keyType], ['sequelize', ...scopes]);
+
+      // The options should be created
+      expect(mockCreateOptions).toHaveBeenCalledWith({});
+
+      // The coordinate and options should be passed to operations creation
+      expect(mockCreateOperations).toHaveBeenCalledWith(models, mockCoordinate, mockRegistry, mockOptions);
 
       // The operations should be passed to wrapping
-      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockDefinition, mockRegistry);
+      expect(mockPrimaryWrapOperations).toHaveBeenCalledWith(mockOperations, mockOptions, mockCoordinate, mockRegistry);
 
       // The result should contain all parts
-      expect(result.definition).toBe(mockDefinition);
+      expect(result.coordinate).toBe(mockCoordinate);
+      expect(result.options).toBe(mockOptions);
       expect(result.operations).toBe(mockWrappedOperations);
       expect(result.models).toBe(models);
       expect(result.registry).toBe(mockRegistry);
     });
 
     it('should handle when dependencies return different structures', () => {
-      const alternateDefinition = { alternate: true, coordinate: { kta: [] } };
+      const alternateCoordinate = { alternate: true, kta: [] };
+      const alternateOptions = { alternate: true };
       const alternateOperations = { alternate: true };
       const alternateWrappedOperations = { alternateWrapped: true };
 
-      mockCreateDefinition.mockReturnValue(alternateDefinition as any);
+      mockCreateCoordinate.mockReturnValue(alternateCoordinate as any);
+      mockCreateOptions.mockReturnValue(alternateOptions as any);
       mockCreateOperations.mockReturnValue(alternateOperations as any);
       mockPrimaryWrapOperations.mockReturnValue(alternateWrappedOperations as any);
 
@@ -631,7 +693,8 @@ describe('primary/Instance', () => {
 
       const result = createInstance(keyType, models, {}, scopes, mockRegistry);
 
-      expect(result.definition).toBe(alternateDefinition);
+      expect(result.coordinate).toBe(alternateCoordinate);
+      expect(result.options).toBe(alternateOptions);
       expect(result.operations).toBe(alternateWrappedOperations);
     });
   });
