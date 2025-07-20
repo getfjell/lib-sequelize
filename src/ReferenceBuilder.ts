@@ -23,7 +23,7 @@ export const buildReference = async (
   }
 
   // Find the Library.Instance for the key type
-  const library: Library.Instance<any, any, any, any, any, any, any> | null = registry.get(referenceDefinition.kta);
+  const library: any = registry.get(referenceDefinition.kta);
   if (!library) {
     throw new Error("This model definition has a reference definition, but the dependency is not present");
   }

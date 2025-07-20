@@ -13,6 +13,7 @@ import {
 
 import { Association, ModelStatic, Op } from 'sequelize';
 import LibLogger from '@/logger';
+import { stringifyJSON } from '@/util/general';
 
 const logger = LibLogger.get('sequelize', 'QueryBuilder');
 
@@ -25,7 +26,7 @@ export type QueryOptions = {
 }
 
 const addDeleteQuery = (options: QueryOptions, model: ModelStatic<any>): QueryOptions => {
-  logger.default('Adding Delete Query', { options });
+  logger.default(`QueryBuilder adding delete query with options: ${stringifyJSON(options)}`);
   if (model.getAttributes().deletedAt) {
     options.where['deletedAt'] = {
       [Op.eq]: null
@@ -41,7 +42,7 @@ const addDeleteQuery = (options: QueryOptions, model: ModelStatic<any>): QueryOp
 
 const addEventQueries = (
   options: QueryOptions, events: Record<string, EventQuery>, model: ModelStatic<any>): QueryOptions => {
-  logger.default('Adding Event Queries', { options, events });
+  logger.default(`QueryBuilder adding event queries with options: ${stringifyJSON(options)}, events: ${stringifyJSON(events)}`);
   Object.keys(events).forEach((key: string) => {
 
     if (!model.getAttributes()[`${key}At`]) {
@@ -73,10 +74,10 @@ const addEventQueries = (
 
 // Add the references to the query
 const addReferenceQueries = (options: any, references: References, model: ModelStatic<any>): any => {
-  logger.default('Adding Reference Queries', { options, references });
+  logger.default(`QueryBuilder adding reference queries with options: ${stringifyJSON(options)}, references: ${stringifyJSON(references)}`);
 
   Object.keys(references).forEach((key: string) => {
-    logger.default('Adding Reference Query', { key, references });
+    logger.default(`QueryBuilder adding reference query for key: ${key}, references: ${stringifyJSON(references)}`);
 
     if (!model.getAttributes()[`${key}Id`]) {
       throw new Error(`Reference ${key} is not supported on this model, column ${key}Id not found`);
@@ -85,6 +86,12 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
     if (isPriKey(references[key])) {
       const priKey: PriKey<string> = references[key] as PriKey<string>;
 
+      if (priKey.pk == null || priKey.pk === '' || (typeof priKey.pk === 'object' && Object.keys(priKey.pk).length === 0)) {
+        logger.error(`Reference key '${key}' has invalid pk value: ${stringifyJSON(priKey.pk)}`, { priKey, references });
+        throw new Error(`Reference key '${key}' has invalid pk value: ${stringifyJSON(priKey.pk)}`);
+      }
+
+      logger.trace(`[QueryBuilder] Setting reference where clause: ${key}Id = ${stringifyJSON(priKey.pk)} (type: ${typeof priKey.pk})`);
       options.where[`${key}Id`] = {
         [Op.eq]: priKey.pk
       }
@@ -175,6 +182,12 @@ const addAssociationCondition = (
   const sequelizeAssociationColumn = `$${associationName}.${attributeName}$`;
   const conditionOp = getSequelizeOperator(condition.operator);
 
+  if (condition.value == null && condition.operator !== '==' && condition.operator !== 'in') {
+    logger.error(`Association condition for '${associationName}.${attributeName}' has undefined/null value`, { condition });
+    throw new Error(`Association condition for '${associationName}.${attributeName}' has undefined/null value`);
+  }
+
+  logger.trace(`[QueryBuilder] Setting association condition: ${sequelizeAssociationColumn} = ${stringifyJSON(condition.value)} (type: ${typeof condition.value})`);
   conditions[sequelizeAssociationColumn] = {
     [conditionOp]: condition.value
   };
@@ -195,6 +208,12 @@ const addAttributeCondition = (
 
   const conditionOp = getSequelizeOperator(condition.operator);
 
+  if (condition.value == null && condition.operator !== '==' && condition.operator !== 'in') {
+    logger.error(`Attribute condition for '${conditionColumn}' has undefined/null value`, { condition });
+    throw new Error(`Attribute condition for '${conditionColumn}' has undefined/null value`);
+  }
+
+  logger.trace(`[QueryBuilder] Setting attribute condition: ${conditionColumn} = ${stringifyJSON(condition.value)} (type: ${typeof condition.value})`);
   conditions[conditionColumn] = {
     [conditionOp]: condition.value
   };
@@ -287,14 +306,14 @@ export const buildQuery = (
   itemQuery: ItemQuery,
   model: ModelStatic<any>
 ): any => {
-  logger.default('build', { itemQuery });
+  logger.default(`QueryBuilder build called with itemQuery: ${stringifyJSON(itemQuery)}`);
 
   let options: any = {
     where: {},
   };
 
   if (itemQuery.compoundCondition) {
-    logger.default('Adding Conditions', { compoundCondition: itemQuery.compoundCondition });
+    logger.default(`QueryBuilder adding conditions: ${stringifyJSON(itemQuery.compoundCondition)}`);
     options = addCompoundCondition(options, itemQuery.compoundCondition, model);
   }
 
@@ -314,7 +333,7 @@ export const buildQuery = (
 
   // Apply a limit to the result set
   if (itemQuery.limit) {
-    logger.default('Limiting to', { limit: itemQuery.limit });
+    logger.default(`QueryBuilder applying limit: ${itemQuery.limit}`);
     options.limit = itemQuery.limit;
   }
 

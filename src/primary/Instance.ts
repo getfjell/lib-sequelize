@@ -1,12 +1,12 @@
-/* eslint-disable max-params */
+
 import { Instance as AbstractSequelizeInstance } from '@/Instance';
 import { Item } from '@fjell/core';
 import { Primary } from '@fjell/lib';
-import { createDefinition } from '@/Definition';
 import { createOperations } from '@/Operations';
 import { ModelStatic } from 'sequelize';
-import { Options } from '@/Options';
-import * as Library from "@fjell/lib";
+import { createOptions, Options } from '@/Options';
+import { Registry } from '@/Registry';
+import { createCoordinate } from '@/Coordinate';
 
 import LibLogger from '@/logger';
 
@@ -27,18 +27,25 @@ export function createInstance<
   models: ModelStatic<any>[],
   libOptions: Partial<Options<V, S>> = {},
   scopes: string[] = [],
-  registry: Library.Registry
+  registry: Registry
 ): Instance<V, S> {
   logger.debug('createInstance', { keyType, models, libOptions, scopes });
-  const definition = createDefinition([keyType], scopes, libOptions);
 
-  const operations = createOperations(models, definition, registry);
+  // Create coordinate and options separately following new pattern
+  const coordinate = createCoordinate([keyType], scopes);
+  const options = createOptions(libOptions);
+
+  // Create operations with the new signature
+  const operations = createOperations<V, S>(models, coordinate, registry, options);
+
+  // Wrap operations for primary pattern
+  const wrappedOperations = Primary.wrapOperations(operations, options as any, coordinate, registry);
 
   return {
-    definition,
-    operations: Primary.wrapOperations(operations, definition, registry),
+    coordinate,
+    registry,
+    operations: wrappedOperations,
+    options,
     models,
-    registry
   } as Instance<V, S>;
-
 }
