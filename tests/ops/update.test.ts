@@ -2,9 +2,31 @@ import { Definition } from '@/Definition';
 import { getUpdateOperation } from '@/ops/update';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { NotFoundError } from '@fjell/lib';
-import { DataTypes, ModelStatic } from 'sequelize';
+import { DataTypes, ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
+
+// Mock all dependencies
+vi.mock('@/util/relationshipUtils');
+vi.mock('@/KeyMaster');
+vi.mock('@/EventCoordinator');
+vi.mock('@/RowProcessor');
+vi.mock('@/util/general');
+vi.mock('@fjell/core', async () => {
+  const actual = await vi.importActual('@fjell/core');
+  return {
+    ...actual,
+    validateKeys: vi.fn(),
+    abbrevIK: vi.fn(),
+  };
+});
+
+import { buildRelationshipPath } from '@/util/relationshipUtils';
+import { removeKey } from '@/KeyMaster';
+import { extractEvents, removeEvents } from '@/EventCoordinator';
+import { processRow } from '@/RowProcessor';
+import { stringifyJSON } from '@/util/general';
+import { abbrevIK, validateKeys } from '@fjell/core';
 
 type TestItem = import('@fjell/core').Item<'test'>;
 
@@ -14,8 +36,30 @@ describe('update', () => {
   let definitionMock: Mocked<Definition<TestItem, 'test'>>;
   let mockRegistry: Mocked<Library.Registry>;
 
+  // Mocked functions
+  const mockBuildRelationshipPath = buildRelationshipPath as any;
+  const mockRemoveKey = removeKey as any;
+  const mockExtractEvents = extractEvents as any;
+  const mockRemoveEvents = removeEvents as any;
+  const mockProcessRow = processRow as any;
+  const mockStringifyJSON = stringifyJSON as any;
+  const mockValidateKeys = validateKeys as any;
+  const mockAbbrevIK = abbrevIK as any;
+
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Setup default mock returns
+    mockAbbrevIK.mockReturnValue('test:1');
+    mockStringifyJSON.mockImplementation((obj: any) => JSON.stringify(obj));
+    mockRemoveKey.mockImplementation((item: any) => ({ ...item }));
+    mockExtractEvents.mockImplementation((item: any) => ({ ...item }));
+    mockRemoveEvents.mockImplementation((item: any) => ({ ...item }));
+    mockValidateKeys.mockImplementation((item: any) => item);
+    mockProcessRow.mockImplementation(async (response: any) => ({
+      ...response.get({ plain: true }),
+      key: { kt: 'test', pk: response.id }
+    }));
 
     mockRegistry = {
       get: vi.fn(),
@@ -87,20 +131,10 @@ describe('update', () => {
       // @ts-ignore
       mockModel.findByPk.mockResolvedValue(mockResponse);
 
-      const result = await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps);
+      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps);
 
       expect(mockModel.findByPk).toHaveBeenCalledWith('1');
       expect(mockResponse.update).toHaveBeenCalled();
-      expect(result).toEqual({
-        ...mockItem,
-        id: '1',
-        name: 'Updated Name',
-        events: {
-          created: { at: null },
-          updated: { at: null },
-          deleted: { at: null }
-        }
-      });
     });
 
     it('should throw NotFoundError when item not found', async () => {
@@ -117,15 +151,58 @@ describe('update', () => {
         )
       ).rejects.toThrow(NotFoundError);
     });
+
+    it('should process transformation pipeline correctly', async () => {
+      const key: PriKey<'test'> = { kt: 'test', pk: '1' };
+      const updatedProps = { name: 'Updated Name', key: { kt: 'test', pk: '1' } } as any;
+
+      const transformedProps = { name: 'Updated Name' };
+      mockRemoveKey.mockReturnValue(transformedProps);
+      mockExtractEvents.mockReturnValue(transformedProps);
+      mockRemoveEvents.mockReturnValue(transformedProps);
+
+      const mockResponse = {
+        id: '1',
+        update: vi.fn().mockImplementation(() => mockResponse),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1', name: 'Updated Name' };
+          }
+          return { id: '1', name: 'Updated Name' };
+        })
+      };
+
+      const finalResult = { key: { kt: 'test', pk: '1' }, name: 'Updated Name' };
+      mockProcessRow.mockResolvedValue(finalResult);
+      mockValidateKeys.mockReturnValue(finalResult);
+
+      // @ts-ignore
+      mockModel.findByPk.mockResolvedValue(mockResponse);
+
+      const result = await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps);
+
+      expect(mockRemoveKey).toHaveBeenCalledWith(updatedProps);
+      expect(mockExtractEvents).toHaveBeenCalledWith(transformedProps);
+      expect(mockRemoveEvents).toHaveBeenCalledWith(transformedProps);
+      expect(mockProcessRow).toHaveBeenCalled();
+      expect(mockValidateKeys).toHaveBeenCalled();
+      expect(result).toEqual(finalResult);
+    });
   });
 
   describe('with ComKey', () => {
-    it('should update item when found', async () => {
+    it('should update item when found with direct foreign key', async () => {
       const key: ComKey<'test', 'location'> = {
         kt: 'test', pk: '1',
         loc: [{ kt: 'location', lk: 'loc1' }]
       };
       const updatedProps = { name: 'Updated Name' };
+
+      // Mock buildRelationshipPath to return direct foreign key
+      mockBuildRelationshipPath.mockReturnValue({
+        found: true,
+        isDirect: true
+      });
 
       // Mock model with locationId as a direct foreign key field
       // @ts-ignore
@@ -133,7 +210,7 @@ describe('update', () => {
         id: { type: DataTypes.STRING, allowNull: false },
         name: { type: DataTypes.STRING, allowNull: false },
         status: { type: DataTypes.STRING, allowNull: false },
-        locationId: { type: DataTypes.STRING, allowNull: false } // Add locationId as direct foreign key
+        locationId: { type: DataTypes.STRING, allowNull: false }
       });
 
       const mockResponse = {
@@ -142,7 +219,6 @@ describe('update', () => {
         save: vi.fn(),
         update: vi.fn().mockImplementation((props) => {
           const updatedItem = { ...mockItem, ...props };
-          // Return the mock response itself with updated properties
           Object.assign(mockResponse, updatedItem);
           return mockResponse;
         }),
@@ -157,11 +233,12 @@ describe('update', () => {
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(mockResponse);
 
-      const result = await getUpdateOperation([mockModel], definitionMock, mockRegistry)(
+      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(
         key,
         updatedProps,
       );
 
+      expect(mockBuildRelationshipPath).toHaveBeenCalledWith(mockModel, 'location', ['test'], true);
       expect(mockModel.findOne).toHaveBeenCalledWith({
         where: {
           locationId: 'loc1',
@@ -169,16 +246,122 @@ describe('update', () => {
         }
       });
       expect(mockResponse.update).toHaveBeenCalled();
-      expect(result).toEqual({
-        ...mockItem,
-        id: '1',
-        name: 'Updated Name',
-        events: {
-          created: { at: null },
-          updated: { at: null },
-          deleted: { at: null }
-        }
+    });
+
+    it('should update item with hierarchical relationship', async () => {
+      const key: ComKey<'test', 'location'> = {
+        kt: 'test', pk: '1',
+        loc: [{ kt: 'location', lk: 'loc1' }]
+      };
+      const updatedProps = { name: 'Updated Name' };
+
+      // Mock buildRelationshipPath to return hierarchical relationship
+      mockBuildRelationshipPath.mockReturnValue({
+        found: true,
+        isDirect: false,
+        path: '$location.id$',
+        includes: [{ model: 'LocationModel', as: 'location' }]
       });
+
+      const mockResponse = {
+        id: '1',
+        update: vi.fn().mockImplementation(() => mockResponse),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1', name: 'Updated Name' };
+          }
+          return { id: '1', name: 'Updated Name' };
+        })
+      };
+
+      // @ts-ignore
+      mockModel.findOne.mockResolvedValue(mockResponse);
+
+      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps);
+
+      expect(mockModel.findOne).toHaveBeenCalledWith({
+        where: {
+          id: '1',
+          '$location.id$': { [Op.eq]: 'loc1' }
+        },
+        include: [{ model: 'LocationModel', as: 'location' }]
+      });
+    });
+
+    it('should handle multiple location keys', async () => {
+      type MultiLocItem = Item<'test', 'location' | 'category'>;
+      const key: ComKey<'test', 'location' | 'category'> = {
+        kt: 'test', pk: '1',
+        loc: [
+          { kt: 'location', lk: 'loc1' },
+          { kt: 'category', lk: 'cat1' }
+        ]
+      } as any;
+      const updatedProps = { name: 'Updated Name' };
+
+      const multiLocDefinition: Definition<MultiLocItem, 'test', 'location' | 'category'> = {
+        coordinate: {
+          kta: ['test', 'location', 'category'],
+          scopes: []
+        },
+        options: {
+          references: {},
+          aggregations: {}
+        }
+      } as any;
+
+      // Mock different relationship types for each locator
+      mockBuildRelationshipPath
+        .mockReturnValueOnce({ found: true, isDirect: true })
+        .mockReturnValueOnce({
+          found: true,
+          isDirect: false,
+          path: '$category.id$',
+          includes: [{ model: 'CategoryModel', as: 'category' }]
+        });
+
+      const mockResponse = {
+        id: '1',
+        update: vi.fn().mockImplementation(() => mockResponse),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1', name: 'Updated Name' };
+          }
+          return { id: '1', name: 'Updated Name' };
+        })
+      };
+
+      // @ts-ignore
+      mockModel.findOne.mockResolvedValue(mockResponse);
+
+      await getUpdateOperation([mockModel], multiLocDefinition, mockRegistry)(key, updatedProps);
+
+      expect(mockBuildRelationshipPath).toHaveBeenCalledTimes(2);
+      expect(mockModel.findOne).toHaveBeenCalledWith({
+        where: {
+          id: '1',
+          locationId: 'loc1',
+          '$category.id$': { [Op.eq]: 'cat1' }
+        },
+        include: [{ model: 'CategoryModel', as: 'category' }]
+      });
+    });
+
+    it('should throw error when composite key locator cannot be resolved', async () => {
+      const key: ComKey<'test', 'location'> = {
+        kt: 'test', pk: '1',
+        loc: [{ kt: 'location', lk: 'loc1' }]
+      };
+      const updatedProps = { name: 'Updated Name' };
+
+      // Mock buildRelationshipPath to return not found
+      mockBuildRelationshipPath.mockReturnValue({ found: false });
+
+      await expect(
+        getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps)
+      ).rejects.toThrow(`Composite key locator 'location' cannot be resolved on model '${mockModel.name}' or through its relationships.`);
+
+      expect(mockBuildRelationshipPath).toHaveBeenCalledWith(mockModel, 'location', ['test'], true);
     });
 
     it('should throw NotFoundError when item not found', async () => {
@@ -201,14 +384,7 @@ describe('update', () => {
         }
       } as any;
 
-      // Mock model with locationId as a direct foreign key field
-      // @ts-ignore
-      mockModel.getAttributes = vi.fn().mockReturnValue({
-        id: { type: DataTypes.STRING, allowNull: false },
-        name: { type: DataTypes.STRING, allowNull: false },
-        status: { type: DataTypes.STRING, allowNull: false },
-        locationId: { type: DataTypes.STRING, allowNull: false } // Add locationId as direct foreign key
-      });
+      mockBuildRelationshipPath.mockReturnValue({ found: true, isDirect: true });
 
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(null);
@@ -223,6 +399,152 @@ describe('update', () => {
           updatedProps,
         )
       ).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('mergeIncludes function', () => {
+    it('should merge includes without duplicates', async () => {
+      // Since mergeIncludes is not exported, we test it indirectly through the update operation
+      const key: ComKey<'test', 'location' | 'category'> = {
+        kt: 'test', pk: '1',
+        loc: [
+          { kt: 'location', lk: 'loc1' },
+          { kt: 'category', lk: 'cat1' }
+        ]
+      } as any;
+
+      // Mock both locators to return includes with overlapping entries
+      mockBuildRelationshipPath
+        .mockReturnValueOnce({
+          found: true,
+          isDirect: false,
+          path: '$location.id$',
+          includes: [
+            { model: 'LocationModel', as: 'location' },
+            { model: 'SharedModel', as: 'shared' }
+          ]
+        })
+        .mockReturnValueOnce({
+          found: true,
+          isDirect: false,
+          path: '$category.id$',
+          includes: [
+            { model: 'CategoryModel', as: 'category' },
+            { model: 'SharedModel', as: 'shared' } // Duplicate
+          ]
+        });
+
+      const multiLocDefinition: Definition<any, 'test', 'location' | 'category'> = {
+        coordinate: { kta: ['test', 'location', 'category'], scopes: [] },
+        options: { references: {}, aggregations: {} }
+      } as any;
+
+      const mockResponse = {
+        id: '1',
+        update: vi.fn().mockImplementation(() => mockResponse),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1' };
+          }
+          return { id: '1' };
+        })
+      };
+
+      // @ts-ignore
+      mockModel.findOne.mockResolvedValue(mockResponse);
+
+      await getUpdateOperation([mockModel], multiLocDefinition, mockRegistry)(key, {});
+
+      // Verify that findOne was called with merged includes (no duplicates)
+      const callArgs = mockModel.findOne.mock.calls[0]?.[0];
+      expect(callArgs?.include).toHaveLength(3); // No duplicates
+      expect(callArgs?.include).toContainEqual({ model: 'LocationModel', as: 'location' });
+      expect(callArgs?.include).toContainEqual({ model: 'CategoryModel', as: 'category' });
+      expect(callArgs?.include).toContainEqual({ model: 'SharedModel', as: 'shared' });
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle empty update properties', async () => {
+      const key: PriKey<'test'> = { kt: 'test', pk: '1' };
+      const updatedProps = {};
+
+      const mockResponse = {
+        id: '1',
+        update: vi.fn().mockImplementation(() => mockResponse),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1' };
+          }
+          return { id: '1' };
+        })
+      };
+
+      // @ts-ignore
+      mockModel.findByPk.mockResolvedValue(mockResponse);
+
+      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps);
+
+      expect(mockResponse.update).toHaveBeenCalled();
+      expect(mockRemoveKey).toHaveBeenCalledWith({});
+    });
+
+    it('should handle item with complex nested properties', async () => {
+      const key: PriKey<'test'> = { kt: 'test', pk: '1' };
+      const complexProps = {
+        name: 'Updated Name',
+        metadata: { tags: ['tag1', 'tag2'], priority: 'high' },
+        settings: { enabled: true, config: { theme: 'dark' } }
+      };
+
+      const mockResponse = {
+        id: '1',
+        update: vi.fn().mockImplementation(() => mockResponse),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1' };
+          }
+          return { id: '1' };
+        })
+      };
+
+      // @ts-ignore
+      mockModel.findByPk.mockResolvedValue(mockResponse);
+
+      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, complexProps);
+
+      expect(mockRemoveKey).toHaveBeenCalledWith(complexProps);
+      expect(mockExtractEvents).toHaveBeenCalled();
+      expect(mockRemoveEvents).toHaveBeenCalled();
+    });
+
+    it('should handle ComKey with no includes needed', async () => {
+      const key: ComKey<'test', 'location'> = {
+        kt: 'test', pk: '1',
+        loc: [{ kt: 'location', lk: 'loc1' }]
+      };
+
+      // Mock to return direct relationship with no includes
+      mockBuildRelationshipPath.mockReturnValue({ found: true, isDirect: true });
+
+      const mockResponse = {
+        id: '1',
+        update: vi.fn().mockImplementation(() => mockResponse),
+        get: vi.fn().mockImplementation((options) => {
+          if (options?.plain) {
+            return { id: '1' };
+          }
+          return { id: '1' };
+        })
+      };
+
+      // @ts-ignore
+      mockModel.findOne.mockResolvedValue(mockResponse);
+
+      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, {});
+
+      const callArgs = mockModel.findOne.mock.calls[0]?.[0];
+      expect(callArgs?.include).toBeUndefined();
     });
   });
 });

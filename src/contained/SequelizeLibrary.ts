@@ -1,5 +1,5 @@
 
-import { Instance as AbstractSequelizeInstance } from '@/Instance';
+import { SequelizeLibrary as AbstractSequelizeLibrary } from '@/SequelizeLibrary';
 import { Item, ItemTypeArray } from '@fjell/core';
 import { Contained } from '@fjell/lib';
 import { createOperations } from '@/Operations';
@@ -8,7 +8,7 @@ import { Registry } from '@/Registry';
 import { createOptions, Options } from '@/Options';
 import { createCoordinate } from '@/Coordinate';
 
-export interface Instance<
+export interface SequelizeLibrary<
   V extends Item<S>,
   S extends string,
   L1 extends string = never,
@@ -16,11 +16,11 @@ export interface Instance<
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
-> extends AbstractSequelizeInstance<V, S, L1, L2, L3, L4, L5> {
+> extends AbstractSequelizeLibrary<V, S, L1, L2, L3, L4, L5> {
   models: ModelStatic<any>[];
 }
 
-export function createInstance<
+export function createSequelizeLibrary<
   V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,
   L1 extends string = never,
@@ -34,7 +34,7 @@ export function createInstance<
   libOptions: Partial<Options<V, S, L1, L2, L3, L4, L5>> = {},
   scopes: string[] = [],
   registry: Registry
-): Instance<V, S, L1, L2, L3, L4, L5> {
+): SequelizeLibrary<V, S, L1, L2, L3, L4, L5> {
 
   // Create coordinate and options separately following new pattern
   const coordinate = createCoordinate(keyTypes, scopes);
@@ -52,5 +52,17 @@ export function createInstance<
     operations: wrappedOperations,
     options,
     models,
-  } as Instance<V, S, L1, L2, L3, L4, L5>;
+  } as SequelizeLibrary<V, S, L1, L2, L3, L4, L5>;
 }
+
+// Legacy exports for backwards compatibility
+export const createInstance = createSequelizeLibrary;
+export type Instance<
+  V extends Item<S>,
+  S extends string,
+  L1 extends string = never,
+  L2 extends string = never,
+  L3 extends string = never,
+  L4 extends string = never,
+  L5 extends string = never
+> = SequelizeLibrary<V, S, L1, L2, L3, L4, L5>;
