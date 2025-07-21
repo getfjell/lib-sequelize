@@ -22,7 +22,7 @@ vi.mock('@/logger', () => ({
 describe('ReferenceBuilder', () => {
   describe('buildReference', () => {
     let mockRegistry: Library.Registry;
-    let mockLibraryInstance: Library.Instance<any, any, any, any, any, any, any>;
+    let mockLibraryInstance: Library.Library<any, any, any, any, any, any, any>;
     let mockGet: ReturnType<typeof vi.fn>;
     let mockRegistryGet: ReturnType<typeof vi.fn>;
 

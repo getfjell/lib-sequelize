@@ -2,17 +2,17 @@ import { Item } from "@fjell/core";
 import { Options } from "./Options";
 import { Registry as LocalRegistry } from "./Registry";
 import { InstanceFactory as BaseInstanceFactory, Registry as BaseRegistry, Coordinate, RegistryHub } from "@fjell/registry";
-import { createInstance, Instance } from "./Instance";
+import { createSequelizeLibrary, SequelizeLibrary } from "./SequelizeLibrary";
 import { ModelStatic } from "sequelize";
 import SequelizeLogger from "./logger";
 
 const logger = SequelizeLogger.get("InstanceFactory");
 
 /**
- * Sequelize Instance Factory type that extends the base factory
+ * Sequelize Library Factory type that extends the base factory
  * to include Sequelize-specific models parameter
  */
-export type InstanceFactory<
+export type SequelizeLibraryFactory<
   V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,
   L1 extends string = never,
@@ -26,10 +26,10 @@ export type InstanceFactory<
 ) => BaseInstanceFactory<S, L1, L2, L3, L4, L5>;
 
 /**
- * Factory function for creating Sequelize instances
+ * Factory function for creating Sequelize libraries
  * This extends the fjell-lib pattern by adding Sequelize-specific models
  */
-export const createInstanceFactory = <
+export const createSequelizeLibraryFactory = <
   V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,
   L1 extends string = never,
@@ -49,11 +49,11 @@ export const createInstanceFactory = <
       options
     });
 
-    return createInstance<V, S, L1, L2, L3, L4, L5>(
+    return createSequelizeLibrary<V, S, L1, L2, L3, L4, L5>(
       context.registry as LocalRegistry,
       coordinate,
       models,
       options
-    ) as Instance<V, S, L1, L2, L3, L4, L5>;
+    ) as SequelizeLibrary<V, S, L1, L2, L3, L4, L5>;
   };
 };
