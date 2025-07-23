@@ -10,7 +10,7 @@ const packageJson = JSON.parse(
 
 export default defineConfig({
   plugins: [react()],
-  base: '/fjell-registry/',
+  base: '/lib-sequelize/',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
