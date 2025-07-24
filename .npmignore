@@ -21,3 +21,5 @@ pnpm-lock.yaml
 pnpm-workspace.yaml
 eslint.config.mjs
 .kodrdriv/
+README.md
+build.js

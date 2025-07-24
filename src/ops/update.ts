@@ -63,7 +63,10 @@ export const getUpdateOperation = <
     key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
     item: Partial<Item<S, L1, L2, L3, L4, L5>>,
   ): Promise<V> => {
-    logger.debug(`UPDATE operation called on ${models[0].name} with ${isPriKey(key) ? `primary key: pk=${key.pk}` : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`}`);
+    const keyDescription = isPriKey(key)
+      ? `primary key: pk=${key.pk}`
+      : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`;
+    logger.debug(`UPDATE operation called on ${models[0].name} with ${keyDescription}`);
     const { coordinate } = definition;
     const { kta } = coordinate;
 
