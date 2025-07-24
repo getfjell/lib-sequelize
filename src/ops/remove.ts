@@ -78,7 +78,10 @@ export const getRemoveOperation = <
       throw new Error('Key for Remove is not a valid ItemKey');
     }
 
-    logger.debug(`REMOVE operation called on ${models[0].name} with ${isPriKey(key) ? `primary key: pk=${key.pk}` : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`}`);
+    const keyDescription = isPriKey(key)
+      ? `primary key: pk=${key.pk}`
+      : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`;
+    logger.debug(`REMOVE operation called on ${models[0].name} with ${keyDescription}`);
     logger.default(`Remove configured for ${models[0].name} with ${isPriKey(key) ? 'primary' : 'composite'} key`);
 
     // @ts-ignore
