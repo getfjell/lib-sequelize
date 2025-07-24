@@ -74,7 +74,12 @@ const extractLocationKeyValue = (
       return currentObject[foreignKeyField];
     }
 
-    throw new Error(`Unable to extract location key for '${locatorType}'. Neither the relationship object nor direct foreign key is available. Traversal path: ${kta.slice(0, locatorIndex + 1).join(' → ')}`);
+    const traversalPath = kta.slice(0, locatorIndex + 1).join(' → ');
+    throw new Error(
+      `Unable to extract location key for '${locatorType}'. ` +
+      `Neither the relationship object nor direct foreign key is available. ` +
+      `Traversal path: ${traversalPath}`
+    );
   }
 };
 
