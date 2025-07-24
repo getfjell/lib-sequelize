@@ -152,7 +152,14 @@ export const getCreateOperation = <
       locations: LocKeyArray<L1, L2, L3, L4, L5>,
     },
   ): Promise<V> => {
-    logger.debug(`CREATE operation called on ${models[0].name} with ${options?.key ? `key: pk=${options.key.pk}, loc=[${isComKey(options.key) ? (options.key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ') : ''}]` : options?.locations ? `locations: ${options.locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ')}` : 'no constraints'}`);
+    const constraints = options?.key
+      ? `key: pk=${options.key.pk}, loc=[${isComKey(options.key)
+          ? (options.key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')
+          : ''}]`
+      : options?.locations
+        ? `locations: ${options.locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ')}`
+        : 'no constraints';
+    logger.debug(`CREATE operation called on ${models[0].name} with ${constraints}`);
     logger.default(`Create configured for ${models[0].name} with ${Object.keys(item).length} item fields`);
 
     const { coordinate, options: { references, aggregations } } = definition;

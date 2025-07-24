@@ -32,7 +32,11 @@ export const getFindOperation = <
     locations?: LocKeyArray<L1, L2, L3, L4, L5> | [],
 
   ): Promise<V[]> => {
-    logger.debug(`FIND operation called on ${models[0].name} with finder '${finder}' and ${locations?.length || 0} location filters: ${locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
+    const locationFilters = locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none';
+    logger.debug(
+      `FIND operation called on ${models[0].name} with finder '${finder}' ` +
+      `and ${locations?.length || 0} location filters: ${locationFilters}`
+    );
     logger.default(`Find configured for ${models[0].name} using finder '${finder}' with ${Object.keys(finderParams).length} params`);
 
     // Note that we execute the createFinders function here because we want to make sure we're always getting the
