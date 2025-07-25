@@ -28,8 +28,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "pnpm run lint && node esbuild.config.js",
-    "dev": "node esbuild.config.js --watch",
+    "build": "pnpm run lint && node build.js",
+    "dev": "node build.js --watch",
     "lint": "eslint . --ext .ts --fix",
     "clean": "rimraf dist",
     "test": "vitest run --coverage",
