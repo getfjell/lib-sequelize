@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Item, ItemTypeArray } from '@fjell/core';
-import { createInstance, createSequelizeLibrary, type Instance } from '@/contained/SequelizeLibrary';
+import { createSequelizeLibrary } from '@/contained/SequelizeLibrary';
 import { ModelStatic } from 'sequelize';
 import type { Registry } from '@/Registry';
 
@@ -292,47 +292,6 @@ describe('contained/SequelizeLibrary', () => {
 
       expect(mockCreateOptions).toHaveBeenCalledWith(complexOptions);
       expect(result).toBeDefined();
-    });
-  });
-
-  describe('legacy exports', () => {
-    it('should export createInstance as alias for createSequelizeLibrary', () => {
-      expect(createInstance).toBe(createSequelizeLibrary);
-    });
-
-    it('should allow Instance type to be used for SequelizeLibrary', () => {
-      const keyTypes: ItemTypeArray<'test'> = ['test'];
-
-      const library: Instance<TestItem, 'test'> = createInstance<TestItem, 'test'>(
-        keyTypes,
-        mockModels,
-        {},
-        [],
-        mockRegistry
-      );
-
-      expect(library).toBeDefined();
-      expect(library.models).toBe(mockModels);
-      expect(library.coordinate).toBe(mockCoordinate);
-      expect(library.registry).toBe(mockRegistry);
-      expect(library.operations).toBe(mockWrappedOperations);
-      expect(library.options).toBe(mockOptions);
-    });
-
-    it('should maintain backward compatibility with Instance interface', () => {
-      const keyTypes: ItemTypeArray<'user', 'org'> = ['user', 'org'];
-
-      // Test that Instance type accepts the same parameters as SequelizeLibrary
-      const instance: Instance<UserItem, 'user', 'org'> = createInstance<UserItem, 'user', 'org'>(
-        keyTypes,
-        mockModels,
-        { deleteOnRemove: true },
-        ['contained'],
-        mockRegistry
-      );
-
-      expect(instance).toBeDefined();
-      expect(instance.models).toBe(mockModels);
     });
   });
 
