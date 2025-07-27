@@ -16,6 +16,10 @@ export interface SequelizeLibrary<
   V extends Item<S>,
   S extends string
 > extends AbstractSequelizeLibrary<V, S> {
+  coordinate: Coordinate<S>;
+  registry: Registry;
+  operations: Operations<V, S>;
+  options: Options<V, S>;
   models: ModelStatic<any>[];
 }
 
@@ -49,9 +53,3 @@ export function createSequelizeLibrary<
     models,
   } as unknown as SequelizeLibrary<V, S>;
 }
-// Legacy exports for backwards compatibility
-export const createInstance = createSequelizeLibrary;
-export type Instance<
-  V extends Item<S>,
-  S extends string
-> = SequelizeLibrary<V, S>;

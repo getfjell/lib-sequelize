@@ -17,6 +17,10 @@ export interface SequelizeLibrary<
   L4 extends string = never,
   L5 extends string = never
 > extends AbstractSequelizeLibrary<V, S, L1, L2, L3, L4, L5> {
+  coordinate: Coordinate<S, L1, L2, L3, L4, L5>;
+  registry: Registry;
+  operations: Operations<V, S, L1, L2, L3, L4, L5>;
+  options: Options<V, S, L1, L2, L3, L4, L5>;
   models: ModelStatic<any>[];
 }
 
