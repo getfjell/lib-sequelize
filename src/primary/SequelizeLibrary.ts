@@ -10,7 +10,7 @@ import { createCoordinate } from '@/Coordinate';
 
 import LibLogger from '@/logger';
 
-const logger = LibLogger.get('lib-sequelize', 'primary', 'instance');
+const logger = LibLogger.get('lib-sequelize', 'primary', 'library');
 
 export interface SequelizeLibrary<
   V extends Item<S>,
@@ -47,9 +47,8 @@ export function createSequelizeLibrary<
     operations: wrappedOperations,
     options,
     models,
-  } as SequelizeLibrary<V, S>;
+  } as unknown as SequelizeLibrary<V, S>;
 }
-
 // Legacy exports for backwards compatibility
 export const createInstance = createSequelizeLibrary;
 export type Instance<
