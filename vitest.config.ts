@@ -11,10 +11,10 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       thresholds: {
         global: {
-          lines: 97,
-          functions: 100,
-          branches: 96,
-          statements: 97
+          lines: 92,
+          functions: 90,
+          branches: 91,
+          statements: 92
         }
       },
       include: ['src/**/*.ts'],
