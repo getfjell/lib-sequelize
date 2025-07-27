@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Item } from '@fjell/core';
-import { createInstance, createSequelizeLibrary, type Instance } from '@/primary/SequelizeLibrary';
+import { createSequelizeLibrary } from '@/primary/SequelizeLibrary';
 import { ModelStatic } from 'sequelize';
 import type { Registry } from '@/Registry';
 
@@ -209,31 +209,6 @@ describe('SequelizeLibrary', () => {
       );
 
       expect(mockCreateOptions).toHaveBeenCalledWith(customOptions);
-    });
-  });
-
-  describe('legacy exports', () => {
-    it('should export createInstance as alias for createSequelizeLibrary', () => {
-      expect(createInstance).toBe(createSequelizeLibrary);
-    });
-
-    it('should allow Instance type to be used for SequelizeLibrary', () => {
-      const keyType = 'test';
-
-      const library: Instance<TestItem, 'test'> = createInstance<TestItem, 'test'>(
-        keyType,
-        mockModels,
-        {},
-        [],
-        mockRegistry
-      );
-
-      expect(library).toBeDefined();
-      expect(library.models).toBe(mockModels);
-      expect(library.coordinate).toBe(mockCoordinate);
-      expect(library.registry).toBe(mockRegistry);
-      expect(library.operations).toBe(mockWrappedOperations);
-      expect(library.options).toBe(mockOptions);
     });
   });
 
