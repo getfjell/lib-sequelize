@@ -1,4 +1,4 @@
-import { createEvents, populateEvents, removeEvents, updateEvents } from '@/EventCoordinator';
+import { createEvents, populateEvents, removeEvents, updateEvents } from '../src/EventCoordinator';
 import { describe, expect, it } from 'vitest';
 
 describe('EventCoordinator', () => {

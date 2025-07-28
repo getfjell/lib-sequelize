@@ -1,12 +1,13 @@
 
-import { SequelizeLibrary as AbstractSequelizeLibrary } from '@/SequelizeLibrary';
+import { SequelizeLibrary as AbstractSequelizeLibrary } from '../SequelizeLibrary';
 import { Item, ItemTypeArray } from '@fjell/core';
 import { Contained } from '@fjell/lib';
-import { createOperations } from '@/Operations';
+import * as Library from '@fjell/lib';
+import { createOperations } from '../Operations';
 import { ModelStatic } from 'sequelize';
-import { Registry } from '@/Registry';
-import { createOptions, Options } from '@/Options';
-import { createCoordinate } from '@/Coordinate';
+import { Registry } from '../Registry';
+import { createOptions, Options } from '../Options';
+import { Coordinate, createCoordinate } from '../Coordinate';
 
 export interface SequelizeLibrary<
   V extends Item<S>,
@@ -19,7 +20,7 @@ export interface SequelizeLibrary<
 > extends AbstractSequelizeLibrary<V, S, L1, L2, L3, L4, L5> {
   coordinate: Coordinate<S, L1, L2, L3, L4, L5>;
   registry: Registry;
-  operations: Operations<V, S, L1, L2, L3, L4, L5>;
+  operations: Library.Operations<V, S, L1, L2, L3, L4, L5>;
   options: Options<V, S, L1, L2, L3, L4, L5>;
   models: ModelStatic<any>[];
 }

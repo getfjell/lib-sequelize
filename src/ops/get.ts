@@ -9,15 +9,15 @@ import {
   validateKeys
 } from '@fjell/core';
 
-import LibLogger from '@/logger';
+import LibLogger from '../logger';
 import { ModelStatic } from 'sequelize';
-import { processRow } from '@/RowProcessor';
-import { Definition } from '@/Definition';
+import { processRow } from '../RowProcessor';
+import { Definition } from '../Definition';
 import { NotFoundError } from '@fjell/lib';
 import * as Library from "@fjell/lib";
-import { buildRelationshipPath } from "@/util/relationshipUtils";
-import { contextManager } from "@/OperationContext";
-import { stringifyJSON } from "@/util/general";
+import { buildRelationshipPath } from "../util/relationshipUtils";
+import { contextManager } from "../OperationContext";
+import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'get');
 

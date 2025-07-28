@@ -2,17 +2,17 @@
 /* eslint-disable indent */
 import { validateKeys } from "@fjell/core";
 
-import { buildQuery } from "@/QueryBuilder";
+import { buildQuery } from "../QueryBuilder";
 
-import { Definition } from "@/Definition";
-import LibLogger from '@/logger';
+import { Definition } from "../Definition";
+import LibLogger from '../logger';
 import * as Library from "@fjell/lib";
-import { processRow } from "@/RowProcessor";
+import { processRow } from "../RowProcessor";
 import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 import { ModelStatic, Op } from "sequelize";
-import { buildRelationshipPath } from "@/util/relationshipUtils";
-import { contextManager } from "@/OperationContext";
-import { stringifyJSON } from "@/util/general";
+import { buildRelationshipPath } from "../util/relationshipUtils";
+import { contextManager } from "../OperationContext";
+import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'all');
 

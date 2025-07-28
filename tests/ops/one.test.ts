@@ -1,8 +1,8 @@
-import { getOneOperation } from '@/ops/one';
+import { getOneOperation } from '../../src/ops/one';
 import { IQFactory, Item, ItemQuery, LocKeyArray } from '@fjell/core';
 import { DataTypes, ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
-import { Definition } from '@/Definition';
+import { Definition } from '../../src/Definition';
 import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;

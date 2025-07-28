@@ -2,7 +2,7 @@ import { ReferenceDefinition } from "./Options";
 import { PriKey } from "@fjell/core";
 import * as Library from "@fjell/lib";
 import { OperationContext } from "./OperationContext";
-import LibLogger from "@/logger";
+import LibLogger from "./logger";
 
 const logger = LibLogger.get('sequelize', 'ReferenceBuilder');
 
@@ -23,7 +23,7 @@ export const buildReference = async (
   }
 
   // Find the Library.Instance for the key type
-  const library: any = registry.get(referenceDefinition.kta);
+  const library: any = registry.get(referenceDefinition.kta as any);
   if (!library) {
     throw new Error("This model definition has a reference definition, but the dependency is not present");
   }

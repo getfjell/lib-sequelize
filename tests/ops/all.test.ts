@@ -1,20 +1,20 @@
 /* eslint-disable no-undefined */
-import { Definition } from '@/Definition';
-import { getAllOperation } from '@/ops/all';
+import { Definition } from '../../src/Definition';
+import { getAllOperation } from '../../src/ops/all';
 import { Item, ItemQuery, LocKeyArray } from '@fjell/core';
 import { ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
 // Mocking dependencies
-vi.mock('@/QueryBuilder', () => ({
+vi.mock('../../src/QueryBuilder', () => ({
   buildQuery: vi.fn()
 }));
 
-vi.mock('@/util/relationshipUtils', () => ({
+vi.mock('../../src/util/relationshipUtils', () => ({
   buildRelationshipPath: vi.fn()
 }));
 
-vi.mock('@/RowProcessor', () => ({
+vi.mock('../../src/RowProcessor', () => ({
   processRow: vi.fn()
 }));
 
@@ -26,22 +26,22 @@ vi.mock('@fjell/core', async () => {
   };
 });
 
-vi.mock('@/OperationContext', () => ({
+vi.mock('../../src/OperationContext', () => ({
   contextManager: {
     getCurrentContext: vi.fn()
   }
 }));
 
-vi.mock('@/util/general', () => ({
+vi.mock('../../src/util/general', () => ({
   stringifyJSON: vi.fn()
 }));
 
-import { buildQuery } from '@/QueryBuilder';
-import { buildRelationshipPath } from '@/util/relationshipUtils';
-import { processRow } from '@/RowProcessor';
+import { buildQuery } from '../../src/QueryBuilder';
+import { buildRelationshipPath } from '../../src/util/relationshipUtils';
+import { processRow } from '../../src/RowProcessor';
 import { validateKeys } from '@fjell/core';
-import { contextManager } from '@/OperationContext';
-import { stringifyJSON } from '@/util/general';
+import { contextManager } from '../../src/OperationContext';
+import { stringifyJSON } from '../../src/util/general';
 
 type TestItem = import('@fjell/core').Item<'test'>;
 

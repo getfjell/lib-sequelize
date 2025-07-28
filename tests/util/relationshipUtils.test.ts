@@ -5,7 +5,7 @@ import {
   buildRelationshipPath,
   RelationshipChainResult,
   RelationshipPathResult
-} from '@/util/relationshipUtils';
+} from '../../src/util/relationshipUtils';
 
 // Mock Sequelize models for testing
 const createMockModel = (name: string, attributes: Record<string, any> = {}, associations: Record<string, any> = {}): ModelStatic<any> => {

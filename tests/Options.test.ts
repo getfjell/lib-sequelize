@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AggregationDefinition, createOptions, ReferenceDefinition } from '@/Options';
+import { AggregationDefinition, createOptions, ReferenceDefinition } from '../src/Options';
 
 describe('Options', () => {
   describe('AggregationDefinition interface', () => {

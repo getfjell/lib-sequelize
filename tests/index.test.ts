@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import * as IndexExports from '@/index';
+import * as IndexExports from '../src/index';
 
 describe('index', () => {
   describe('direct exports', () => {

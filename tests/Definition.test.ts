@@ -1,12 +1,12 @@
 import { Item, ItemTypeArray } from '@fjell/core';
-import { createDefinition } from '@/Definition';
-import { createCoordinate } from '@/Coordinate';
-import { createOptions } from '@/Options';
+import { createDefinition } from '../src/Definition';
+import { createCoordinate } from '../src/Coordinate';
+import { createOptions } from '../src/Options';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the dependencies
-vi.mock('@/Coordinate');
-vi.mock('@/Options');
+vi.mock('../src/Coordinate');
+vi.mock('../src/Options');
 
 const mockCreateCoordinate = vi.mocked(createCoordinate);
 const mockCreateOptions = vi.mocked(createOptions);

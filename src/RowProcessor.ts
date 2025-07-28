@@ -3,7 +3,7 @@
 import { AllItemTypeArrays, Item } from "@fjell/core";
 import { Model } from "sequelize";
 
-import LibLogger from "@/logger";
+import LibLogger from "./logger";
 import { addKey } from "./KeyMaster";
 import { AggregationDefinition, ReferenceDefinition } from "./Options";
 import { buildReference } from "./ReferenceBuilder";

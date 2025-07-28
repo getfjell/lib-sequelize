@@ -2,7 +2,7 @@ import { ikToLKA, Item, LocKeyArray } from "@fjell/core";
 import * as Library from "@fjell/lib";
 import { AggregationDefinition } from "./Options";
 import { contextManager, OperationContext, serializeKey } from "./OperationContext";
-import LibLogger from "@/logger";
+import LibLogger from "./logger";
 
 const logger = LibLogger.get('sequelize', 'AggregationBuilder');
 
@@ -16,7 +16,7 @@ export const buildAggregation = async (
   const location = ikToLKA(item.key) as unknown as LocKeyArray;
 
   // Get the library instance from the registry using the key type array
-  const libraryInstance = registry.get(aggregationDefinition.kta);
+  const libraryInstance = registry.get(aggregationDefinition.kta as any);
   if (!libraryInstance) {
     throw new Error(`Library instance not found for key type array: ${aggregationDefinition.kta.join(', ')}`);
   }

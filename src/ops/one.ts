@@ -1,8 +1,8 @@
 /* eslint-disable indent */
 import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 
-import { Definition } from "@/Definition";
-import LibLogger from '@/logger';
+import { Definition } from "../Definition";
+import LibLogger from '../logger';
 import { ModelStatic } from "sequelize";
 import { getAllOperation } from "./all";
 import * as Library from "@fjell/lib";

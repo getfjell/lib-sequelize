@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildReference } from '@/ReferenceBuilder';
-import { ReferenceDefinition } from '@/Options';
+import { buildReference } from '../src/ReferenceBuilder';
+import { ReferenceDefinition } from '../src/Options';
 import { PriKey } from '@fjell/core';
 import * as Library from '@fjell/lib';
-import { OperationContext } from '@/OperationContext';
+import { OperationContext } from '../src/OperationContext';
 
 // Mock the @fjell/lib module
 vi.mock('@fjell/lib');
 
 // Mock the logger
-vi.mock('@/logger', () => ({
+vi.mock('../src/logger', () => ({
   default: {
     get: vi.fn().mockReturnValue({
       default: vi.fn(),

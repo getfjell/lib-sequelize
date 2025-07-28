@@ -12,8 +12,8 @@ import {
 } from '@fjell/core';
 
 import { Association, ModelStatic, Op } from 'sequelize';
-import LibLogger from '@/logger';
-import { stringifyJSON } from '@/util/general';
+import LibLogger from './logger';
+import { stringifyJSON } from './util/general';
 
 const logger = LibLogger.get('sequelize', 'QueryBuilder');
 
