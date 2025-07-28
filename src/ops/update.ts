@@ -5,17 +5,17 @@ import { isPriKey } from "@fjell/core";
 
 import { ComKey, Item, PriKey } from "@fjell/core";
 
-import { Definition } from "@/Definition";
-import { extractEvents, removeEvents } from "@/EventCoordinator";
-import { removeKey } from "@/KeyMaster";
-import LibLogger from '@/logger';
-import { processRow } from "@/RowProcessor";
+import { Definition } from "../Definition";
+import { extractEvents, removeEvents } from "../EventCoordinator";
+import { removeKey } from "../KeyMaster";
+import LibLogger from '../logger';
+import { processRow } from "../RowProcessor";
 
 import * as Library from "@fjell/lib";
 import { NotFoundError } from "@fjell/lib";
 import { ModelStatic, Op } from "sequelize";
-import { buildRelationshipPath } from "@/util/relationshipUtils";
-import { stringifyJSON } from "@/util/general";
+import { buildRelationshipPath } from "../util/relationshipUtils";
+import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'update');
 

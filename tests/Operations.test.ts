@@ -1,26 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Item } from '@fjell/core';
-import { createOperations } from '@/Operations';
+import { createOperations } from '../src/Operations';
 import { ModelStatic } from 'sequelize';
-import { Options } from '@/Options';
+import { Options } from '../src/Options';
 
 // Mock all the operation modules
-vi.mock('@/ops/all');
-vi.mock('@/ops/one');
-vi.mock('@/ops/create');
-vi.mock('@/ops/update');
-vi.mock('@/ops/get');
-vi.mock('@/ops/remove');
-vi.mock('@/ops/find');
+vi.mock('../src/ops/all');
+vi.mock('../src/ops/one');
+vi.mock('../src/ops/create');
+vi.mock('../src/ops/update');
+vi.mock('../src/ops/get');
+vi.mock('../src/ops/remove');
+vi.mock('../src/ops/find');
 
 // Import the mocked functions
-import { getAllOperation } from '@/ops/all';
-import { getOneOperation } from '@/ops/one';
-import { getCreateOperation } from '@/ops/create';
-import { getUpdateOperation } from '@/ops/update';
-import { getGetOperation } from '@/ops/get';
-import { getRemoveOperation } from '@/ops/remove';
-import { getFindOperation } from '@/ops/find';
+import { getAllOperation } from '../src/ops/all';
+import { getOneOperation } from '../src/ops/one';
+import { getCreateOperation } from '../src/ops/create';
+import { getUpdateOperation } from '../src/ops/update';
+import { getGetOperation } from '../src/ops/get';
+import { getRemoveOperation } from '../src/ops/remove';
+import { getFindOperation } from '../src/ops/find';
 
 // Mock the operation functions
 const mockGetAllOperation = vi.mocked(getAllOperation);

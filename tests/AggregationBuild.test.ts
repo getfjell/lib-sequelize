@@ -1,5 +1,5 @@
-import { buildAggregation } from '@/AggregationBuilder';
-import { AggregationDefinition } from '@/Options';
+import { buildAggregation } from '../src/AggregationBuilder';
+import { AggregationDefinition } from '../src/Options';
 import { Item } from '@fjell/core';
 import * as Library from '@fjell/lib';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
@@ -14,7 +14,7 @@ vi.mock('@fjell/core', async () => {
 });
 
 // Mock the OperationContext module
-vi.mock('@/OperationContext', () => ({
+vi.mock('../src/OperationContext', () => ({
   contextManager: {
     withContext: vi.fn().mockImplementation((ctx, fn) => fn()),
     getCurrentContext: vi.fn()
@@ -23,7 +23,7 @@ vi.mock('@/OperationContext', () => ({
 }));
 
 import { ikToLKA } from '@fjell/core';
-import { contextManager, serializeKey } from '@/OperationContext';
+import { contextManager, serializeKey } from '../src/OperationContext';
 
 type TestItem = Item<'test', never, never, never, never, never>;
 

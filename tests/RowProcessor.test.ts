@@ -4,7 +4,7 @@ import { AllItemTypeArrays } from '@fjell/core';
 import * as Library from '@fjell/lib';
 
 // Mock all dependencies
-vi.mock('@/logger', () => ({
+vi.mock('../src/logger', () => ({
   default: {
     get: vi.fn().mockReturnValue({
       default: vi.fn(),
@@ -12,24 +12,24 @@ vi.mock('@/logger', () => ({
     })
   }
 }));
-vi.mock('@/KeyMaster');
-vi.mock('@/ReferenceBuilder', () => ({
+vi.mock('../src/KeyMaster');
+vi.mock('../src/ReferenceBuilder', () => ({
   buildReference: vi.fn()
 }));
-vi.mock('@/AggregationBuilder', () => ({
+vi.mock('../src/AggregationBuilder', () => ({
   buildAggregation: vi.fn()
 }));
-vi.mock('@/util/general');
-vi.mock('@/EventCoordinator');
+vi.mock('../src/util/general');
+vi.mock('../src/EventCoordinator');
 
-import { addKey } from '@/KeyMaster';
-import { buildReference } from '@/ReferenceBuilder';
-import { buildAggregation } from '@/AggregationBuilder';
-import { stringifyJSON } from '@/util/general';
-import { populateEvents } from '@/EventCoordinator';
-import { processRow } from '@/RowProcessor';
-import { AggregationDefinition, ReferenceDefinition } from '@/Options';
-import LibLogger from '@/logger';
+import { addKey } from '../src/KeyMaster';
+import { buildReference } from '../src/ReferenceBuilder';
+import { buildAggregation } from '../src/AggregationBuilder';
+import { stringifyJSON } from '../src/util/general';
+import { populateEvents } from '../src/EventCoordinator';
+import { processRow } from '../src/RowProcessor';
+import { AggregationDefinition, ReferenceDefinition } from '../src/Options';
+import LibLogger from '../src/logger';
 
 describe('RowProcessor', () => {
   let mockLoggerDefault: Mock;
