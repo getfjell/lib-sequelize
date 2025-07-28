@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clean, stringifyJSON } from '@/util/general';
+import { clean, stringifyJSON } from '../../src/util/general';
 
 describe('general.ts utilities', () => {
   describe('clean', () => {
@@ -164,7 +164,7 @@ describe('general.ts utilities', () => {
       it('should skip function properties in objects', () => {
         const obj = {
           name: 'John',
-          greet: function() { return 'hello'; },
+          greet: function () { return 'hello'; },
           age: 30
         };
         const result = stringifyJSON(obj);
@@ -261,7 +261,7 @@ describe('general.ts utilities', () => {
 
       it('should handle object with only functions and undefined', () => {
         const obj = {
-          func: function() { return 1; },
+          func: function () { return 1; },
           undef: void 0
         };
         const result = stringifyJSON(obj);

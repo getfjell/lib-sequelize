@@ -1,14 +1,14 @@
 /* eslint-disable indent */
 import { ComKey, isComKey, isPriKey, Item, LocKeyArray, PriKey, validateKeys } from "@fjell/core";
 
-import { Definition } from "@/Definition";
-import LibLogger from '@/logger';
-import { processRow } from "@/RowProcessor";
+import { Definition } from "../Definition";
+import LibLogger from '../logger';
+import { processRow } from "../RowProcessor";
 import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
-import { extractEvents, removeEvents } from "@/EventCoordinator";
-import { buildRelationshipChain, buildRelationshipPath } from "@/util/relationshipUtils";
-import { stringifyJSON } from "@/util/general";
+import { extractEvents, removeEvents } from "../EventCoordinator";
+import { buildRelationshipChain, buildRelationshipPath } from "../util/relationshipUtils";
+import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
 

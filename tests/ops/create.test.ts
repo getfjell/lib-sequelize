@@ -1,13 +1,13 @@
-import { Definition } from '@/Definition';
-import { getCreateOperation } from '@/ops/create';
+import { Definition } from '../../src/Definition';
+import { getCreateOperation } from '../../src/ops/create';
 import { ComKey, cPK, LocKeyArray } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
-import { buildRelationshipChain, buildRelationshipPath } from '@/util/relationshipUtils';
+import { buildRelationshipChain, buildRelationshipPath } from '../../src/util/relationshipUtils';
 
 // Mock the imported modules
-vi.mock('@/RowProcessor', () => ({
+vi.mock('../../src/RowProcessor', () => ({
   processRow: vi.fn().mockImplementation(async (record: any, kta: string[]) => {
     if (!record || typeof record.get !== 'function') {
       // Return a default record if invalid record is passed
@@ -32,14 +32,14 @@ vi.mock('@/RowProcessor', () => ({
   })
 }));
 
-vi.mock('@/EventCoordinator', () => ({
+vi.mock('../../src/EventCoordinator', () => ({
   extractEvents: vi.fn((data: any) => ({ ...data })),
   removeEvents: vi.fn((data: any) => ({ ...data }))
 }));
 
-vi.mock('@/util/relationshipUtils');
+vi.mock('../../src/util/relationshipUtils');
 
-vi.mock('@/logger', () => ({
+vi.mock('../../src/logger', () => ({
   default: {
     get: vi.fn().mockReturnValue({
       debug: vi.fn(),

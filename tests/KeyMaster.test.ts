@@ -1,4 +1,4 @@
-import { addKey, removeKey } from '@/KeyMaster';
+import { addKey, removeKey } from '../src/KeyMaster';
 import { AllItemTypeArrays, Item } from '@fjell/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Model, ModelStatic } from 'sequelize';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import * as ContainedIndex from '@/contained/index';
+import * as ContainedIndex from '../../src/contained/index';
 
 describe('contained/index', () => {
   it('should export SequelizeLibrary interface and createSequelizeLibrary function', () => {

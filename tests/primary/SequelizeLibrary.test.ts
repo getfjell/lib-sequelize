@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Item } from '@fjell/core';
-import { createSequelizeLibrary } from '@/primary/SequelizeLibrary';
+import { createSequelizeLibrary } from '../../src/primary/SequelizeLibrary';
 import { ModelStatic } from 'sequelize';
-import type { Registry } from '@/Registry';
+import type { Registry } from '../../src/Registry';
 
 // Mock the dependencies
-vi.mock('@/Operations');
-vi.mock('@/Options');
-vi.mock('@/Coordinate');
+vi.mock('../../src/Operations');
+vi.mock('../../src/Options');
+vi.mock('../../src/Coordinate');
 vi.mock('@fjell/lib', () => ({
   Primary: {
     wrapOperations: vi.fn(),
@@ -15,9 +15,9 @@ vi.mock('@fjell/lib', () => ({
 }));
 
 // Import mocked functions
-import { createOperations } from '@/Operations';
-import { createOptions } from '@/Options';
-import { createCoordinate } from '@/Coordinate';
+import { createOperations } from '../../src/Operations';
+import { createOptions } from '../../src/Options';
+import { createCoordinate } from '../../src/Coordinate';
 import { Primary } from '@fjell/lib';
 
 const mockCreateOperations = vi.mocked(createOperations);

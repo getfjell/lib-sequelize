@@ -1,12 +1,12 @@
-import { Definition } from '@/Definition';
-import { getRemoveOperation } from '@/ops/remove';
+import { Definition } from '../../src/Definition';
+import { getRemoveOperation } from '../../src/ops/remove';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
 
 // Mock the logger
-vi.mock('@/logger', () => ({
+vi.mock('../../src/logger', () => ({
   default: {
     get: () => ({
       default: vi.fn(),
@@ -17,16 +17,16 @@ vi.mock('@/logger', () => ({
 }));
 
 // Mock the relationship utils
-vi.mock('@/util/relationshipUtils', () => ({
+vi.mock('../../src/util/relationshipUtils', () => ({
   buildRelationshipPath: vi.fn()
 }));
 
 // Mock other dependencies
-vi.mock('@/EventCoordinator', () => ({
+vi.mock('../../src/EventCoordinator', () => ({
   populateEvents: vi.fn().mockImplementation((item) => item)
 }));
 
-vi.mock('@/KeyMaster', () => ({
+vi.mock('../../src/KeyMaster', () => ({
   addKey: vi.fn().mockImplementation((dbItem, item, kta) => {
     // Reconstruct key based on kta and item data
     const key: any = { kt: kta[0], pk: item.id || dbItem.id };
@@ -97,7 +97,7 @@ describe('remove', () => {
     } as any;
 
     // Mock buildRelationshipPath
-    const { buildRelationshipPath } = await import('@/util/relationshipUtils');
+    const { buildRelationshipPath } = await import('../../src/util/relationshipUtils');
     mockBuildRelationshipPath = vi.mocked(buildRelationshipPath);
     mockBuildRelationshipPath.mockReturnValue({
       found: true,

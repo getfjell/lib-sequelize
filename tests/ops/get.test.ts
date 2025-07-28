@@ -1,9 +1,9 @@
-import { getGetOperation } from '@/ops/get';
+import { getGetOperation } from '../../src/ops/get';
 import { ComKey, PriKey } from '@fjell/core';
 import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
-import { Definition } from '@/Definition';
+import { Definition } from '../../src/Definition';
 import * as Library from "@fjell/lib";
 
 type TestItem = import('@fjell/core').Item<'test'>;

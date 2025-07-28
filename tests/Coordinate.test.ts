@@ -1,4 +1,4 @@
-import { createCoordinate, SCOPE_SEQUELIZE } from '@/index';
+import { createCoordinate, SCOPE_SEQUELIZE } from '../src/index';
 import { ItemTypeArray } from '@fjell/core';
 import { describe, expect, it } from 'vitest';
 

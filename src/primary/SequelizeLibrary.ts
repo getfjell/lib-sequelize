@@ -1,14 +1,15 @@
 
-import { SequelizeLibrary as AbstractSequelizeLibrary } from '@/SequelizeLibrary';
+import { SequelizeLibrary as AbstractSequelizeLibrary } from '../SequelizeLibrary';
 import { Item } from '@fjell/core';
 import { Primary } from '@fjell/lib';
-import { createOperations } from '@/Operations';
+import * as Library from '@fjell/lib';
+import { createOperations } from '../Operations';
 import { ModelStatic } from 'sequelize';
-import { createOptions, Options } from '@/Options';
-import { Registry } from '@/Registry';
-import { createCoordinate } from '@/Coordinate';
+import { createOptions, Options } from '../Options';
+import { Registry } from '../Registry';
+import { Coordinate, createCoordinate } from '../Coordinate';
 
-import LibLogger from '@/logger';
+import LibLogger from '../logger';
 
 const logger = LibLogger.get('lib-sequelize', 'primary', 'library');
 
@@ -18,7 +19,7 @@ export interface SequelizeLibrary<
 > extends AbstractSequelizeLibrary<V, S> {
   coordinate: Coordinate<S>;
   registry: Registry;
-  operations: Operations<V, S>;
+  operations: Library.Operations<V, S>;
   options: Options<V, S>;
   models: ModelStatic<any>[];
 }
