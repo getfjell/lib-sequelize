@@ -3,14 +3,14 @@ import { ComKey, isValidItemKey, PriKey } from "@fjell/core";
 
 import { abbrevIK, isComKey, isPriKey, Item } from "@fjell/core";
 
-import { Definition } from "@/Definition";
-import { populateEvents } from "@/EventCoordinator";
-import { addKey } from "@/KeyMaster";
-import LibLogger from '@/logger';
+import { Definition } from "../Definition";
+import { populateEvents } from "../EventCoordinator";
+import { addKey } from "../KeyMaster";
+import LibLogger from '../logger';
 import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
-import { buildRelationshipPath } from "@/util/relationshipUtils";
-import { stringifyJSON } from "@/util/general";
+import { buildRelationshipPath } from "../util/relationshipUtils";
+import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'remove');
 
