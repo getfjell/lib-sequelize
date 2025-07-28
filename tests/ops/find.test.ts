@@ -1,7 +1,7 @@
 /* eslint-disable no-undefined */
-import { getFindOperation } from '@/ops/find';
+import { getFindOperation } from '../../src/ops/find';
 import { Item, LocKeyArray } from '@fjell/core';
-import { Definition } from '@/Definition';
+import { Definition } from '../../src/Definition';
 import { ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";

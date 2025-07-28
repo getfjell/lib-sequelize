@@ -1,12 +1,12 @@
 /* eslint-disable indent */
 import { Item, LocKeyArray, validateKeys } from "@fjell/core";
 
-import { Definition } from "@/Definition";
-import LibLogger from '@/logger';
+import { Definition } from "../Definition";
+import LibLogger from '../logger';
 import { ModelStatic } from "sequelize";
-import { processRow } from "@/RowProcessor";
+import { processRow } from "../RowProcessor";
 import * as Library from "@fjell/lib";
-import { stringifyJSON } from "@/util/general";
+import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'find');
 

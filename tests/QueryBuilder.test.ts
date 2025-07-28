@@ -1,4 +1,4 @@
-import { addCompoundCondition, addCondition, buildQuery } from '@/QueryBuilder';
+import { addCompoundCondition, addCondition, buildQuery } from '../src/QueryBuilder';
 import { CompoundCondition, Condition, ItemQuery } from '@fjell/core';
 import dayjs from 'dayjs';
 import { ModelStatic, Op } from 'sequelize';

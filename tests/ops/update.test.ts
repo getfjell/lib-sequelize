@@ -1,5 +1,5 @@
-import { Definition } from '@/Definition';
-import { getUpdateOperation } from '@/ops/update';
+import { Definition } from '../../src/Definition';
+import { getUpdateOperation } from '../../src/ops/update';
 import { ComKey, Item, PriKey } from '@fjell/core';
 import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic, Op } from 'sequelize';
@@ -7,11 +7,11 @@ import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
 
 // Mock all dependencies
-vi.mock('@/util/relationshipUtils');
-vi.mock('@/KeyMaster');
-vi.mock('@/EventCoordinator');
-vi.mock('@/RowProcessor');
-vi.mock('@/util/general');
+vi.mock('../../src/util/relationshipUtils');
+vi.mock('../../src/KeyMaster');
+vi.mock('../../src/EventCoordinator');
+vi.mock('../../src/RowProcessor');
+vi.mock('../../src/util/general');
 vi.mock('@fjell/core', async () => {
   const actual = await vi.importActual('@fjell/core');
   return {
@@ -21,11 +21,11 @@ vi.mock('@fjell/core', async () => {
   };
 });
 
-import { buildRelationshipPath } from '@/util/relationshipUtils';
-import { removeKey } from '@/KeyMaster';
-import { extractEvents, removeEvents } from '@/EventCoordinator';
-import { processRow } from '@/RowProcessor';
-import { stringifyJSON } from '@/util/general';
+import { buildRelationshipPath } from '../../src/util/relationshipUtils';
+import { removeKey } from '../../src/KeyMaster';
+import { extractEvents, removeEvents } from '../../src/EventCoordinator';
+import { processRow } from '../../src/RowProcessor';
+import { stringifyJSON } from '../../src/util/general';
 import { abbrevIK, validateKeys } from '@fjell/core';
 
 type TestItem = import('@fjell/core').Item<'test'>;

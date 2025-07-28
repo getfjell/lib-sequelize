@@ -4,9 +4,9 @@ import {
   Item,
 } from '@fjell/core';
 
-import LibLogger from '@/logger';
+import LibLogger from './logger';
 import { Model, ModelStatic } from 'sequelize';
-import { buildRelationshipPath } from '@/util/relationshipUtils';
+import { buildRelationshipPath } from './util/relationshipUtils';
 
 const logger = LibLogger.get('sequelize', 'KeyMaster');
 
