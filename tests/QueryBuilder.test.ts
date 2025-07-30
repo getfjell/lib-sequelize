@@ -555,7 +555,7 @@ describe('QueryBuilder', () => {
       };
 
       expect(() => addCompoundCondition({}, nestedCondition, mockModel))
-        .toThrow('Nest Compound conditions not supported');
+        .toThrow('Nested Compound conditions not supported');
     });
   });
 
@@ -996,7 +996,7 @@ describe('QueryBuilder', () => {
       };
 
       expect(() => buildQuery(itemQuery, mockModel))
-        .toThrow('Event created is not supported on this model, column createdBy not found');
+        .toThrow('Event created is not supported on model \'TestModel\', column \'createdBy\' not found');
     });
 
     it('should handle multiple event queries', () => {
@@ -1063,7 +1063,7 @@ describe('QueryBuilder', () => {
 
       expect(() =>
         buildQuery(itemQuery, mockModel)
-      ).toThrow('Event finalization is not supported on this model, column finalizationAt not found');
+      ).toThrow('Event finalization is not supported on model \'TestModel\', column \'finalizationAt\' not found');
     });
 
     it('query for birthday before a certain date (custom event)', () => {
@@ -1139,7 +1139,7 @@ describe('QueryBuilder', () => {
 
       expect(
         () => buildQuery(itemQuery, mockModel)
-      ).toThrow(`Reference dance is not supported on this model, column danceId not found`);
+      ).toThrow(`Reference dance is not supported on model 'TestModel', column 'danceId' not found`);
     });
 
     it('query for multiple references', () => {
