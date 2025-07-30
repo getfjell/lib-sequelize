@@ -233,7 +233,7 @@ describe('Operations', () => {
       expect(operations.upsert).toBeDefined();
       expect(typeof operations.upsert).toBe('function');
 
-      await expect(operations.upsert({} as any, {} as any)).rejects.toThrow('Not implemented');
+      await expect(operations.upsert({} as any, {} as any)).rejects.toThrow('Upsert operation not implemented');
     });
 
     it('should maintain type safety for operation functions', () => {

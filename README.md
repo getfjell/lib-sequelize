@@ -224,10 +224,79 @@ const orderLibrary = createSequelizeLibrary(registry, orderCoordinate, orderMode
 4. **Extensibility**: Easy to add new database-specific libraries
 5. **Clean API**: Consistent naming and patterns across all libraries
 
+## Error Handling
+
+@fjell/lib-sequelize provides detailed error messages to help with debugging configuration issues:
+
+### Improved Error Context
+
+All error messages now include relevant context:
+
+```typescript
+// Example: Reference configuration error
+try {
+  await userLibrary.operations.create({
+    name: 'Alice',
+    organizationId: 'invalid-org'
+  });
+} catch (error) {
+  // Error now shows:
+  // "Reference organization is not supported on model 'User', column 'organizationId' not found.
+  //  Available columns: [id, name, email, createdAt, updatedAt].
+  //  Reference query: {"kt":"organization","pk":"invalid-org"}"
+}
+```
+
+### Reference Builder Features
+
+#### Multikey References (NEW)
+
+The ReferenceBuilder now supports references to composite item types using just the primary key:
+
+```typescript
+// Reference a composite item ['step', 'phase'] using just stepId
+references: [{
+  column: 'stepId',
+  kta: ['step', 'phase'],  // Composite item type
+  property: 'step'
+}]
+```
+
+**Key Assumption**: The primary key of the first key type in the composite is unique and can be used to retrieve the full composite item. This works because:
+
+- Relational database primary keys are always unique by definition
+- Each Step has a unique ID regardless of its phase association
+- The composite nature is for logical organization, not physical uniqueness
+
+**For fjell-lib-firestore**: This requires an index on the subdocument to enable retrieval by primary key alone.
+
+#### Reference Builder Errors
+
+Reference definition errors show complete context:
+
+```typescript
+// Missing dependency error:
+// "This model definition has a reference definition, but the dependency is not present in registry.
+//  Reference property: 'organization', missing key type: 'organization', column: 'organizationId'"
+```
+
+### Location Key Errors
+
+Location key resolution errors include helpful details:
+
+```typescript
+// "Location key 'department' cannot be resolved on model 'User' or through its relationships.
+//  Key type array: [user, department, organization].
+//  Available associations: [profile, settings, posts]"
+```
+
 ## Examples
 
 See the `examples/` directory for complete working examples:
 - Basic Sequelize integration
+- Error handling and debugging
+- Reference handling between libraries
+- **Multikey reference handling** (NEW) - demonstrates composite item references
 - Advanced business logic
 - Multi-model applications
 - Location-based data organization

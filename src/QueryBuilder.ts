@@ -46,7 +46,7 @@ const addEventQueries = (
   Object.keys(events).forEach((key: string) => {
 
     if (!model.getAttributes()[`${key}At`]) {
-      throw new Error(`Event ${key} is not supported on this model, column ${key}At not found`);
+      throw new Error(`Event ${key} is not supported on model '${model.name}', column '${key}At' not found. Available columns: [${Object.keys(model.getAttributes()).join(', ')}]. Event query: ${stringifyJSON(events[key])}`);
     }
 
     let whereClauses = {};
@@ -61,7 +61,7 @@ const addEventQueries = (
 
     if (event.by) {
       if (!model.getAttributes()[`${key}By`]) {
-        throw new Error(`Event ${key} is not supported on this model, column ${key}By not found`);
+        throw new Error(`Event ${key} is not supported on model '${model.name}', column '${key}By' not found. Available columns: [${Object.keys(model.getAttributes()).join(', ')}]. Event query: ${stringifyJSON(events[key])}`);
       }
       whereClauses = { ...whereClauses, [Op.eq]: event.by };
     }
@@ -80,7 +80,7 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
     logger.default(`QueryBuilder adding reference query for key: ${key}, references: ${stringifyJSON(references)}`);
 
     if (!model.getAttributes()[`${key}Id`]) {
-      throw new Error(`Reference ${key} is not supported on this model, column ${key}Id not found`);
+      throw new Error(`Reference ${key} is not supported on model '${model.name}', column '${key}Id' not found. Available columns: [${Object.keys(model.getAttributes()).join(', ')}]. Reference query: ${stringifyJSON(references[key])}`);
     }
 
     if (isPriKey(references[key])) {
@@ -88,7 +88,7 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
 
       if (priKey.pk == null || priKey.pk === '' || (typeof priKey.pk === 'object' && Object.keys(priKey.pk).length === 0)) {
         logger.error(`Reference key '${key}' has invalid pk value: ${stringifyJSON(priKey.pk)}`, { priKey, references });
-        throw new Error(`Reference key '${key}' has invalid pk value: ${stringifyJSON(priKey.pk)}`);
+        throw new Error(`Reference key '${key}' has invalid pk value: ${stringifyJSON(priKey.pk)}. Model: '${model.name}', Key type: '${priKey.kt}', Full reference: ${stringifyJSON(references[key])}`);
       }
 
       logger.trace(`[QueryBuilder] Setting reference where clause: ${key}Id = ${stringifyJSON(priKey.pk)} (type: ${typeof priKey.pk})`);
@@ -96,7 +96,7 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
         [Op.eq]: priKey.pk
       }
     } else if (isComKey(references[key])) {
-      throw new Error('ComKeys are not supported in Sequelize');
+      throw new Error(`ComKeys are not supported in Sequelize. Reference key: '${key}', Model: '${model.name}', ComKey: ${stringifyJSON(references[key])}`);
     }
   });
   return options;
@@ -119,7 +119,7 @@ export const addCompoundCondition = (options: any, compoundCondition: CompoundCo
     if (isCondition(condition)) {
       conditions = addCondition(conditions, condition, model);
     } else {
-      throw new Error('Nest Compound conditions not supported');
+      throw new Error(`Nested Compound conditions not supported. Model: '${model.name}', Compound condition: ${stringifyJSON(compoundCondition)}, Nested condition: ${stringifyJSON(condition)}`);
     }
   });
 
