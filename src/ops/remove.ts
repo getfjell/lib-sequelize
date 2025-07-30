@@ -1,4 +1,4 @@
-/* eslint-disable indent */
+/* eslint-disable */
 import { ComKey, isValidItemKey, PriKey } from "@fjell/core";
 
 import { abbrevIK, isComKey, isPriKey, Item } from "@fjell/core";
@@ -7,7 +7,6 @@ import { Definition } from "../Definition";
 import { populateEvents } from "../EventCoordinator";
 import { addKey } from "../KeyMaster";
 import LibLogger from '../logger';
-import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
@@ -64,8 +63,7 @@ export const getRemoveOperation = <
 >(
   models: ModelStatic<any>[],
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  registry: Library.Registry
+  registry: import('@fjell/lib').Registry
 ) => {
   const { coordinate, options } = definition;
   const { kta } = coordinate;
