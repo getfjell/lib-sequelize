@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable indent */
 import {
   AllItemTypeArrays,
@@ -22,7 +23,7 @@ const extractLocationKeyValue = (
   const relationshipInfo = buildRelationshipPath(model, locatorType, kta, true);
 
   if (!relationshipInfo.found) {
-    throw new Error(`Location key '${locatorType}' cannot be resolved on model '${model.name}' or through its relationships.`);
+    throw new Error(`Location key '${locatorType}' cannot be resolved on model '${model.name}' or through its relationships. Key type array: [${kta.join(', ')}]. Available associations: [${Object.keys(model.associations || {}).join(', ')}]`);
   }
 
   if (relationshipInfo.isDirect) {
@@ -30,7 +31,7 @@ const extractLocationKeyValue = (
     const foreignKeyField = `${locatorType}Id`;
     const value = item[foreignKeyField];
     if (typeof value === 'undefined' || value === null) {
-      throw new Error(`Direct foreign key field '${foreignKeyField}' is missing or null in item`);
+      throw new Error(`Direct foreign key field '${foreignKeyField}' is missing or null in item. Model: '${model.name}', Locator type: '${locatorType}', Available item properties: [${Object.keys(item || {}).join(', ')}]`);
     }
     return value;
   } else {
@@ -38,7 +39,7 @@ const extractLocationKeyValue = (
     // Find the path through the key type array
     const locatorIndex = kta.indexOf(locatorType);
     if (locatorIndex === -1) {
-      throw new Error(`Locator type '${locatorType}' not found in key type array`);
+      throw new Error(`Locator type '${locatorType}' not found in key type array. Model: '${model.name}', Key type array: [${kta.join(', ')}]`);
     }
 
     // Start from the current item (index 0 in kta)
@@ -56,9 +57,9 @@ const extractLocationKeyValue = (
         const foreignKeyField = `${intermediateType}Id`;
         if (typeof currentObject[foreignKeyField] !== 'undefined' && currentObject[foreignKeyField] !== null) {
           // We have the foreign key but not the loaded object, we can't traverse further
-          throw new Error(`Intermediate relationship '${intermediateType}' is not loaded. Cannot traverse to '${locatorType}'. Either include the relationship in your query or ensure it's loaded.`);
+          throw new Error(`Intermediate relationship '${intermediateType}' is not loaded. Cannot traverse to '${locatorType}'. Model: '${model.name}', Available item properties: [${Object.keys(currentObject || {}).join(', ')}]. Either include the relationship in your query or ensure it's loaded.`);
         }
-        throw new Error(`Intermediate relationship '${intermediateType}' is missing in the relationship chain. Expected path: ${kta.slice(0, locatorIndex + 1).join(' → ')}`);
+        throw new Error(`Intermediate relationship '${intermediateType}' is missing in the relationship chain. Model: '${model.name}', Expected path: ${kta.slice(0, locatorIndex + 1).join(' → ')}, Available item properties: [${Object.keys(currentObject || {}).join(', ')}]`);
       }
     }
 

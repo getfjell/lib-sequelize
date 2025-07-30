@@ -224,10 +224,59 @@ const orderLibrary = createSequelizeLibrary(registry, orderCoordinate, orderMode
 4. **Extensibility**: Easy to add new database-specific libraries
 5. **Clean API**: Consistent naming and patterns across all libraries
 
+## Error Handling
+
+@fjell/lib-sequelize provides detailed error messages to help with debugging configuration issues:
+
+### Improved Error Context
+
+All error messages now include relevant context:
+
+```typescript
+// Example: Reference configuration error
+try {
+  await userLibrary.operations.create({
+    name: 'Alice',
+    organizationId: 'invalid-org'
+  });
+} catch (error) {
+  // Error now shows:
+  // "Reference organization is not supported on model 'User', column 'organizationId' not found.
+  //  Available columns: [id, name, email, createdAt, updatedAt].
+  //  Reference query: {"kt":"organization","pk":"invalid-org"}"
+}
+```
+
+### Reference Builder Errors
+
+Reference definition errors show complete context:
+
+```typescript
+// Multiple key types error:
+// "The ReferenceBuilder doesn't work with more than one key type yet.
+//  Reference definition key types: [user, organization],
+//  property: 'owner', column: 'ownerId'"
+
+// Missing dependency error:
+// "This model definition has a reference definition, but the dependency is not present in registry.
+//  Reference property: 'organization', missing key type: 'organization', column: 'organizationId'"
+```
+
+### Location Key Errors
+
+Location key resolution errors include helpful details:
+
+```typescript
+// "Location key 'department' cannot be resolved on model 'User' or through its relationships.
+//  Key type array: [user, department, organization].
+//  Available associations: [profile, settings, posts]"
+```
+
 ## Examples
 
 See the `examples/` directory for complete working examples:
 - Basic Sequelize integration
+- Error handling and debugging
 - Advanced business logic
 - Multi-model applications
 - Location-based data organization

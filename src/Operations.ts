@@ -12,6 +12,7 @@ import { getRemoveOperation } from "./ops/remove";
 import { getUpdateOperation } from "./ops/update";
 import { ModelStatic } from "sequelize";
 import { Coordinate } from "@fjell/registry";
+import { stringifyJSON } from "./util/general";
 
 export const createOperations = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -41,7 +42,7 @@ export const createOperations = <
   operations.remove = getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.find = getFindOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.upsert = async () => {
-    throw new Error('Not implemented');
+    throw new Error(`Upsert operation not implemented for coordinate: ${stringifyJSON(coordinate)}`);
   };
 
   return operations;

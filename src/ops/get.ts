@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable indent */
 import {
   ComKey,
@@ -34,7 +35,7 @@ const processCompositeKey = (
     const relationshipInfo = buildRelationshipPath(model, locator.kt, kta);
 
     if (!relationshipInfo.found) {
-      const errorMessage = `Composite key locator '${locator.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
+      const errorMessage = `Composite key locator '${locator.kt}' cannot be resolved on model '${model.name}' or through its relationships. Key type array: [${kta.join(', ')}], Composite key: ${stringifyJSON(comKey)}, Available associations: [${Object.keys(model.associations || {}).join(', ')}]`;
       logger.error(errorMessage, { key: comKey, kta });
       throw new Error(errorMessage);
     }

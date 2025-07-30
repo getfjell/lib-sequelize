@@ -45,19 +45,32 @@ describe('ReferenceBuilder', () => {
       vi.clearAllMocks();
     });
 
-    it('should throw error when referenceDefinition has more than one key type', async () => {
+    it('should handle multikey references using first key type as primary', async () => {
       // Arrange
       const item = { userId: 123 };
       const referenceDefinition: ReferenceDefinition = {
-        kta: ['User', 'Profile'], // More than one key type
+        kta: ['User', 'Profile'], // Multiple key types - should use 'User' as primary
         column: 'userId',
         property: 'user'
       };
 
-      // Act & Assert
-      await expect(buildReference(item, referenceDefinition, mockRegistry))
-        .rejects
-        .toThrow("The ReferenceBuilder doesn't work with more than one key type yet");
+      const referencedUser = { id: 123, name: 'John Doe', email: 'john@example.com' };
+
+      mockRegistryGet.mockReturnValue(mockLibraryInstance);
+      mockGet.mockResolvedValue(referencedUser);
+
+      // Act
+      const result = await buildReference(item, referenceDefinition, mockRegistry);
+
+      // Assert
+      expect(mockRegistryGet).toHaveBeenCalledWith(['User', 'Profile']);
+
+      const expectedPriKey: PriKey<string> = {
+        kt: 'User', // Should use the first key type as primary
+        pk: 123 as any
+      };
+      expect(mockGet).toHaveBeenCalledWith(expectedPriKey);
+      expect(result.user).toEqual(referencedUser);
     });
 
     it('should throw error when registry is not provided', async () => {
