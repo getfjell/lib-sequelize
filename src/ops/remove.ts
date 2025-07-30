@@ -63,6 +63,7 @@ export const getRemoveOperation = <
 >(
   models: ModelStatic<any>[],
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
+  registry: import('@fjell/lib').Registry
 ) => {
   const { coordinate, options } = definition;
   const { kta } = coordinate;

@@ -39,7 +39,7 @@ export const createOperations = <
   operations.create = getCreateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.update = getUpdateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.get = getGetOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.remove = getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition);
+  operations.remove = getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.find = getFindOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.upsert = async () => {
     throw new Error(`Upsert operation not implemented for coordinate: ${stringifyJSON(coordinate)}`);
