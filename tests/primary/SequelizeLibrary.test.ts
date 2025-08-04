@@ -77,7 +77,7 @@ describe('SequelizeLibrary', () => {
       aggregations: [],
     };
 
-    // Mock operations
+    // Mock operations (basic operations from createOperations)
     mockOperations = {
       get: vi.fn(),
       create: vi.fn(),
@@ -86,12 +86,17 @@ describe('SequelizeLibrary', () => {
       find: vi.fn(),
       all: vi.fn(),
       one: vi.fn(),
+      upsert: vi.fn(),
     };
 
-    // Mock wrapped operations
+    // Mock wrapped operations (includes all operations added by Primary.wrapOperations)
     mockWrappedOperations = {
       ...mockOperations,
-      wrapped: true,
+      findOne: vi.fn(),
+      action: vi.fn(),
+      facet: vi.fn(),
+      allAction: vi.fn(),
+      allFacet: vi.fn(),
     };
 
     // Setup mock returns
@@ -248,6 +253,34 @@ describe('SequelizeLibrary', () => {
 
       expect(mockCreateCoordinate).toHaveBeenCalledWith(['user'], ['organization']);
       expect(result).toBeDefined();
+    });
+
+    it('should have all required operations methods', () => {
+      const keyType = 'test';
+      const result = createSequelizeLibrary<TestItem, 'test'>(
+        keyType,
+        mockModels,
+        {},
+        [],
+        mockRegistry
+      );
+
+      // Verify all basic CRUD operations exist
+      const basicOperations = ['get', 'create', 'update', 'remove', 'find', 'findOne', 'all', 'one', 'upsert'];
+      basicOperations.forEach(opName => {
+        expect(result.operations).toHaveProperty(opName);
+        expect(typeof result.operations[opName as keyof typeof result.operations]).toBe('function');
+      });
+
+      // Verify all extended operations exist (added by Primary.wrapOperations)
+      const extendedOperations = ['action', 'facet', 'allAction', 'allFacet'];
+      extendedOperations.forEach(opName => {
+        expect(result.operations).toHaveProperty(opName);
+        expect(typeof result.operations[opName as keyof typeof result.operations]).toBe('function');
+      });
+
+      // Verify total count matches expected (13 operations total)
+      expect(Object.keys(result.operations)).toHaveLength(13);
     });
   });
 });
