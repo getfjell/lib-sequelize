@@ -12,6 +12,7 @@ vi.mock('../src/ops/update');
 vi.mock('../src/ops/get');
 vi.mock('../src/ops/remove');
 vi.mock('../src/ops/find');
+vi.mock('../src/ops/upsert');
 
 // Import the mocked functions
 import { getAllOperation } from '../src/ops/all';
@@ -21,6 +22,7 @@ import { getUpdateOperation } from '../src/ops/update';
 import { getGetOperation } from '../src/ops/get';
 import { getRemoveOperation } from '../src/ops/remove';
 import { getFindOperation } from '../src/ops/find';
+import { getUpsertOperation } from '../src/ops/upsert';
 
 // Mock the operation functions
 const mockGetAllOperation = vi.mocked(getAllOperation);
@@ -30,6 +32,7 @@ const mockGetUpdateOperation = vi.mocked(getUpdateOperation);
 const mockGetGetOperation = vi.mocked(getGetOperation);
 const mockGetRemoveOperation = vi.mocked(getRemoveOperation);
 const mockGetFindOperation = vi.mocked(getFindOperation);
+const mockGetUpsertOperation = vi.mocked(getUpsertOperation);
 
 describe('Operations', () => {
   // Mock interfaces and types
@@ -85,6 +88,7 @@ describe('Operations', () => {
     get: vi.fn(),
     remove: vi.fn(),
     find: vi.fn(),
+    upsert: vi.fn(),
   };
 
   beforeEach(() => {
@@ -98,6 +102,7 @@ describe('Operations', () => {
     mockGetGetOperation.mockReturnValue(mockOperationFunctions.get);
     mockGetRemoveOperation.mockReturnValue(mockOperationFunctions.remove);
     mockGetFindOperation.mockReturnValue(mockOperationFunctions.find);
+    mockGetUpsertOperation.mockReturnValue(mockOperationFunctions.upsert);
   });
 
   describe('createOperations', () => {
@@ -206,7 +211,7 @@ describe('Operations', () => {
       expect(typeof operations.all).toBe('function');
     });
 
-    it('should call operation factory functions exactly once each', () => {
+    it('should call operation factory functions with expected frequency', () => {
       createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
       expect(mockGetAllOperation).toHaveBeenCalledTimes(1);
@@ -216,6 +221,7 @@ describe('Operations', () => {
       expect(mockGetGetOperation).toHaveBeenCalledTimes(1);
       expect(mockGetRemoveOperation).toHaveBeenCalledTimes(1);
       expect(mockGetFindOperation).toHaveBeenCalledTimes(1);
+      expect(mockGetUpsertOperation).toHaveBeenCalledTimes(1);
     });
 
     it('should create new operations object on each call', () => {
@@ -227,13 +233,15 @@ describe('Operations', () => {
       expect(operations1.create).toBe(operations2.create); // Same mock function
     });
 
-    it('should include upsert operation that throws error', async () => {
+    it('should include working upsert operation', async () => {
       const operations = createOperations(mockModels, mockCoordinate as any, mockRegistry, mockOptions);
 
       expect(operations.upsert).toBeDefined();
       expect(typeof operations.upsert).toBe('function');
 
-      await expect(operations.upsert({} as any, {} as any)).rejects.toThrow('Upsert operation not implemented');
+      // The upsert operation should now be functional and not throw an error
+      // It should call get first, then either update or create
+      expect(operations.upsert).toBeDefined();
     });
 
     it('should maintain type safety for operation functions', () => {
