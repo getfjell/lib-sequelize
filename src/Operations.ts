@@ -10,9 +10,9 @@ import { getGetOperation } from "./ops/get";
 import { getOneOperation } from "./ops/one";
 import { getRemoveOperation } from "./ops/remove";
 import { getUpdateOperation } from "./ops/update";
+import { getUpsertOperation } from "./ops/upsert";
 import { ModelStatic } from "sequelize";
 import { Coordinate } from "@fjell/registry";
-import { stringifyJSON } from "./util/general";
 
 export const createOperations = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -34,16 +34,14 @@ export const createOperations = <
   // Create a definition-like object for backward compatibility with existing operation functions
   const definition = { coordinate, options };
 
-  operations.all = getAllOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
+    operations.all = getAllOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.one = getOneOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.create = getCreateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.update = getUpdateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.get = getGetOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.remove = getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.find = getFindOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.upsert = async () => {
-    throw new Error(`Upsert operation not implemented for coordinate: ${stringifyJSON(coordinate)}`);
-  };
+  operations.upsert = getUpsertOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
 
   return operations;
 }
