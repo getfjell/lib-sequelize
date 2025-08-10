@@ -72,6 +72,21 @@ function translateDatabaseError(error: any, itemData: any, modelName: string): E
       return new Error(`Table '${modelName}' does not exist`);
 
     default:
+      // Handle SQLite-specific errors that don't have error codes
+      if (originalMessage.includes('notNull Violation')) {
+        const fieldMatches = originalMessage.match(/([a-zA-Z]+\.[a-zA-Z]+) cannot be null/g);
+        if (fieldMatches) {
+          const fields = fieldMatches.map(match => {
+            const parts = match.split('.');
+            return parts[1]?.split(' ')[0]; // Extract field name like 'code' from 'WidgetType.code'
+          }).filter(Boolean);
+          if (fields.length > 0) {
+            return new Error(`Required field${fields.length > 1 ? 's' : ''} ${fields.join(', ')} cannot be null`);
+          }
+        }
+        return new Error('Required fields are missing');
+      }
+
       // For unknown errors, provide the original message with context
       return new Error(`Database error in ${modelName}.create(): ${originalMessage}. Item data: ${JSON.stringify(itemData, null, 2)}`);
   }
@@ -154,8 +169,8 @@ export const getCreateOperation = <
   ): Promise<V> => {
     const constraints = options?.key
       ? `key: pk=${options.key.pk}, loc=[${isComKey(options.key)
-          ? (options.key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')
-          : ''}]`
+        ? (options.key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')
+        : ''}]`
       : options?.locations
         ? `locations: ${options.locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ')}`
         : 'no constraints';
