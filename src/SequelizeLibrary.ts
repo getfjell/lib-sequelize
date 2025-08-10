@@ -55,8 +55,11 @@ export const createSequelizeLibrary = <
   // Create Sequelize-specific operations
   const operations = createOperations<V, S, L1, L2, L3, L4, L5>(models, coordinate, registry, options);
 
+  // Wrap operations with validation and hooks from base library
+  const wrappedOperations = Library.wrapOperations(operations, options, coordinate, registry);
+
   // Create the base fjell-lib library
-  const libLibrary = Library.createLibrary(registry, coordinate, operations, options);
+  const libLibrary = Library.createLibrary(registry, coordinate, wrappedOperations, options);
 
   return {
     ...libLibrary,
