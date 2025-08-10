@@ -45,11 +45,11 @@ export const createSequelizeLibrary = <
   L4 extends string = never,
   L5 extends string = never
 >(
-  registry: Registry,
-  coordinate: Coordinate<S, L1, L2, L3, L4, L5>,
-  models: ModelStatic<any>[],
-  options: Options<V, S, L1, L2, L3, L4, L5>
-): SequelizeLibrary<V, S, L1, L2, L3, L4, L5> => {
+    registry: Registry,
+    coordinate: Coordinate<S, L1, L2, L3, L4, L5>,
+    models: ModelStatic<any>[],
+    options: Options<V, S, L1, L2, L3, L4, L5>
+  ): SequelizeLibrary<V, S, L1, L2, L3, L4, L5> => {
   logger.debug("createSequelizeLibrary", { coordinate, models, registry, options });
 
   // Create Sequelize-specific operations
