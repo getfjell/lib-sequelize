@@ -10,6 +10,7 @@ import LibLogger from '../logger';
 import { ModelStatic } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
+import { NotFoundError } from "@fjell/lib";
 
 const logger = LibLogger.get('sequelize', 'ops', 'remove');
 
@@ -103,7 +104,7 @@ export const getRemoveOperation = <
     }
 
     if (!item) {
-      throw new Error(`Item not found for removal with key: ${abbrevIK(key)}`);
+      throw new NotFoundError<S, L1, L2, L3, L4, L5>('remove', coordinate, key);
     }
 
     const isDeletedAttribute = model.getAttributes().isDeleted;

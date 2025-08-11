@@ -268,7 +268,7 @@ describe('remove', () => {
 
     await expect(
       getRemoveOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow('Item not found for removal with key: test:123');
+    ).rejects.toThrow(/Item not found for key - test:123 - .* - remove/);
   });
 
   it('should throw error when item not found with ComKey', async () => {
@@ -290,7 +290,7 @@ describe('remove', () => {
 
     await expect(
       getRemoveOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow('Item not found for removal with key: test:123');
+    ).rejects.toThrow(/Item not found for key - test:123:order:456 - .* - remove/);
   });
 
   it('should throw error when composite key locator cannot be resolved', async () => {
