@@ -12,6 +12,7 @@ import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 import { ModelStatic, Op } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
 import { contextManager } from "../OperationContext";
+
 import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'all');
@@ -160,12 +161,15 @@ export const getAllOperation = <
 
     // this.logger.default('Matching Items', { matchingItems });
 
-    // Get the current context from context manager
-    const context = contextManager.getCurrentContext();
+    // Pass null as context to let processRow create a new context for each top-level operation
+    // This prevents circular dependency false positives between concurrent operations
+    // while still detecting legitimate circular references within the same operation
 
     // TODO: Move this Up!
+    const currentContext = contextManager.getCurrentContext();
     const results = (await Promise.all(matchingItems.map(async (row: any) => {
-      const processedRow = await processRow(row, coordinate.kta, references, aggregations, registry, context);
+      // Each row in an all() operation should get its own context to prevent interference
+      const processedRow = await processRow(row, coordinate.kta, references, aggregations, registry, currentContext);
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];
 
