@@ -143,6 +143,7 @@ export const getUpdateOperation = <
       response = await response.update(updateProps);
 
       // Populate the key and events
+      // Update operations get their own context since they're top-level operations
       const processedItem = await processRow(response, kta, references, aggregations, registry);
       const returnItem = validateKeys(processedItem, kta);
 
