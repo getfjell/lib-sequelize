@@ -313,6 +313,7 @@ export const getCreateOperation = <
       const createdRecord = await model.create(itemData);
 
       // Add key and events
+      // Create operations get their own context since they're top-level operations
       const processedRecord = await processRow(createdRecord, kta, references, aggregations, registry);
       const result = validateKeys(processedRecord, kta) as V;
 
