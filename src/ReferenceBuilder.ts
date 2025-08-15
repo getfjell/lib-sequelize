@@ -83,6 +83,7 @@ export const buildReference = async (
         priKey,
         property: referenceDefinition.property
       });
+
       // Create a minimal reference object with just the key to break the cycle
       referencedItem = {
         key: priKey,
@@ -96,8 +97,11 @@ export const buildReference = async (
       try {
         // Get the referenced item using the Library.Operations get method (context now managed internally)
         referencedItem = await library!.operations.get(priKey);
+
         // Cache the result
         context.setCached(priKey, referencedItem);
+      } catch (error: any) {
+        throw error; // Re-throw to maintain original behavior
       } finally {
         // Always mark as complete, even if there was an error
         context.markComplete(priKey);
