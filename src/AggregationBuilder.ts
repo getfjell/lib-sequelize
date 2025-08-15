@@ -43,7 +43,8 @@ export const buildAggregation = async (
     // 3. The main circular dependency concern is with references, not aggregations
   }
 
-  // Execute aggregation within the current context to ensure context sharing
+  // Execute aggregation within the provided context, current context, or create a new one
+  // This allows aggregations within reference loading to share context for proper circular reference detection
   return contextManager.withContext(context || contextManager.getCurrentContext() || { inProgress: new Set(), cache: new Map() } as any, async () => {
     // Based on cardinality, use either one or all operation
     if (aggregationDefinition.cardinality === 'one') {
