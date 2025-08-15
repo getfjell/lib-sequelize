@@ -1,4 +1,5 @@
 import { ComKey, Item, PriKey } from "@fjell/core";
+import { AsyncLocalStorage } from "async_hooks";
 import LibLogger from "./logger";
 
 const logger = LibLogger.get('sequelize', 'OperationContext');
@@ -119,60 +120,29 @@ export const createOperationContext = (): OperationContext => {
 
 /**
  * Context Manager for sharing context across operations without changing public interfaces
+ * Uses AsyncLocalStorage to properly maintain context across async boundaries
  */
 class ContextManager {
-  private contexts = new Map<string, OperationContext>();
-  private currentContextId: string | null = null;
-
-  /**
-   * Set the current context for the current operation chain
-   */
-  setCurrentContext(context: OperationContext): string {
-    const contextId = Math.random().toString(36).substring(7);
-    this.contexts.set(contextId, context);
-    this.currentContextId = contextId;
-    logger.default('Set current context', { contextId });
-    return contextId;
-  }
+  private asyncLocalStorage = new AsyncLocalStorage<OperationContext>();
 
   /**
    * Get the current context if one is set
    */
   getCurrentContext(): OperationContext | undefined {
-    if (this.currentContextId) {
-      const context = this.contexts.get(this.currentContextId);
-      logger.default('Got current context', { contextId: this.currentContextId, found: !!context });
-      return context;
+    const context = this.asyncLocalStorage.getStore();
+    if (context) {
+      logger.default('Got current context from AsyncLocalStorage');
     }
-    return;
-  }
-
-  /**
-   * Clear the current context
-   */
-  clearCurrentContext(): void {
-    if (this.currentContextId) {
-      logger.default('Clearing current context', { contextId: this.currentContextId });
-      this.contexts.delete(this.currentContextId);
-      this.currentContextId = null;
-    }
+    return context;
   }
 
   /**
    * Execute a function with a specific context set as current
+   * The context will be available to all async operations within the function
    */
   async withContext<T>(context: OperationContext, fn: () => Promise<T>): Promise<T> {
-    const previousContextId = this.currentContextId;
-    this.setCurrentContext(context);
-
-    try {
-      return await fn();
-    } finally {
-      this.clearCurrentContext();
-      if (previousContextId) {
-        this.currentContextId = previousContextId;
-      }
-    }
+    logger.default('Running with context in AsyncLocalStorage');
+    return this.asyncLocalStorage.run(context, fn);
   }
 }
 
