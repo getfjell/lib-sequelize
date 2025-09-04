@@ -34,7 +34,7 @@ export const createOperations = <
   // Create a definition-like object for backward compatibility with existing operation functions
   const definition = { coordinate, options };
 
-    operations.all = getAllOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
+  operations.all = getAllOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.one = getOneOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.create = getCreateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.update = getUpdateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
