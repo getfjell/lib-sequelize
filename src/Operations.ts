@@ -42,6 +42,16 @@ export const createOperations = <
   operations.remove = getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.find = getFindOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   operations.upsert = getUpsertOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
+  operations.allFacet = async (): Promise<any> => { };
+  operations.allAction = async (): Promise<any> => { };
+  operations.action = async (): Promise<any> => { };
+  operations.facet = async (): Promise<any> => { };
+
+  operations.finders = { ...(options.finders || {}) };
+  operations.actions = { ...(options.actions || {}) };
+  operations.facets = { ...(options.facets || {}) };
+  operations.allActions = { ...(options.allActions || {}) };
+  operations.allFacets = { ...(options.allFacets || {}) };
 
   return operations;
 }
