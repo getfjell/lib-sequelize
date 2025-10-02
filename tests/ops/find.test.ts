@@ -1,4 +1,4 @@
-/* eslint-disable no-undefined */
+ 
 import { getFindOperation } from '../../src/ops/find';
 import { Item, LocKeyArray } from '@fjell/core';
 import { Definition } from '../../src/Definition';
