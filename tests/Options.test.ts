@@ -148,7 +148,7 @@ describe('Options', () => {
     it('should clean undefined values from options', () => {
       const optionsWithUndefined: any = {
         deleteOnRemove: true,
-        // eslint-disable-next-line no-undefined
+         
         references: undefined,
         aggregations: [{
           kta: ['test'],
