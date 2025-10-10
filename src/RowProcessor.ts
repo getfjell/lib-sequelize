@@ -5,17 +5,17 @@ import { Model } from "sequelize";
 
 import LibLogger from "./logger";
 import { addKey } from "./KeyMaster";
-import { AggregationDefinition, ReferenceDefinition } from "./Options";
+import { AggregationDefinition, SequelizeReferenceDefinition } from "./Options";
 import * as Library from "@fjell/lib";
 import {
   buildAggregation,
-  buildReference,
   contextManager,
   createOperationContext,
   OperationContext
 } from "@fjell/lib";
 import { stringifyJSON } from "./util/general";
 import { populateEvents } from "./EventCoordinator";
+import { buildSequelizeReference } from "./processing/ReferenceBuilder";
 
 const logger = LibLogger.get('sequelize', 'RowProcessor');
 
@@ -31,7 +31,7 @@ export const processRow = async <S extends string,
   L5 extends string = never>(
     row: Model<any, any>,
     keyTypes: AllItemTypeArrays<S, L1, L2, L3, L4, L5>,
-    referenceDefinitions: ReferenceDefinition[],
+    referenceDefinitions: SequelizeReferenceDefinition[],
     aggregationDefinitions: AggregationDefinition[],
     registry: Library.Registry,
     context?: OperationContext
@@ -56,7 +56,7 @@ export const processRow = async <S extends string,
       if (referenceDefinitions && referenceDefinitions.length > 0) {
         for (const referenceDefinition of referenceDefinitions) {
           logger.default('Processing Reference for %s to %s', item.key.kt, stringifyJSON(referenceDefinition.kta));
-          item = await buildReference(item, referenceDefinition, registry, operationContext);
+          item = await buildSequelizeReference(item, referenceDefinition, registry, operationContext);
         }
       }
       if (aggregationDefinitions && aggregationDefinitions.length > 0) {
