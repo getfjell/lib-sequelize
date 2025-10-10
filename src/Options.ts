@@ -1,17 +1,11 @@
 import * as Library from '@fjell/lib';
 import { Item } from '@fjell/core';
 
-export interface AggregationDefinition {
-  kta: string[];
-  property: string;
-  cardinality: 'one' | 'many';
-}
-
-export interface ReferenceDefinition {
-  column: string;
-  kta: string[];
-  property: string;
-}
+// Re-export types from @fjell/lib for backwards compatibility
+export type {
+  AggregationDefinition,
+  ReferenceDefinition
+} from '@fjell/lib';
 
 export interface Options<
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -22,16 +16,8 @@ export interface Options<
   L4 extends string = never,
   L5 extends string = never
 > extends Library.Options<V, S, L1, L2, L3, L4, L5> {
-  deleteOnRemove: boolean;
-  references: ReferenceDefinition[];
-  aggregations: AggregationDefinition[];
+  deleteOnRemove?: boolean;
 }
-
-const DEFAULT_SEQUELIZE_OPTIONS = {
-  deleteOnRemove: false,
-  references: [],
-  aggregations: [],
-};
 
 export const createOptions = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -42,15 +28,15 @@ export const createOptions = <
   L4 extends string = never,
   L5 extends string = never
 >(sequelizeOptions?: Partial<Options<V, S, L1, L2, L3, L4, L5>>): Options<V, S, L1, L2, L3, L4, L5> => {
-  // Create the base lib options
+  // Create the base lib options (which handles references and aggregations)
   const baseOptions = Library.createOptions(sequelizeOptions);
 
-  // Add Sequelize-specific defaults
+  // Add Sequelize-specific defaults and ensure arrays for backward compatibility
   const result = {
     ...baseOptions,
-    deleteOnRemove: sequelizeOptions?.deleteOnRemove ?? DEFAULT_SEQUELIZE_OPTIONS.deleteOnRemove,
-    references: sequelizeOptions?.references ?? DEFAULT_SEQUELIZE_OPTIONS.references,
-    aggregations: sequelizeOptions?.aggregations ?? DEFAULT_SEQUELIZE_OPTIONS.aggregations,
+    references: baseOptions.references ?? [],
+    aggregations: baseOptions.aggregations ?? [],
+    deleteOnRemove: sequelizeOptions?.deleteOnRemove ?? false,
   };
 
   return result as Options<V, S, L1, L2, L3, L4, L5>;

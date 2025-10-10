@@ -15,7 +15,11 @@ vi.mock('../../src/util/relationshipUtils', () => ({
 }));
 
 vi.mock('../../src/RowProcessor', () => ({
-  processRow: vi.fn()
+  processRow: vi.fn(),
+  contextManager: {
+    getCurrentContext: vi.fn(),
+    withContext: vi.fn()
+  }
 }));
 
 vi.mock('@fjell/core', async () => {
@@ -26,11 +30,15 @@ vi.mock('@fjell/core', async () => {
   };
 });
 
-vi.mock('../../src/OperationContext', () => ({
-  contextManager: {
-    getCurrentContext: vi.fn()
-  }
-}));
+vi.mock('@fjell/lib', async () => {
+  const actual = await vi.importActual('@fjell/lib');
+  return {
+    ...actual,
+    contextManager: {
+      getCurrentContext: vi.fn()
+    }
+  };
+});
 
 vi.mock('../../src/util/general', () => ({
   stringifyJSON: vi.fn()
@@ -40,7 +48,7 @@ import { buildQuery } from '../../src/QueryBuilder';
 import { buildRelationshipPath } from '../../src/util/relationshipUtils';
 import { processRow } from '../../src/RowProcessor';
 import { validateKeys } from '@fjell/core';
-import { contextManager } from '../../src/OperationContext';
+import { contextManager } from '../../src/RowProcessor';
 import { stringifyJSON } from '../../src/util/general';
 
 type TestItem = import('@fjell/core').Item<'test'>;

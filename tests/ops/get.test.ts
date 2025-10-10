@@ -1,8 +1,22 @@
+import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+
+// Mock @fjell/lib before other imports
+vi.mock('@fjell/lib', async () => {
+  const actual = await vi.importActual('@fjell/lib');
+  return {
+    ...actual,
+    contextManager: {
+      getCurrentContext: vi.fn().mockReturnValue(undefined),
+      withContext: vi.fn().mockImplementation((ctx, fn) => fn())
+    },
+    createOperationContext: actual.createOperationContext
+  };
+});
+
 import { getGetOperation } from '../../src/ops/get';
 import { ComKey, PriKey } from '@fjell/core';
 import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
-import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import { Definition } from '../../src/Definition';
 import * as Library from "@fjell/lib";
 
