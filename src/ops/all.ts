@@ -11,7 +11,7 @@ import { processRow } from "../RowProcessor";
 import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 import { ModelStatic, Op } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
-import { contextManager } from "../OperationContext";
+import { contextManager } from "../RowProcessor";
 
 import { stringifyJSON } from "../util/general";
 
