@@ -17,7 +17,7 @@ import { Definition } from '../Definition';
 import { NotFoundError } from '@fjell/lib';
 import * as Library from "@fjell/lib";
 import { buildRelationshipPath } from "../util/relationshipUtils";
-import { contextManager } from "../OperationContext";
+import { contextManager } from "../RowProcessor";
 import { stringifyJSON } from "../util/general";
 
 const logger = LibLogger.get('sequelize', 'ops', 'get');

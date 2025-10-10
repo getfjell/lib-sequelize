@@ -76,7 +76,7 @@ function translateDatabaseError(error: any, itemData: any, modelName: string): E
       if (originalMessage.includes('notNull Violation')) {
         const fieldMatches = originalMessage.match(/([a-zA-Z]+\.[a-zA-Z]+) cannot be null/g);
         if (fieldMatches) {
-          const fields = fieldMatches.map(match => {
+          const fields = fieldMatches.map((match: string) => {
             const parts = match.split('.');
             return parts[1]?.split(' ')[0]; // Extract field name like 'code' from 'WidgetType.code'
           }).filter(Boolean);

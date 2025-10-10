@@ -13,21 +13,45 @@ vi.mock('../src/logger', () => ({
   }
 }));
 vi.mock('../src/KeyMaster');
-vi.mock('../src/ReferenceBuilder', () => ({
-  buildReference: vi.fn()
-}));
-vi.mock('../src/AggregationBuilder', () => ({
-  buildAggregation: vi.fn()
-}));
+vi.mock('@fjell/lib', async () => {
+  const actual = await vi.importActual('@fjell/lib');
+  return {
+    ...actual,
+    // Mock the builders
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    buildReference: vi.fn().mockImplementation(async (item, def, _registry, _context) => {
+      // Mock implementation that adds the reference property
+      if (def.property === 'reference1') {
+        item.reference1 = { data: 'ref1' };
+      } else if (def.property === 'reference2') {
+        item.reference2 = { data: 'ref2' };
+      } else if (def.property === 'reference') {
+        item.reference = { data: 'referenced' };
+      }
+      return item;
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    buildAggregation: vi.fn().mockImplementation(async (item, def, _registry, _context) => {
+      // Mock implementation that adds the aggregation property
+      if (def.property === 'aggregation1') {
+        item.aggregation1 = { count: 10 };
+      } else if (def.property === 'aggregation2') {
+        item.aggregation2 = { count: 20 };
+      } else if (def.property === 'aggregation') {
+        item.aggregation = { count: 5 };
+      }
+      return item;
+    })
+  };
+});
 vi.mock('../src/util/general');
 vi.mock('../src/EventCoordinator');
 
 import { addKey } from '../src/KeyMaster';
-import { buildReference } from '../src/ReferenceBuilder';
-import { buildAggregation } from '../src/AggregationBuilder';
+import { processRow } from '../src/RowProcessor';
+import { buildAggregation, buildReference } from '@fjell/lib';
 import { stringifyJSON } from '../src/util/general';
 import { populateEvents } from '../src/EventCoordinator';
-import { processRow } from '../src/RowProcessor';
 import { AggregationDefinition, ReferenceDefinition } from '../src/Options';
 import LibLogger from '../src/logger';
 
