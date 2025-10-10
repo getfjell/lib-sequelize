@@ -17,19 +17,7 @@ vi.mock('@fjell/lib', async () => {
   const actual = await vi.importActual('@fjell/lib');
   return {
     ...actual,
-    // Mock the builders
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    buildReference: vi.fn().mockImplementation(async (item, def, _registry, _context) => {
-      // Mock implementation that adds the reference property
-      if (def.property === 'reference1') {
-        item.reference1 = { data: 'ref1' };
-      } else if (def.property === 'reference2') {
-        item.reference2 = { data: 'ref2' };
-      } else if (def.property === 'reference') {
-        item.reference = { data: 'referenced' };
-      }
-      return item;
-    }),
+    // Only mock buildAggregation from lib
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     buildAggregation: vi.fn().mockImplementation(async (item, def, _registry, _context) => {
       // Mock implementation that adds the aggregation property
@@ -44,15 +32,30 @@ vi.mock('@fjell/lib', async () => {
     })
   };
 });
+vi.mock('../src/processing/ReferenceBuilder', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  buildSequelizeReference: vi.fn().mockImplementation(async (item, def, _registry, _context) => {
+    // Mock implementation that adds the reference property
+    if (def.property === 'reference1') {
+      item.reference1 = { data: 'ref1' };
+    } else if (def.property === 'reference2') {
+      item.reference2 = { data: 'ref2' };
+    } else if (def.property === 'reference') {
+      item.reference = { data: 'referenced' };
+    }
+    return item;
+  })
+}));
 vi.mock('../src/util/general');
 vi.mock('../src/EventCoordinator');
 
 import { addKey } from '../src/KeyMaster';
 import { processRow } from '../src/RowProcessor';
-import { buildAggregation, buildReference } from '@fjell/lib';
+import { buildAggregation } from '@fjell/lib';
+import { buildSequelizeReference } from '../src/processing/ReferenceBuilder';
 import { stringifyJSON } from '../src/util/general';
 import { populateEvents } from '../src/EventCoordinator';
-import { AggregationDefinition, ReferenceDefinition } from '../src/Options';
+import { AggregationDefinition, SequelizeReferenceDefinition } from '../src/Options';
 import LibLogger from '../src/logger';
 
 describe('RowProcessor', () => {
@@ -60,7 +63,7 @@ describe('RowProcessor', () => {
   let mockRow: Model<any, any>;
   let mockKeyTypes: AllItemTypeArrays<'test'>;
   let mockRegistry: Library.Registry;
-  let mockReferenceDefinitions: ReferenceDefinition[];
+  let mockReferenceDefinitions: SequelizeReferenceDefinition[];
   let mockAggregationDefinitions: AggregationDefinition[];
 
   beforeEach(() => {
@@ -96,7 +99,7 @@ describe('RowProcessor', () => {
       ...item,
       events: []
     }));
-    (buildReference as Mock).mockImplementation((item) => item);
+    (buildSequelizeReference as Mock).mockImplementation((item) => item);
     (buildAggregation as Mock).mockImplementation((item) => item);
   });
 
@@ -146,14 +149,14 @@ describe('RowProcessor', () => {
     });
 
     it('should process reference definitions when provided', async () => {
-      const mockReference: ReferenceDefinition = {
+      const mockReference: SequelizeReferenceDefinition = {
         column: 'referenceId',
         kta: ['referenced'],
         property: 'reference'
       };
       mockReferenceDefinitions = [mockReference];
 
-      (buildReference as Mock).mockImplementation((item) => ({
+      (buildSequelizeReference as Mock).mockImplementation((item) => ({
         ...item,
         reference: { data: 'referenced' }
       }));
@@ -166,7 +169,7 @@ describe('RowProcessor', () => {
         mockRegistry
       );
 
-      expect(buildReference).toHaveBeenCalledWith(
+      expect(buildSequelizeReference).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 1,
           name: 'test',
@@ -186,12 +189,12 @@ describe('RowProcessor', () => {
     });
 
     it('should process multiple reference definitions', async () => {
-      const mockReference1: ReferenceDefinition = {
+      const mockReference1: SequelizeReferenceDefinition = {
         column: 'reference1Id',
         kta: ['ref1'],
         property: 'reference1'
       };
-      const mockReference2: ReferenceDefinition = {
+      const mockReference2: SequelizeReferenceDefinition = {
         column: 'reference2Id',
         kta: ['ref2'],
         property: 'reference2'
@@ -199,7 +202,7 @@ describe('RowProcessor', () => {
       mockReferenceDefinitions = [mockReference1, mockReference2];
 
       let callCount = 0;
-      (buildReference as Mock).mockImplementation((item) => ({
+      (buildSequelizeReference as Mock).mockImplementation((item) => ({
         ...item,
         [`reference${++callCount}`]: { data: `ref${callCount}` }
       }));
@@ -212,7 +215,7 @@ describe('RowProcessor', () => {
         mockRegistry
       );
 
-      expect(buildReference).toHaveBeenCalledTimes(2);
+      expect(buildSequelizeReference).toHaveBeenCalledTimes(2);
       expect(result.reference1).toEqual({ data: 'ref1' });
       expect(result.reference2).toEqual({ data: 'ref2' });
     });
@@ -304,7 +307,7 @@ describe('RowProcessor', () => {
       mockReferenceDefinitions = [mockReference];
       mockAggregationDefinitions = [mockAggregation];
 
-      (buildReference as Mock).mockImplementation((item) => ({
+      (buildSequelizeReference as Mock).mockImplementation((item) => ({
         ...item,
         reference: { data: 'referenced' }
       }));
@@ -321,7 +324,7 @@ describe('RowProcessor', () => {
         mockRegistry
       );
 
-      expect(buildReference).toHaveBeenCalledTimes(1);
+      expect(buildSequelizeReference).toHaveBeenCalledTimes(1);
       expect(buildAggregation).toHaveBeenCalledTimes(1);
       expect(result.reference).toEqual({ data: 'referenced' });
       expect(result.aggregation).toEqual({ count: 5 });
@@ -339,7 +342,7 @@ describe('RowProcessor', () => {
         mockRegistry
       );
 
-      expect(buildReference).not.toHaveBeenCalled();
+      expect(buildSequelizeReference).not.toHaveBeenCalled();
       expect(buildAggregation).not.toHaveBeenCalled();
       expect(result).toEqual({
         id: 1,
@@ -358,7 +361,7 @@ describe('RowProcessor', () => {
         mockRegistry
       );
 
-      expect(buildReference).not.toHaveBeenCalled();
+      expect(buildSequelizeReference).not.toHaveBeenCalled();
       expect(buildAggregation).not.toHaveBeenCalled();
       expect(result).toEqual({
         id: 1,
@@ -390,8 +393,8 @@ describe('RowProcessor', () => {
       );
     });
 
-    it('should handle errors from buildReference gracefully', async () => {
-      const mockReference: ReferenceDefinition = {
+    it('should handle errors from buildSequelizeReference gracefully', async () => {
+      const mockReference: SequelizeReferenceDefinition = {
         column: 'referenceId',
         kta: ['referenced'],
         property: 'reference'
@@ -399,7 +402,7 @@ describe('RowProcessor', () => {
       mockReferenceDefinitions = [mockReference];
 
       const error = new Error('Reference build failed');
-      (buildReference as Mock).mockRejectedValue(error);
+      (buildSequelizeReference as Mock).mockRejectedValue(error);
 
       await expect(processRow(
         mockRow,

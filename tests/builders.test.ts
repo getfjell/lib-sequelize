@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildAggregation, buildReference, createOperationContext } from '@fjell/lib';
-import { AggregationDefinition, ReferenceDefinition } from '../src/Options';
+import { buildAggregation, createOperationContext } from '@fjell/lib';
+import { AggregationDefinition, SequelizeReferenceDefinition } from '../src/Options';
+import { buildSequelizeReference } from '../src/processing/ReferenceBuilder';
 import * as Library from '@fjell/lib';
 
 // Helper to create a mock library
@@ -29,11 +30,11 @@ const createMockRegistry = (libraries: Map<string, any> = new Map()): Library.Re
   has: vi.fn((kta: string[]) => libraries.has(kta[0]))
 } as any);
 
-describe('builders from @fjell/lib', () => {
-  describe('buildReference', () => {
+describe('builders from @fjell/lib-sequelize', () => {
+  describe('buildSequelizeReference', () => {
     it('should handle reference with empty registry', async () => {
       const item = { id: '1', name: 'test', userId: 'user-1', key: { kt: 'test', pk: '1' } };
-      const referenceDefinition: ReferenceDefinition = {
+      const referenceDefinition: SequelizeReferenceDefinition = {
         column: 'userId',
         kta: ['user'],
         property: 'user'
@@ -48,7 +49,7 @@ describe('builders from @fjell/lib', () => {
       const registry = createMockRegistry(libraries);
       const context = createOperationContext();
 
-      const result = await buildReference(item, referenceDefinition, registry, context);
+      const result = await buildSequelizeReference(item, referenceDefinition, registry, context);
 
       expect(result).toBe(item);
       // When reference is not found, the property is added but with null value
@@ -60,7 +61,7 @@ describe('builders from @fjell/lib', () => {
 
     it('should work without context parameter', async () => {
       const item = { id: '2', name: 'test2', organizationId: 'org-1', key: { kt: 'test', pk: '2' } };
-      const referenceDefinition: ReferenceDefinition = {
+      const referenceDefinition: SequelizeReferenceDefinition = {
         column: 'organizationId',
         kta: ['organization'],
         property: 'organization'
@@ -74,7 +75,7 @@ describe('builders from @fjell/lib', () => {
       
       const registry = createMockRegistry(libraries);
 
-      const result = await buildReference(item, referenceDefinition, registry);
+      const result = await buildSequelizeReference(item, referenceDefinition, registry);
 
       expect(result).toBe(item);
       expect(result).toHaveProperty('id', '2');
@@ -85,7 +86,7 @@ describe('builders from @fjell/lib', () => {
 
     it('should handle complex reference definitions', async () => {
       const item = { id: '3', name: 'test3', data: { nested: 'value' }, parentId: 'parent-1', key: { kt: 'test', pk: '3' } };
-      const referenceDefinition: ReferenceDefinition = {
+      const referenceDefinition: SequelizeReferenceDefinition = {
         column: 'parentId',
         kta: ['parent', 'grandparent'],
         property: 'parent'
@@ -100,7 +101,7 @@ describe('builders from @fjell/lib', () => {
       const registry = createMockRegistry(libraries);
       const context = createOperationContext();
 
-      const result = await buildReference(item, referenceDefinition, registry, context);
+      const result = await buildSequelizeReference(item, referenceDefinition, registry, context);
 
       expect(result).toBe(item);
       expect(result).toHaveProperty('id', '3');
@@ -227,21 +228,21 @@ describe('builders from @fjell/lib', () => {
 
   describe('function signatures', () => {
     it('should have correct function signatures', () => {
-      expect(typeof buildReference).toBe('function');
+      expect(typeof buildSequelizeReference).toBe('function');
       expect(typeof buildAggregation).toBe('function');
       
       // Verify function parameter counts
-      expect(buildReference.length).toBe(4);
+      expect(buildSequelizeReference.length).toBe(4);
       expect(buildAggregation.length).toBe(4);
     });
   });
 
   describe('builders integration', () => {
     it('should validate that builders work with proper mock setup', () => {
-      // The real builders from @fjell/lib now perform validation
+      // The Sequelize-specific builders perform validation
       // and require the registry to have the referenced libraries.
       // This test just verifies the functions are properly exported and callable.
-      expect(typeof buildReference).toBe('function');
+      expect(typeof buildSequelizeReference).toBe('function');
       expect(typeof buildAggregation).toBe('function');
       
       // In actual usage, the registry would have the referenced libraries registered.

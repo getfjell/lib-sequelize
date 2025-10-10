@@ -10,3 +10,6 @@ export * as Primary from './primary';
 // Export sequelize-specific coordinate functionality
 export { createCoordinate, SCOPE_SEQUELIZE } from './Coordinate';
 export type { Coordinate } from './Coordinate';
+
+// Export Sequelize-specific reference handling
+export * from './processing/ReferenceBuilder';
