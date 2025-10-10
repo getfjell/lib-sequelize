@@ -42,9 +42,9 @@
   },
   "dependencies": {
     "@fjell/core": "^4.4.42",
-    "@fjell/lib": "^4.4.45",
+    "@fjell/lib": "^4.4.46",
     "@fjell/logging": "^4.4.47",
-    "@fjell/registry": "^4.4.40",
+    "@fjell/registry": "^4.4.41",
     "dayjs": "^1.11.13",
     "deepmerge": "^4.3.1",
     "sequelize": "^6.37.7",
