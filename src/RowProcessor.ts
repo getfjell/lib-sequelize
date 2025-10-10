@@ -6,14 +6,22 @@ import { Model } from "sequelize";
 import LibLogger from "./logger";
 import { addKey } from "./KeyMaster";
 import { AggregationDefinition, ReferenceDefinition } from "./Options";
-import { buildReference } from "./ReferenceBuilder";
 import * as Library from "@fjell/lib";
-import { buildAggregation } from "./AggregationBuilder";
+import {
+  buildAggregation,
+  buildReference,
+  contextManager,
+  createOperationContext,
+  OperationContext
+} from "@fjell/lib";
 import { stringifyJSON } from "./util/general";
 import { populateEvents } from "./EventCoordinator";
-import { contextManager, createOperationContext, OperationContext } from "./OperationContext";
 
 const logger = LibLogger.get('sequelize', 'RowProcessor');
+
+// Re-export types and functions from @fjell/lib for backwards compatibility
+export type { OperationContext };
+export { createOperationContext, contextManager };
 
 export const processRow = async <S extends string,
   L1 extends string = never,
