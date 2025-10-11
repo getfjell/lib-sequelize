@@ -119,7 +119,7 @@ export const getGetOperation = <
       // Use current context if available (prevents infinite recursion in reference loading)
       // This ensures proper circular dependency detection within the same operation
       const currentContext = contextManager.getCurrentContext();
-      const result = validateKeys(await processRow(item, kta, references, aggregations, registry, currentContext), kta) as V;
+      const result = validateKeys(await processRow(item, kta, references || [], aggregations || [], registry, currentContext), kta) as V;
 
       logger.debug(`[GET] Retrieved ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${item.id}`}`);
       return result;
