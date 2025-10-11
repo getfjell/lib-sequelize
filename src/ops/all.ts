@@ -169,7 +169,7 @@ export const getAllOperation = <
     const currentContext = contextManager.getCurrentContext();
     const results = (await Promise.all(matchingItems.map(async (row: any) => {
       // Each row in an all() operation should get its own context to prevent interference
-      const processedRow = await processRow(row, coordinate.kta, references, aggregations, registry, currentContext);
+      const processedRow = await processRow(row, coordinate.kta, references || [], aggregations || [], registry, currentContext);
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];
 
