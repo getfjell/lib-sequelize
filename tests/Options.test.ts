@@ -42,7 +42,7 @@ describe('Options', () => {
 
   describe('createOptions', () => {
     it('should create options with default values when no parameters provided', () => {
-      const options = createOptions();
+      const options = createOptions<TestItem, 'test'>();
 
       expect(options).toBeDefined();
       expect(options.deleteOnRemove).toBe(false);
@@ -180,7 +180,7 @@ describe('Options', () => {
 
     it('should preserve library options integration', () => {
       // Test that the function integrates with Library.createOptions
-      const options = createOptions();
+      const options = createOptions<TestItem, 'test'>();
 
       // The result should be an Options object that extends Library.Options
       expect(options).toBeDefined();

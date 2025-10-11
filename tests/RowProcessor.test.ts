@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { Model } from 'sequelize';
 import { AllItemTypeArrays } from '@fjell/core';
 import * as Library from '@fjell/lib';
+import type { ReferenceDefinition } from '@fjell/lib';
 
 // Mock all dependencies
 vi.mock('../src/logger', () => ({
