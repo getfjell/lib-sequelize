@@ -49,7 +49,7 @@ export const getFindOperation = <
         if (results && results.length > 0) {
           const processedResults = (await Promise.all(results.map(async (row: any) => {
             // Each found row gets its own context to prevent interference between concurrent processing
-            const processedRow = await processRow(row, definition.coordinate.kta, references, aggregations, registry);
+            const processedRow = await processRow(row, definition.coordinate.kta, references || [], aggregations || [], registry);
             return validateKeys(processedRow, definition.coordinate.kta);
           })) as V[]);
 
