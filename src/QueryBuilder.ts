@@ -84,8 +84,11 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
       throw new Error(`Reference ${key} is not supported on model '${model.name}', column '${key}Id' not found. Available columns: [${Object.keys(model.getAttributes()).join(', ')}]. Reference query: ${stringifyJSON(references[key])}`);
     }
 
-    if (isPriKey(references[key])) {
-      const priKey: PriKey<string> = references[key] as PriKey<string>;
+    const refValue = references[key];
+    const keyValue = (refValue as any).key || refValue;
+    
+    if (isPriKey(keyValue)) {
+      const priKey: PriKey<string> = keyValue as PriKey<string>;
 
       if (priKey.pk == null || priKey.pk === '' || (typeof priKey.pk === 'object' && Object.keys(priKey.pk).length === 0)) {
         logger.error(`Reference key '${key}' has invalid pk value: ${stringifyJSON(priKey.pk)}`, { priKey, references });
