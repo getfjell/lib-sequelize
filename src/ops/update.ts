@@ -144,7 +144,7 @@ export const getUpdateOperation = <
 
       // Populate the key and events
       // Update operations get their own context since they're top-level operations
-      const processedItem = await processRow(response, kta, references, aggregations, registry);
+      const processedItem = await processRow(response, kta, references || [], aggregations || [], registry);
       const returnItem = validateKeys(processedItem, kta);
 
       logger.debug(`[UPDATE] Updated ${model.name} with key: ${(returnItem as any).key ? JSON.stringify((returnItem as any).key) : `id=${response.id}`}`);
