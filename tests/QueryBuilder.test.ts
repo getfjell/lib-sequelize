@@ -178,7 +178,7 @@ describe('QueryBuilder', () => {
       });
     });
 
-    it('should handle null values', () => {
+    it('should handle null values with IS NULL', () => {
       const nullCondition: Condition = {
         column: 'testColumn',
         operator: '==',
@@ -186,8 +186,32 @@ describe('QueryBuilder', () => {
       };
 
       expect(addCondition({}, nullCondition, mockModel)).toEqual({
-        testColumn: { [Op.eq]: null }
+        testColumn: { [Op.is]: null }
       });
+    });
+
+    it('should handle null values with IS NOT NULL', () => {
+      const notNullCondition: Condition = {
+        column: 'testColumn',
+        operator: '!=',
+        value: null as any
+      };
+
+      expect(addCondition({}, notNullCondition, mockModel)).toEqual({
+        testColumn: { [Op.not]: null }
+      });
+    });
+
+    it('should throw error when using invalid operator with null', () => {
+      const invalidCondition: Condition = {
+        column: 'testColumn',
+        operator: '>',
+        value: null as any
+      };
+
+      expect(() => addCondition({}, invalidCondition, mockModel)).toThrow(
+        'Operator > cannot be used with null value. Use \'==\' for IS NULL or \'!=\' for IS NOT NULL.'
+      );
     });
 
     it('should throw error for invalid column', () => {
@@ -330,6 +354,44 @@ describe('QueryBuilder', () => {
 
       expect(() => addCondition({}, condition, modelWithEmptyAssociations))
         .toThrow('Association phase not found on model TestModel');
+    });
+  });
+
+  describe('null handling in associations', () => {
+    it('should handle null values on association attributes with IS NULL', () => {
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '==',
+        value: null as any
+      };
+
+      expect(addCondition({}, condition, mockModel)).toEqual({
+        '$phase.code$': { [Op.is]: null }
+      });
+    });
+
+    it('should handle null values on association attributes with IS NOT NULL', () => {
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '!=',
+        value: null as any
+      };
+
+      expect(addCondition({}, condition, mockModel)).toEqual({
+        '$phase.code$': { [Op.not]: null }
+      });
+    });
+
+    it('should throw error when using invalid operator with null on association', () => {
+      const condition: Condition = {
+        column: 'phase.name',
+        operator: '>',
+        value: null as any
+      };
+
+      expect(() => addCondition({}, condition, mockModel)).toThrow(
+        'Operator > cannot be used with null value. Use \'==\' for IS NULL or \'!=\' for IS NOT NULL.'
+      );
     });
   });
 
