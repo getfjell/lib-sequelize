@@ -184,12 +184,29 @@ const addAssociationCondition = (
 
   // Use Sequelize's $association.attribute$ syntax for querying associated models
   const sequelizeAssociationColumn = `$${associationName}.${attributeName}$`;
-  const conditionOp = getSequelizeOperator(condition.operator);
 
-  if (condition.value == null && condition.operator !== '==' && condition.operator !== 'in') {
-    logger.error(`Association condition for '${associationName}.${attributeName}' has undefined/null value`, { condition });
-    throw new Error(`Association condition for '${associationName}.${attributeName}' has undefined/null value`);
+  // Handle null values with proper SQL IS NULL / IS NOT NULL syntax
+  if (condition.value === null) {
+    if (condition.operator === '==' || !condition.operator) {
+      // Use Op.is for IS NULL
+      logger.trace(`[QueryBuilder] Setting association condition: ${sequelizeAssociationColumn} IS NULL`);
+      conditions[sequelizeAssociationColumn] = {
+        [Op.is]: null
+      };
+    } else if (condition.operator === '!=') {
+      // Use Op.not for IS NOT NULL
+      logger.trace(`[QueryBuilder] Setting association condition: ${sequelizeAssociationColumn} IS NOT NULL`);
+      conditions[sequelizeAssociationColumn] = {
+        [Op.not]: null
+      };
+    } else {
+      logger.error(`Operator ${condition.operator} cannot be used with null value on association`, { condition });
+      throw new Error(`Operator ${condition.operator} cannot be used with null value. Use '==' for IS NULL or '!=' for IS NOT NULL.`);
+    }
+    return conditions;
   }
+
+  const conditionOp = getSequelizeOperator(condition.operator);
 
   logger.trace(`[QueryBuilder] Setting association condition: ${sequelizeAssociationColumn} = ${stringifyJSON(condition.value)} (type: ${typeof condition.value})`);
   conditions[sequelizeAssociationColumn] = {
@@ -210,12 +227,28 @@ const addAttributeCondition = (
     throw new Error(`Condition column ${conditionColumn} not found on model ${model.name}`);
   }
 
-  const conditionOp = getSequelizeOperator(condition.operator);
-
-  if (condition.value == null && condition.operator !== '==' && condition.operator !== 'in') {
-    logger.error(`Attribute condition for '${conditionColumn}' has undefined/null value`, { condition });
-    throw new Error(`Attribute condition for '${conditionColumn}' has undefined/null value`);
+  // Handle null values with proper SQL IS NULL / IS NOT NULL syntax
+  if (condition.value === null) {
+    if (condition.operator === '==' || !condition.operator) {
+      // Use Op.is for IS NULL
+      logger.trace(`[QueryBuilder] Setting attribute condition: ${conditionColumn} IS NULL`);
+      conditions[conditionColumn] = {
+        [Op.is]: null
+      };
+    } else if (condition.operator === '!=') {
+      // Use Op.not for IS NOT NULL
+      logger.trace(`[QueryBuilder] Setting attribute condition: ${conditionColumn} IS NOT NULL`);
+      conditions[conditionColumn] = {
+        [Op.not]: null
+      };
+    } else {
+      logger.error(`Operator ${condition.operator} cannot be used with null value`, { condition });
+      throw new Error(`Operator ${condition.operator} cannot be used with null value. Use '==' for IS NULL or '!=' for IS NOT NULL.`);
+    }
+    return conditions;
   }
+
+  const conditionOp = getSequelizeOperator(condition.operator);
 
   logger.trace(`[QueryBuilder] Setting attribute condition: ${conditionColumn} = ${stringifyJSON(condition.value)} (type: ${typeof condition.value})`);
   conditions[conditionColumn] = {
