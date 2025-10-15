@@ -5,6 +5,7 @@ import { validateKeys } from "@fjell/core";
 import { buildQuery } from "../QueryBuilder";
 
 import { Definition } from "../Definition";
+import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import * as Library from "@fjell/lib";
 import { processRow } from "../RowProcessor";
@@ -62,6 +63,10 @@ export const getAllOperation = <
     locations?: LocKeyArray<L1, L2, L3, L4, L5> | [] | undefined
   ): Promise<V[]> => {
     logger.debug(`ALL operation called on ${models[0].name} with ${locations?.length || 0} location filters: ${locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
+
+    // Validate location key order
+    validateLocations(locations, coordinate, 'all');
+
     const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locations || [];
 
     // @ts-ignore
