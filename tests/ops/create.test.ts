@@ -254,9 +254,9 @@ describe('create', () => {
 
     const location = [{ kt: 'invalidType', lk: '456' }] as any;
 
-    const definitionMock: Mocked<Definition<TestItem, 'test'>> = {
+    const definitionMock: Mocked<Definition<Item<'test', 'invalidType'>, 'test', 'invalidType'>> = {
       coordinate: {
-        kta: ['test'],
+        kta: ['test', 'invalidType'],
         scopes: []
       },
       options: {
@@ -569,16 +569,20 @@ describe('create', () => {
     ).rejects.toThrow('Referenced user with id 789 does not exist');
   });
 
-  it('should throw error when locator type not found in kta array', async () => {
+  it('should throw error when location key order is wrong', async () => {
     const newItem = {
       testColumn: 'test'
     };
 
-    const locations = [{ kt: 'nonexistent', lk: '789' }] as any;
+    // Pass location keys in wrong order - 'user' should come before 'order' based on kta
+    const locations = [
+      { kt: 'order', lk: '789' },
+      { kt: 'user', lk: '123' }
+    ] as any;
 
-    const definitionMock: Mocked<Definition<TestItem, 'test'>> = {
+    const definitionMock: Mocked<Definition<Item<'test', 'user', 'order'>, 'test', 'user', 'order'>> = {
       coordinate: {
-        kta: ['test'],
+        kta: ['test', 'user', 'order'],  // Expected order: user, order
         scopes: []
       },
       options: {
@@ -594,7 +598,7 @@ describe('create', () => {
 
     await expect(
       getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem, { locations })
-    ).rejects.toThrow('Locator type \'nonexistent\' not found in kta array');
+    ).rejects.toThrow('Invalid location key array order for create');
   });
 
   it('should handle multiple models with different locator models', async () => {
@@ -662,9 +666,9 @@ describe('create', () => {
       loc: [{ kt: 'invalidType', lk: '456' }]
     };
 
-    const definitionMock: Mocked<Definition<TestItem, 'test'>> = {
+    const definitionMock: Mocked<Definition<Item<'test', 'invalidType'>, 'test', 'invalidType'>> = {
       coordinate: {
-        kta: ['test'],
+        kta: ['test', 'invalidType'],
         scopes: []
       },
       options: {
@@ -1126,9 +1130,9 @@ describe('create', () => {
 
       const locations = [{ kt: 'order', lk: '456' }] as any;
 
-      const definitionMock: Mocked<Definition<TestItem, 'test'>> = {
+      const definitionMock: Mocked<Definition<Item<'test', 'order'>, 'test', 'order'>> = {
         coordinate: {
-          kta: ['test'],
+          kta: ['test', 'order'],
           scopes: []
         },
         options: {
@@ -1144,7 +1148,7 @@ describe('create', () => {
 
       await expect(
         getCreateOperation([noAssocModel], definitionMock, mockRegistry)(newItem, { locations })
-      ).rejects.toThrow('Location key \'order\' cannot be resolved on model \'TestModel\' or through its relationships. Available associations: []. KTA: [test]. Locations:');
+      ).rejects.toThrow('Location key \'order\' cannot be resolved on model \'TestModel\' or through its relationships. Available associations: []. KTA: [test, order]. Locations:');
     });
   });
 
