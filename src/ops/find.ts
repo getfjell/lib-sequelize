@@ -2,6 +2,7 @@
 import { Item, LocKeyArray, validateKeys } from "@fjell/core";
 
 import { Definition } from "../Definition";
+import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import { ModelStatic } from "sequelize";
 import { processRow } from "../RowProcessor";
@@ -38,6 +39,9 @@ export const getFindOperation = <
       `and ${locations?.length || 0} location filters: ${locationFilters}`
     );
     logger.default(`Find configured for ${models[0].name} using finder '${finder}' with ${Object.keys(finderParams).length} params`);
+
+    // Validate location key order
+    validateLocations(locations, definition.coordinate, 'find');
 
     // Note that we execute the createFinders function here because we want to make sure we're always getting the
     // most up to date methods.

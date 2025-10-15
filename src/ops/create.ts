@@ -2,6 +2,7 @@
 import { ComKey, isComKey, isPriKey, Item, LocKeyArray, PriKey, validateKeys } from "@fjell/core";
 
 import { Definition } from "../Definition";
+import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import { processRow } from "../RowProcessor";
 import * as Library from "@fjell/lib";
@@ -179,6 +180,14 @@ export const getCreateOperation = <
 
     const { coordinate, options: { references, aggregations } } = definition;
     const { kta } = coordinate;
+
+    // Validate location key order from options
+    if (options?.locations) {
+      validateLocations(options.locations, coordinate, 'create');
+    }
+    if (options?.key && isComKey(options.key)) {
+      validateLocations((options.key as ComKey<S, L1, L2, L3, L4, L5>).loc, coordinate, 'create');
+    }
 
     // Get the primary model (first model in array)
     const model = models[0];

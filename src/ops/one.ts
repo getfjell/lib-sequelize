@@ -2,6 +2,7 @@
 import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 
 import { Definition } from "../Definition";
+import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import { ModelStatic } from "sequelize";
 import { getAllOperation } from "./all";
@@ -28,6 +29,9 @@ export const getOneOperation = <
   ): Promise<V | null> => {
     logger.debug(`ONE operation called on ${models[0].name} with ${locations.length} location filters: ${locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
     logger.default(`One configured for ${models[0].name} delegating to all operation`);
+
+    // Validate location key order
+    validateLocations(locations, definition.coordinate, 'one');
 
     const items = await getAllOperation(models, definition, registry)(itemQuery, locations);
     if (items.length > 0) {

@@ -238,6 +238,20 @@ describe('all', () => {
     });
 
     it('should throw error for unresolvable location key', async () => {
+      type TestItem = Item<'test', 'invalidType'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'invalidType'>> = {
+        coordinate: {
+          kta: ['test', 'invalidType'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({ found: false });
 
       const query: ItemQuery = {};
@@ -250,7 +264,22 @@ describe('all', () => {
   });
 
   describe('location key validation', () => {
+    let testDefinitionMock: Mocked<Definition<Item<'test', 'test'>, 'test', 'test'>>;
+
     beforeEach(() => {
+      testDefinitionMock = {
+        coordinate: {
+          kta: ['test', 'test'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: true,
@@ -263,7 +292,7 @@ describe('all', () => {
       const locations = [{ kt: 'test', lk: undefined }] as any;
 
       await expect(
-        getAllOperation([mockModel], definitionMock, mockRegistry)(query, locations)
+        getAllOperation([mockModel], testDefinitionMock, mockRegistry)(query, locations)
       ).rejects.toThrow("Location key 'test' has invalid lk value:");
     });
 
@@ -272,7 +301,7 @@ describe('all', () => {
       const locations = [{ kt: 'test', lk: null }] as any;
 
       await expect(
-        getAllOperation([mockModel], definitionMock, mockRegistry)(query, locations)
+        getAllOperation([mockModel], testDefinitionMock, mockRegistry)(query, locations)
       ).rejects.toThrow("Location key 'test' has invalid lk value:");
     });
 
@@ -281,7 +310,7 @@ describe('all', () => {
       const locations = [{ kt: 'test', lk: '' }] as any;
 
       await expect(
-        getAllOperation([mockModel], definitionMock, mockRegistry)(query, locations)
+        getAllOperation([mockModel], testDefinitionMock, mockRegistry)(query, locations)
       ).rejects.toThrow("Location key 'test' has invalid lk value:");
     });
 
@@ -290,7 +319,7 @@ describe('all', () => {
       const locations = [{ kt: 'test', lk: {} }] as any;
 
       await expect(
-        getAllOperation([mockModel], definitionMock, mockRegistry)(query, locations)
+        getAllOperation([mockModel], testDefinitionMock, mockRegistry)(query, locations)
       ).rejects.toThrow("Location key 'test' has invalid lk value:");
     });
 
@@ -305,13 +334,27 @@ describe('all', () => {
       const locations = [{ kt: 'test', lk: null }] as any;
 
       await expect(
-        getAllOperation([mockModel], definitionMock, mockRegistry)(query, locations)
+        getAllOperation([mockModel], testDefinitionMock, mockRegistry)(query, locations)
       ).rejects.toThrow("Hierarchical location key 'test' has invalid lk value:");
     });
   });
 
   describe('conflict resolution', () => {
     it('should skip direct location constraint when field already constrained by itemQuery', async () => {
+      type TestItem = Item<'test', 'order'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'order'>> = {
+        coordinate: {
+          kta: ['test', 'order'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: true,
@@ -335,6 +378,20 @@ describe('all', () => {
     });
 
     it('should skip hierarchical location constraint when field already constrained by itemQuery', async () => {
+      type TestItem = Item<'test', 'category'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'category'>> = {
+        coordinate: {
+          kta: ['test', 'category'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: false,
@@ -407,6 +464,20 @@ describe('all', () => {
     });
 
     it('should handle existing includes when merging', async () => {
+      type TestItem = Item<'test', 'category'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'category'>> = {
+        coordinate: {
+          kta: ['test', 'category'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: false,
@@ -428,6 +499,20 @@ describe('all', () => {
     });
 
     it('should handle merging includes when existing include has no include property', async () => {
+      type TestItem = Item<'test', 'category'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'category'>> = {
+        coordinate: {
+          kta: ['test', 'category'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: false,
@@ -449,6 +534,20 @@ describe('all', () => {
     });
 
     it('should handle hierarchical location without includes', async () => {
+      type TestItem = Item<'test', 'category'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'category'>> = {
+        coordinate: {
+          kta: ['test', 'category'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: false,
@@ -465,6 +564,20 @@ describe('all', () => {
     });
 
     it('should handle hierarchical location found but without path', async () => {
+      type TestItem = Item<'test', 'category'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'category'>> = {
+        coordinate: {
+          kta: ['test', 'category'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: false
@@ -675,6 +788,20 @@ describe('all', () => {
     });
 
     it('should handle complex itemQuery with multiple constraints and locations', async () => {
+      type TestItem = Item<'test', 'category'>;
+      const definitionMock: Mocked<Definition<TestItem, 'test', 'category'>> = {
+        coordinate: {
+          kta: ['test', 'category'],
+          scopes: []
+        },
+        options: {
+          deleteOnRemove: false,
+          references: [],
+          dependencies: [],
+          aggregations: []
+        }
+      } as any;
+
       (buildRelationshipPath as any).mockReturnValue({
         found: true,
         isDirect: true,
