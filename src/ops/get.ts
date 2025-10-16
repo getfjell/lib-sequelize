@@ -104,13 +104,22 @@ export const getGetOperation = <
       logger.trace(`[GET] Executing ${model.name}.findByPk() with pk: ${(itemKey as PriKey<S>).pk}`);
       item = await model.findByPk((itemKey as PriKey<S>).pk);
     } else if (isComKey(itemKey)) {
-      // This is a composite key, so we need to build a where clause based on the composite key's locators
       const comKey = itemKey as ComKey<S, L1, L2, L3, L4, L5>;
-      const queryOptions = processCompositeKey(comKey, model, kta);
+      
+      // Empty loc array is a special case: find by primary key across all locations
+      // This is used for foreign key references to composite items where location context is unknown
+      if (comKey.loc.length === 0) {
+        logger.debug(`[GET] Empty loc array detected - finding by primary key across all locations: ${comKey.pk}`);
+        logger.trace(`[GET] Executing ${model.name}.findByPk() with pk: ${comKey.pk}`);
+        item = await model.findByPk(comKey.pk);
+      } else {
+        // This is a composite key with location context, build a where clause based on the locators
+        const queryOptions = processCompositeKey(comKey, model, kta);
 
-      logger.default('Composite key query', { queryOptions });
-      logger.trace(`[GET] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)}`);
-      item = await model.findOne(queryOptions);
+        logger.default('Composite key query', { queryOptions });
+        logger.trace(`[GET] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)}`);
+        item = await model.findOne(queryOptions);
+      }
     }
 
     if (!item) {
