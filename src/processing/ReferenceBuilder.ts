@@ -1,4 +1,4 @@
-import { Item, PriKey } from "@fjell/core";
+import { ComKey, Item, PriKey } from "@fjell/core";
 import type { Registry } from "@fjell/lib";
 import { OperationContext } from "@fjell/lib";
 import logger from "../logger";
@@ -15,6 +15,14 @@ export interface SequelizeReferenceDefinition {
   kta: string[];
   /** Property name to populate with the referenced item (e.g., "author") */
   property: string;
+  /**
+   * Optional: Column names for location keys when referencing composite items.
+   * If provided, will construct a full ComKey with location context.
+   * If omitted for composite items, uses empty loc array to search across all locations.
+   *
+   * Example: ['phaseId'] for a step reference where you have both stepId and phaseId columns
+   */
+  locationColumns?: string[];
 }
 
 /**
@@ -35,25 +43,19 @@ export const buildSequelizeReference = async (
 ) => {
   const libLogger = logger.get('processing', 'ReferenceBuilder');
   
-  // For multikey references, we assume that the primary key of the first key type is unique
-  // and can be used to retrieve the composite item with just a PriKey<S>
+  // Check if this is a composite item reference (has location hierarchy)
+  const isCompositeItem = referenceDefinition.kta.length > 1;
   const primaryKeyType = referenceDefinition.kta[0];
 
-  if (referenceDefinition.kta.length > 1) {
+  if (isCompositeItem) {
     libLogger.debug(
-      'Using multikey reference with PriKey assumption',
+      'Detected composite item reference - will use ComKey with empty loc array',
       {
         kta: referenceDefinition.kta,
         primaryKeyType,
         property: referenceDefinition.property,
         column: referenceDefinition.column
       }
-    );
-
-    // TODO: Add validation to check if the target model has a unique primary key
-    libLogger.debug(
-      'ASSUMPTION: The primary key for key type "%s" is unique and can be used to retrieve composite items',
-      primaryKeyType
     );
   }
 
@@ -83,54 +85,121 @@ export const buildSequelizeReference = async (
     return item;
   }
 
-  // Create a PriKey using the column value from item
-  // For multikey references, we use the primary key type (first in the kta array)
-  const priKey: PriKey<string> = {
-    kt: primaryKeyType,
-    pk: columnValue
-  };
+  // Create the appropriate key type based on whether this is a composite item
+  let itemKey: PriKey<string> | ComKey<string>;
+  
+  if (!isCompositeItem) {
+    // Primary item: use PriKey
+    itemKey = {
+      kt: primaryKeyType,
+      pk: columnValue
+    };
+  } else if (referenceDefinition.locationColumns && referenceDefinition.locationColumns.length > 0) {
+    // Composite item with location columns provided: build full ComKey
+    const locationTypes = referenceDefinition.kta.slice(1); // Skip primary key type
+    const loc: Array<{kt: string, lk: any}> = [];
+    
+    for (let i = 0; i < referenceDefinition.locationColumns.length; i++) {
+      const columnName = referenceDefinition.locationColumns[i];
+      const locValue = item[columnName];
+      
+      if (locValue == null) {
+        libLogger.warning(
+          `Location column '${columnName}' is null/undefined for reference '${referenceDefinition.property}'. ` +
+          `Falling back to empty loc array search.`
+        );
+        // Fall back to empty loc array if any location column is missing
+        itemKey = {
+          kt: primaryKeyType,
+          pk: columnValue,
+          loc: []
+        };
+        break;
+      }
+      
+      loc.push({
+        kt: locationTypes[i],
+        lk: locValue
+      });
+    }
+    
+    // Only set itemKey if we haven't already (fallback case)
+    if (!itemKey) {
+      itemKey = {
+        kt: primaryKeyType,
+        pk: columnValue,
+        loc: loc as any
+      };
+      
+      libLogger.debug('Built full ComKey with location context', {
+        itemKey,
+        locationColumns: referenceDefinition.locationColumns,
+        property: referenceDefinition.property
+      });
+    }
+  } else {
+    // Composite item without location columns: use empty loc array
+    // This signals "find this item by primary key across all location contexts"
+    itemKey = {
+      kt: primaryKeyType,
+      pk: columnValue,
+      loc: []
+    };
+    
+    libLogger.debug('Using empty loc array for composite item reference', {
+      kta: referenceDefinition.kta,
+      property: referenceDefinition.property
+    });
+  }
+
+  libLogger.debug('Created reference key', {
+    itemKey,
+    isCompositeItem,
+    hasLocationColumns: !!referenceDefinition.locationColumns,
+    property: referenceDefinition.property
+  });
 
   let referencedItem;
 
   if (context) {
     // Check if we already have this item cached
-    if (context.isCached(priKey)) {
-      libLogger.debug('Using cached reference', { priKey, property: referenceDefinition.property });
-      referencedItem = context.getCached(priKey);
+    if (context.isCached(itemKey)) {
+      libLogger.debug('Using cached reference', { itemKey, property: referenceDefinition.property });
+      referencedItem = context.getCached(itemKey);
     }
     // Check if this item is currently being loaded (circular dependency)
-    else if (context.isInProgress(priKey)) {
+    else if (context.isInProgress(itemKey)) {
       libLogger.debug('Circular dependency detected, creating reference placeholder', {
-        priKey,
+        itemKey,
         property: referenceDefinition.property
       });
 
       // Create a minimal reference object with just the key to break the cycle
       referencedItem = {
-        key: priKey,
+        key: itemKey,
         // Add any other minimal properties that might be needed
         // This prevents infinite loops while still providing the key for identification
       };
     }
     else {
       // Mark this key as in progress before loading
-      context.markInProgress(priKey);
+      context.markInProgress(itemKey);
       try {
         // Get the referenced item using the Library.Operations get method (context now managed internally)
-        referencedItem = await library!.operations.get(priKey);
+        referencedItem = await library!.operations.get(itemKey);
 
         // Cache the result
-        context.setCached(priKey, referencedItem);
+        context.setCached(itemKey, referencedItem);
       } catch (error: any) {
         throw error; // Re-throw to maintain original behavior
       } finally {
         // Always mark as complete, even if there was an error
-        context.markComplete(priKey);
+        context.markComplete(itemKey);
       }
     }
   } else {
     // Fallback to original behavior if no context provided
-    referencedItem = await library!.operations.get(priKey);
+    referencedItem = await library!.operations.get(itemKey);
   }
 
   // Store the result in the property on item (Sequelize style - direct property)
