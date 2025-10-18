@@ -264,6 +264,100 @@ describe('get', () => {
     });
   });
 
+  it('should get item with full ComKey when location columns provided', async () => {
+    const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
+      coordinate: {
+        kta: ['test', 'order'],
+        scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
+      }
+    } as any;
+
+    // Full ComKey with location context
+    const key = {
+      kt: 'test',
+      pk: '123',
+      loc: [{ kt: 'order', lk: '456' }]
+    } as ComKey<'test', 'order'>;
+
+    const mockItem = {
+      id: '123',
+      orderId: '456',
+      testColumn: 'test',
+      constructor: mockModel,
+      get: vi.fn().mockReturnValue({
+        id: '123',
+        orderId: '456',
+        testColumn: 'test'
+      })
+    };
+
+    // @ts-ignore
+    mockModel.findOne = vi.fn().mockResolvedValue(mockItem);
+
+    const result = await getGetOperation([mockModel], definitionMock, mockRegistry)(key);
+
+    // Should use findOne with where clause for full ComKey
+    expect(mockModel.findOne).toHaveBeenCalled();
+    expect(result.key).toEqual({ kt: 'test', pk: '123', loc: [{ kt: 'order', lk: '456' }] });
+  });
+
+  it('should get item with empty loc ComKey using findByPk', async () => {
+    const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
+      coordinate: {
+        kta: ['test', 'order'],
+        scopes: []
+      },
+      options: {
+        deleteOnRemove: false,
+        references: [],
+        dependencies: []
+      }
+    } as any;
+
+    // Empty loc array means "find by primary key across all locations"
+    const key = {
+      kt: 'test',
+      pk: '123',
+      loc: []
+    } as ComKey<'test', 'order'>;
+
+    const mockItem = {
+      id: '123',
+      orderId: '456',
+      testColumn: 'test',
+      constructor: mockModel,
+      get: vi.fn().mockReturnValue({
+        id: '123',
+        orderId: '456',
+        testColumn: 'test'
+      })
+    };
+
+    // @ts-ignore
+    mockModel.findByPk = vi.fn().mockResolvedValue(mockItem);
+
+    const result = await getGetOperation([mockModel], definitionMock, mockRegistry)(key);
+
+    // Should use findByPk for empty loc array
+    expect(mockModel.findByPk).toHaveBeenCalledWith('123');
+    expect(result).toEqual({
+      id: '123',
+      orderId: '456',
+      testColumn: 'test',
+      key: { kt: 'test', pk: '123', loc: [{ kt: 'order', lk: '456' }] },
+      events: {
+        created: { at: null },
+        updated: { at: null },
+        deleted: { at: null }
+      }
+    });
+  });
+
   it('should throw NotFoundError when item not found with ComKey', async () => {
     const definitionMock: Mocked<Definition<TestItemOrder, 'test', 'order'>> = {
       coordinate: {
