@@ -22,11 +22,12 @@ vi.mock('../../src/RowProcessor', () => ({
   }
 }));
 
-vi.mock('@fjell/core', async () => {
-  const actual = await vi.importActual('@fjell/core');
+vi.mock('@fjell/core/validation', async () => {
+  const actual = await vi.importActual('@fjell/core/validation');
   return {
     ...actual,
-    validateKeys: vi.fn()
+    validateKeys: vi.fn(),
+    validateLocations: vi.fn()
   };
 });
 
@@ -47,7 +48,7 @@ vi.mock('../../src/util/general', () => ({
 import { buildQuery } from '../../src/QueryBuilder';
 import { buildRelationshipPath } from '../../src/util/relationshipUtils';
 import { processRow } from '../../src/RowProcessor';
-import { validateKeys } from '@fjell/core';
+import { validateKeys, validateLocations } from '@fjell/core/validation';
 import { contextManager } from '../../src/RowProcessor';
 import { stringifyJSON } from '../../src/util/general';
 
@@ -67,6 +68,7 @@ describe('all', () => {
     (buildRelationshipPath as any).mockReturnValue({ found: false, isDirect: false });
     (processRow as any).mockImplementation((row: any) => row.get());
     (validateKeys as any).mockImplementation((item: any) => item);
+    (validateLocations as any).mockImplementation(() => {});
     (contextManager.getCurrentContext as any).mockReturnValue({});
     (stringifyJSON as any).mockImplementation((obj: any) => JSON.stringify(obj));
 
