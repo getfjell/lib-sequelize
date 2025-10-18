@@ -24,7 +24,7 @@ export const getUpsertOperation = <
   models: Array<ModelStatic<any>>,
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   registry: Library.Registry
-) => {
+): UpsertMethod<V, S, L1, L2, L3, L4, L5> => {
 
   // Get the individual operations we'll use
   const get = getGetOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);

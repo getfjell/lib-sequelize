@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
+import { Item, ItemQuery, LocKeyArray, OneMethod } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import { validateLocations } from "../validation/LocationKeyValidator";
@@ -22,7 +22,7 @@ export const getOneOperation = <
   models: ModelStatic<any>[],
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   registry: Library.Registry
-) => {
+): OneMethod<V, S, L1, L2, L3, L4, L5> => {
   const one = async (
     itemQuery: ItemQuery,
     locations: LocKeyArray<L1, L2, L3, L4, L5> | [] = [],

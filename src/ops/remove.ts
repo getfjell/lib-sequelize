@@ -1,7 +1,5 @@
 /* eslint-disable */
-import { ComKey, isValidItemKey, PriKey } from "@fjell/core";
-
-import { abbrevIK, isComKey, isPriKey, Item } from "@fjell/core";
+import { abbrevIK, ComKey, isComKey, isPriKey, isValidItemKey, Item, PriKey, RemoveMethod } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import { populateEvents } from "../EventCoordinator";
@@ -65,7 +63,7 @@ export const getRemoveOperation = <
   models: ModelStatic<any>[],
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   _registry: import('@fjell/lib').Registry
-) => {
+): RemoveMethod<V, S, L1, L2, L3, L4, L5> => {
   const { coordinate, options } = definition;
   const { kta } = coordinate;
 

@@ -2,6 +2,7 @@
 /* eslint-disable indent */
 import {
   ComKey,
+  GetMethod,
   isComKey,
   isPriKey,
   isValidItemKey,
@@ -73,7 +74,7 @@ export const getGetOperation = <
   models: Array<ModelStatic<any>>,
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   registry: Library.Registry
-) => {
+): GetMethod<V, S, L1, L2, L3, L4, L5> => {
 
   const { coordinate, options: { references, aggregations } } = definition;
   const { kta } = coordinate;
