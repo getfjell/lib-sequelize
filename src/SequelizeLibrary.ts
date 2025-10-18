@@ -1,6 +1,6 @@
 
 import * as Library from '@fjell/lib';
-import { Item, Coordinate } from '@fjell/core';
+import { Coordinate, Item } from '@fjell/core';
 import { Registry } from './Registry';
 import { createOperations } from './Operations';
 import { ModelStatic } from 'sequelize';

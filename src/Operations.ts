@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { Item, Coordinate } from "@fjell/core";
+import { Coordinate, Item } from "@fjell/core";
 
 import * as Library from "@fjell/lib";
 import { Registry } from "./Registry";

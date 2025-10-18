@@ -1,4 +1,4 @@
-import { ItemTypeArray, Coordinate, createCoordinate as createBaseCoordinate } from '@fjell/core';
+import { Coordinate, createCoordinate as createBaseCoordinate, ItemTypeArray } from '@fjell/core';
 import LibLogger from './logger';
 
 const logger = LibLogger.get('Coordinate');
