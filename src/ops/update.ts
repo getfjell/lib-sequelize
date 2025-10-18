@@ -1,9 +1,5 @@
 /* eslint-disable indent */
-import { abbrevIK, isComKey, validateKeys } from "@fjell/core";
-
-import { isPriKey } from "@fjell/core";
-
-import { ComKey, Item, PriKey } from "@fjell/core";
+import { abbrevIK, ComKey, isComKey, isPriKey, Item, PriKey, UpdateMethod, validateKeys } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import { extractEvents, removeEvents } from "../EventCoordinator";
@@ -55,7 +51,7 @@ export const getUpdateOperation = <
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
 
   registry: Library.Registry
-) => {
+): UpdateMethod<V, S, L1, L2, L3, L4, L5> => {
 
   const { options: { references, aggregations } } = definition;
 

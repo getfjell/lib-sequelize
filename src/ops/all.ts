@@ -1,6 +1,6 @@
 /* eslint-disable no-undefined */
 /* eslint-disable indent */
-import { validateKeys } from "@fjell/core";
+import { AllMethod, validateKeys } from "@fjell/core";
 
 import { buildQuery } from "../QueryBuilder";
 
@@ -53,7 +53,7 @@ export const getAllOperation = <
   models: Array<ModelStatic<any>>,
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   registry: Library.Registry
-) => {
+): AllMethod<V, S, L1, L2, L3, L4, L5> => {
 
   const { coordinate, options: { references, aggregations } } = definition;
 

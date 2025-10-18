@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { Item, LocKeyArray, validateKeys } from "@fjell/core";
+import { FindMethod, Item, LocKeyArray, validateKeys } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import { validateLocations } from "../validation/LocationKeyValidator";
@@ -23,7 +23,7 @@ export const getFindOperation = <
   models: ModelStatic<any>[],
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   registry: Library.Registry
-) => {
+): FindMethod<V, S, L1, L2, L3, L4, L5> => {
 
   const { options: { finders, references, aggregations } } = definition;
 

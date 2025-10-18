@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { ComKey, isComKey, isPriKey, Item, LocKeyArray, PriKey, validateKeys } from "@fjell/core";
+import { ComKey, CreateMethod, isComKey, isPriKey, Item, LocKeyArray, PriKey, validateKeys } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import { validateLocations } from "../validation/LocationKeyValidator";
@@ -156,7 +156,7 @@ export const getCreateOperation = <
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
 
   registry: Library.Registry
-) => {
+): CreateMethod<V, S, L1, L2, L3, L4, L5> => {
 
   const create = async (
     item: Partial<Item<S, L1, L2, L3, L4, L5>>,
