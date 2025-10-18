@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { Item } from "@fjell/core";
+import { Item, Coordinate } from "@fjell/core";
 
 import * as Library from "@fjell/lib";
 import { Registry } from "./Registry";
@@ -12,7 +12,6 @@ import { getRemoveOperation } from "./ops/remove";
 import { getUpdateOperation } from "./ops/update";
 import { getUpsertOperation } from "./ops/upsert";
 import { ModelStatic } from "sequelize";
-import { Coordinate } from "@fjell/registry";
 
 export const createOperations = <
   V extends Item<S, L1, L2, L3, L4, L5>,
