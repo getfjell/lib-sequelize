@@ -1,11 +1,12 @@
 /* eslint-disable no-undefined */
 /* eslint-disable indent */
-import { validateKeys } from "@fjell/core";
+/* eslint-disable max-depth */
+import { AllMethod, createAllWrapper } from "@fjell/core";
+import { validateKeys } from "@fjell/core/validation";
 
 import { buildQuery } from "../QueryBuilder";
 
 import { Definition } from "../Definition";
-import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import * as Library from "@fjell/lib";
 import { processRow } from "../RowProcessor";
@@ -13,6 +14,7 @@ import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 import { ModelStatic, Op } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
 import { contextManager } from "../RowProcessor";
+import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 
 import { stringifyJSON } from "../util/general";
 
@@ -53,27 +55,27 @@ export const getAllOperation = <
   models: Array<ModelStatic<any>>,
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   registry: Library.Registry
-) => {
+): AllMethod<V, S, L1, L2, L3, L4, L5> => {
 
   const { coordinate, options: { references, aggregations } } = definition;
 
-  //#region Query
-  const all = async (
-    itemQuery: ItemQuery,
-    locations?: LocKeyArray<L1, L2, L3, L4, L5> | [] | undefined
-  ): Promise<V[]> => {
-    logger.debug(`ALL operation called on ${models[0].name} with ${locations?.length || 0} location filters: ${locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
+  return createAllWrapper(
+    coordinate,
+    async (
+      itemQuery?: ItemQuery,
+      locations?: LocKeyArray<L1, L2, L3, L4, L5> | []
+    ): Promise<V[]> => {
+      try {
+        const locs = locations ?? [];
+        logger.debug(`ALL operation called on ${models[0].name} with ${locs.length} location filters: ${locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
 
-    // Validate location key order
-    validateLocations(locations, coordinate, 'all');
+        const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locs;
 
-    const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locations || [];
-
-    // @ts-ignore
-    const model = models[0];
+        // @ts-ignore
+        const model = models[0];
 
     // Build base query from itemQuery
-    const options = buildQuery(itemQuery, model);
+    const options = buildQuery(itemQuery ?? {}, model);
 
     // Handle location keys if present
     if (loc.length > 0) {
@@ -178,10 +180,13 @@ export const getAllOperation = <
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];
 
-    logger.debug(`[ALL] Returning ${results.length} ${model.name} records`);
-    return results;
-  }
-
-  return all;
+        logger.debug(`[ALL] Returning ${results.length} ${model.name} records`);
+        return results;
+      } catch (error: any) {
+        // Transform database errors
+        throw transformSequelizeError(error, coordinate.kta[0]);
+      }
+    }
+  );
 
 }
