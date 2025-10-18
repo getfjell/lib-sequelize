@@ -1,6 +1,6 @@
 /* eslint-disable indent */
-import { ComKey, CreateMethod, isComKey, isPriKey, Item, LocKeyArray, PriKey } from "@fjell/core";
-import { validateKeys, validateLocations } from "@fjell/core/validation";
+import { ComKey, createCreateWrapper, CreateMethod, isComKey, isPriKey, Item, LocKeyArray, PriKey } from "@fjell/core";
+import { validateKeys } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -158,36 +158,30 @@ export const getCreateOperation = <
   registry: Library.Registry
 ): CreateMethod<V, S, L1, L2, L3, L4, L5> => {
 
-  const create = async (
-    item: Partial<Item<S, L1, L2, L3, L4, L5>>,
-    options?: {
-      key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
-      locations?: never;
-    } | {
-      key?: never;
-      locations: LocKeyArray<L1, L2, L3, L4, L5>,
-    },
-  ): Promise<V> => {
-    const constraints = options?.key
-      ? `key: pk=${options.key.pk}, loc=[${isComKey(options.key)
-        ? (options.key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')
-        : ''}]`
-      : options?.locations
-        ? `locations: ${options.locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ')}`
-        : 'no constraints';
-    logger.debug(`CREATE operation called on ${models[0].name} with ${constraints}`);
-    logger.default(`Create configured for ${models[0].name} with ${Object.keys(item).length} item fields`);
+  const { coordinate, options: { references, aggregations } } = definition;
+  const { kta } = coordinate;
 
-    const { coordinate, options: { references, aggregations } } = definition;
-    const { kta } = coordinate;
-
-    // Validate location key order from options
-    if (options?.locations) {
-      validateLocations(options.locations, coordinate, 'create');
-    }
-    if (options?.key && isComKey(options.key)) {
-      validateLocations((options.key as ComKey<S, L1, L2, L3, L4, L5>).loc, coordinate, 'create');
-    }
+  return createCreateWrapper(
+    coordinate,
+    async (
+      item: Partial<Item<S, L1, L2, L3, L4, L5>>,
+      options?: {
+        key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
+        locations?: never;
+      } | {
+        key?: never;
+        locations: LocKeyArray<L1, L2, L3, L4, L5>,
+      }
+    ): Promise<V> => {
+      const constraints = options?.key
+        ? `key: pk=${options.key.pk}, loc=[${isComKey(options.key)
+          ? (options.key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')
+          : ''}]`
+        : options?.locations
+          ? `locations: ${options.locations.map(loc => `${loc.kt}=${loc.lk}`).join(', ')}`
+          : 'no constraints';
+      logger.debug(`CREATE operation called on ${models[0].name} with ${constraints}`);
+      logger.default(`Create configured for ${models[0].name} with ${Object.keys(item).length} item fields`);
 
     // Get the primary model (first model in array)
     const model = models[0];
@@ -331,7 +325,6 @@ export const getCreateOperation = <
     } catch (error: any) {
       throw translateDatabaseError(error, itemData, model.name);
     }
-  }
-
-  return create;
+    }
+  );
 }
