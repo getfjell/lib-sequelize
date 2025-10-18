@@ -85,7 +85,7 @@ describe('find', () => {
 
     const result = await findOperation('testFinder', finderParams);
 
-    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, undefined);
+    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, []);
     expect(result).toEqual([expect.objectContaining({
       id: '123',
       testColumn: 'test',
@@ -152,7 +152,7 @@ describe('find', () => {
 
     await findOperation('testFinder', finderParams);
 
-    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, undefined);
+    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, []);
   });
 
   it('should handle locations correctly', async () => {

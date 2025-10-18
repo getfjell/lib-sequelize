@@ -255,7 +255,7 @@ describe('remove', () => {
 
     await expect(
       getRemoveOperation([mockModel], definitionMock, mockRegistry)(invalidKey)
-    ).rejects.toThrow('Key for Remove is not a valid ItemKey');
+    ).rejects.toThrow('Invalid key structure');
   });
 
   // NEW TEST CASES FOR IMPROVED COVERAGE
@@ -268,7 +268,7 @@ describe('remove', () => {
 
     await expect(
       getRemoveOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow(/Item not found for key: test:123/);
+    ).rejects.toThrow(/Cannot remove: test not found/);
   });
 
   it('should throw error when item not found with ComKey', async () => {
@@ -290,7 +290,7 @@ describe('remove', () => {
 
     await expect(
       getRemoveOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow(/Item not found for key: test:123:order:456/);
+    ).rejects.toThrow(/Cannot remove: test not found/);
   });
 
   it('should throw error when composite key locator cannot be resolved', async () => {

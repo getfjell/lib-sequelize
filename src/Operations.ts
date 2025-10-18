@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { Item } from "@fjell/core";
+import { Coordinate, Item } from "@fjell/core";
 
 import * as Library from "@fjell/lib";
 import { Registry } from "./Registry";
@@ -12,7 +12,6 @@ import { getRemoveOperation } from "./ops/remove";
 import { getUpdateOperation } from "./ops/update";
 import { getUpsertOperation } from "./ops/upsert";
 import { ModelStatic } from "sequelize";
-import { Coordinate } from "@fjell/registry";
 
 export const createOperations = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -29,29 +28,31 @@ export const createOperations = <
   options: import('./Options').Options<V, S, L1, L2, L3, L4, L5>
 ): Library.Operations<V, S, L1, L2, L3, L4, L5> => {
 
-  const operations = {} as Library.Operations<V, S, L1, L2, L3, L4, L5>;
-
   // Create a definition-like object for backward compatibility with existing operation functions
   const definition = { coordinate, options };
 
-  operations.all = getAllOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.one = getOneOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.create = getCreateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.update = getUpdateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.get = getGetOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.remove = getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.find = getFindOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.upsert = getUpsertOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
-  operations.allFacet = async (): Promise<any> => { };
-  operations.allAction = async (): Promise<any> => { };
-  operations.action = async (): Promise<any> => { };
-  operations.facet = async (): Promise<any> => { };
+  // Create implementation operations (core CRUD and query operations only)
+  // These are the operations that lib-sequelize actually implements
+  const implOps: Library.ImplementationOperations<V, S, L1, L2, L3, L4, L5> = {
+    all: getAllOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+    one: getOneOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+    create: getCreateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+    update: getUpdateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+    get: getGetOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+    remove: getRemoveOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+    find: getFindOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+    // findOne depends on find, so set it after
+    findOne: null as any,
+    upsert: getUpsertOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry),
+  };
 
-  operations.finders = { ...(options.finders || {}) };
-  operations.actions = { ...(options.actions || {}) };
-  operations.facets = { ...(options.facets || {}) };
-  operations.allActions = { ...(options.allActions || {}) };
-  operations.allFacets = { ...(options.allFacets || {}) };
+  // Set findOne operation that depends on find
+  implOps.findOne = async (finder: string, params?: Library.OperationParams, locations?: any): Promise<V | null> => {
+    const results = await implOps.find(finder, params || {}, locations);
+    return results.length > 0 ? results[0] : null;
+  };
 
-  return operations;
+  // Wrap with default stub implementations for extended operations (facets, actions)
+  // and add metadata dictionaries (finders, actions, facets, allActions, allFacets)
+  return Library.wrapImplementationOperations(implOps, options);
 }
