@@ -15,7 +15,6 @@ vi.mock('@fjell/lib', async () => {
 
 import { getGetOperation } from '../../src/ops/get';
 import { ComKey, PriKey } from '@fjell/core';
-import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic } from 'sequelize';
 import { Definition } from '../../src/Definition';
 import * as Library from "@fjell/lib";
@@ -168,7 +167,7 @@ describe('get', () => {
 
     await expect(
       getGetOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow(NotFoundError);
+    ).rejects.toThrow('Item not found for key: test:123');
   });
 
   it('should get item with full ComKey when location columns provided', async () => {
@@ -288,7 +287,7 @@ describe('get', () => {
 
     await expect(
       getGetOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow(NotFoundError);
+    ).rejects.toThrow('Item not found for key: test:123:order:456');
   });
 
   it('should throw error for invalid key', async () => {
@@ -296,7 +295,7 @@ describe('get', () => {
 
     await expect(
       // @ts-ignore - Testing invalid key
-      getGetOperation([mockModel], definitionMock)(invalidKey)
-    ).rejects.toThrow('Key for Get is not a valid ItemKey');
+      getGetOperation([mockModel], definitionMock, mockRegistry)(invalidKey)
+    ).rejects.toThrow('Invalid key structure');
   });
 });

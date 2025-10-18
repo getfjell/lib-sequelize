@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { abbrevIK, ComKey, isComKey, isPriKey, Item, PriKey, UpdateMethod } from "@fjell/core";
+import { abbrevIK, ComKey, createUpdateWrapper, isComKey, isPriKey, Item, PriKey, UpdateMethod } from "@fjell/core";
 import { validateKeys } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
@@ -56,10 +56,12 @@ export const getUpdateOperation = <
 
   const { options: { references, aggregations } } = definition;
 
-  const update = async (
-    key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
-    item: Partial<Item<S, L1, L2, L3, L4, L5>>,
-  ): Promise<V> => {
+  return createUpdateWrapper(
+    definition.coordinate,
+    async (
+      key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
+      item: Partial<Item<S, L1, L2, L3, L4, L5>>
+    ): Promise<V> => {
     const keyDescription = isPriKey(key)
       ? `primary key: pk=${key.pk}`
       : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`;
@@ -147,10 +149,8 @@ export const getUpdateOperation = <
       logger.debug(`[UPDATE] Updated ${model.name} with key: ${(returnItem as any).key ? JSON.stringify((returnItem as any).key) : `id=${response.id}`}`);
       return returnItem as V;
     } else {
-      throw new NotFoundError<S, L1, L2, L3, L4, L5>('update', coordinate, key);
+      throw new NotFoundError<S, L1, L2, L3, L4, L5>('update', definition.coordinate, key);
     }
-
-  }
-
-  return update;
+    }
+  );
 }

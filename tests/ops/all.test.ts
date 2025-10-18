@@ -67,7 +67,11 @@ describe('all', () => {
     (buildQuery as any).mockReturnValue({ where: { deletedAt: { [Op.eq]: null } }, include: [] });
     (buildRelationshipPath as any).mockReturnValue({ found: false, isDirect: false });
     (processRow as any).mockImplementation((row: any) => row.get());
-    (validateKeys as any).mockImplementation((item: any) => item);
+    (validateKeys as any).mockImplementation((item: any, kta: string[]) => {
+      // Add key to item based on kta
+      const key: any = { kt: kta[0], pk: item.id || item[`${kta[0]}Id`] || '123' };
+      return { ...item, key };
+    });
     (validateLocations as any).mockImplementation(() => {});
     (contextManager.getCurrentContext as any).mockReturnValue({});
     (stringifyJSON as any).mockImplementation((obj: any) => JSON.stringify(obj));
@@ -698,7 +702,7 @@ describe('all', () => {
       const mockContext = { userId: '123' };
       (contextManager.getCurrentContext as any).mockReturnValue(mockContext);
 
-      const mockProcessedItem = { id: '1', processed: true };
+      const mockProcessedItem = { id: '1', processed: true, key: { kt: 'test', pk: '1' } };
       (processRow as any).mockResolvedValue(mockProcessedItem);
       (validateKeys as any).mockReturnValue(mockProcessedItem);
 
@@ -723,7 +727,7 @@ describe('all', () => {
       const mockItems = [mockItem, { ...mockItem, id: '2' }];
       mockModel.findAll = vi.fn().mockResolvedValue(mockItems);
 
-      (processRow as any).mockResolvedValue({ processed: true });
+      (processRow as any).mockResolvedValue({ processed: true, key: { kt: 'test', pk: '123' } });
       (validateKeys as any).mockImplementation((item: any) => item);
 
       const query: ItemQuery = {};

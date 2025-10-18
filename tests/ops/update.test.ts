@@ -1,7 +1,6 @@
 import { Definition } from '../../src/Definition';
 import { getUpdateOperation } from '../../src/ops/update';
 import { ComKey, Item, PriKey } from '@fjell/core';
-import { NotFoundError } from '@fjell/lib';
 import { DataTypes, ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
@@ -157,7 +156,7 @@ describe('update', () => {
           key,
           updatedProps,
         )
-      ).rejects.toThrow(NotFoundError);
+      ).rejects.toThrow('Item not found for key');
     });
 
     it('should process transformation pipeline correctly', async () => {
@@ -206,6 +205,18 @@ describe('update', () => {
       };
       const updatedProps = { name: 'Updated Name' };
 
+      // Create a composite definition for this test
+      const compositeDefinition: Definition<Item<'test', 'location'>, 'test', 'location'> = {
+        coordinate: {
+          kta: ['test', 'location'],
+          scopes: []
+        },
+        options: {
+          references: {},
+          aggregations: {}
+        }
+      } as any;
+
       // Mock buildRelationshipPath to return direct foreign key
       mockBuildRelationshipPath.mockReturnValue({
         found: true,
@@ -241,12 +252,12 @@ describe('update', () => {
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(mockResponse);
 
-      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(
+      await getUpdateOperation([mockModel], compositeDefinition, mockRegistry)(
         key,
         updatedProps,
       );
 
-      expect(mockBuildRelationshipPath).toHaveBeenCalledWith(mockModel, 'location', ['test'], true);
+      expect(mockBuildRelationshipPath).toHaveBeenCalledWith(mockModel, 'location', ['test', 'location'], true);
       expect(mockModel.findOne).toHaveBeenCalledWith({
         where: {
           locationId: 'loc1',
@@ -262,6 +273,18 @@ describe('update', () => {
         loc: [{ kt: 'location', lk: 'loc1' }]
       };
       const updatedProps = { name: 'Updated Name' };
+
+      // Create a composite definition for this test
+      const compositeDefinition: Definition<Item<'test', 'location'>, 'test', 'location'> = {
+        coordinate: {
+          kta: ['test', 'location'],
+          scopes: []
+        },
+        options: {
+          references: {},
+          aggregations: {}
+        }
+      } as any;
 
       // Mock buildRelationshipPath to return hierarchical relationship
       mockBuildRelationshipPath.mockReturnValue({
@@ -285,7 +308,7 @@ describe('update', () => {
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(mockResponse);
 
-      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps);
+      await getUpdateOperation([mockModel], compositeDefinition, mockRegistry)(key, updatedProps);
 
       expect(mockModel.findOne).toHaveBeenCalledWith({
         where: {
@@ -362,14 +385,26 @@ describe('update', () => {
       };
       const updatedProps = { name: 'Updated Name' };
 
+      // Create a composite definition for this test
+      const compositeDefinition: Definition<Item<'test', 'location'>, 'test', 'location'> = {
+        coordinate: {
+          kta: ['test', 'location'],
+          scopes: []
+        },
+        options: {
+          references: {},
+          aggregations: {}
+        }
+      } as any;
+
       // Mock buildRelationshipPath to return not found
       mockBuildRelationshipPath.mockReturnValue({ found: false });
 
       await expect(
-        getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, updatedProps)
+        getUpdateOperation([mockModel], compositeDefinition, mockRegistry)(key, updatedProps)
       ).rejects.toThrow(`Composite key locator 'location' cannot be resolved on model '${mockModel.name}' or through its relationships.`);
 
-      expect(mockBuildRelationshipPath).toHaveBeenCalledWith(mockModel, 'location', ['test'], true);
+      expect(mockBuildRelationshipPath).toHaveBeenCalledWith(mockModel, 'location', ['test', 'location'], true);
     });
 
     it('should throw NotFoundError when item not found', async () => {
@@ -406,7 +441,7 @@ describe('update', () => {
           key,
           updatedProps,
         )
-      ).rejects.toThrow(NotFoundError);
+      ).rejects.toThrow('Item not found for key');
     });
   });
 
@@ -532,6 +567,18 @@ describe('update', () => {
         loc: [{ kt: 'location', lk: 'loc1' }]
       };
 
+      // Create a composite definition for this test
+      const compositeDefinition: Definition<Item<'test', 'location'>, 'test', 'location'> = {
+        coordinate: {
+          kta: ['test', 'location'],
+          scopes: []
+        },
+        options: {
+          references: {},
+          aggregations: {}
+        }
+      } as any;
+
       // Mock to return direct relationship with no includes
       mockBuildRelationshipPath.mockReturnValue({ found: true, isDirect: true });
 
@@ -549,7 +596,7 @@ describe('update', () => {
       // @ts-ignore
       mockModel.findOne.mockResolvedValue(mockResponse);
 
-      await getUpdateOperation([mockModel], definitionMock, mockRegistry)(key, {});
+      await getUpdateOperation([mockModel], compositeDefinition, mockRegistry)(key, {});
 
       const callArgs = mockModel.findOne.mock.calls[0]?.[0];
       expect(callArgs?.include).toBeUndefined();

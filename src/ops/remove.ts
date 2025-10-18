@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { abbrevIK, ComKey, isComKey, isPriKey, isValidItemKey, Item, PriKey, RemoveMethod } from "@fjell/core";
+import { abbrevIK, ComKey, isComKey, isPriKey, isValidItemKey, Item, PriKey, RemoveMethod, createRemoveWrapper } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import { populateEvents } from "../EventCoordinator";
@@ -67,13 +67,13 @@ export const getRemoveOperation = <
   const { coordinate, options } = definition;
   const { kta } = coordinate;
 
-  const remove = async (
-    key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
-  ): Promise<V> => {
-    if (!isValidItemKey(key)) {
-      logger.error('Key for Remove is not a valid ItemKey: %j', key);
-      throw new Error('Key for Remove is not a valid ItemKey');
-    }
+  return createRemoveWrapper(
+    coordinate,
+    async (key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>): Promise<V> => {
+      if (!isValidItemKey(key)) {
+        logger.error('Key for Remove is not a valid ItemKey: %j', key);
+        throw new Error('Key for Remove is not a valid ItemKey');
+      }
 
     const keyDescription = isPriKey(key)
       ? `primary key: pk=${key.pk}`
@@ -135,7 +135,6 @@ export const getRemoveOperation = <
 
     logger.debug(`[REMOVE] Removed ${model.name} with key: ${(returnItem as any).key ? JSON.stringify((returnItem as any).key) : `id=${item.id}`}`);
     return returnItem as V;
-  }
-
-  return remove;
+    }
+  );
 }
