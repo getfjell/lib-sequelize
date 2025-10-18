@@ -255,7 +255,7 @@ describe('remove', () => {
 
     await expect(
       getRemoveOperation([mockModel], definitionMock, mockRegistry)(invalidKey)
-    ).rejects.toThrow('Key for Remove is not a valid ItemKey');
+    ).rejects.toThrow('Invalid key structure');
   });
 
   // NEW TEST CASES FOR IMPROVED COVERAGE

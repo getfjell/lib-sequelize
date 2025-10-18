@@ -2,6 +2,7 @@
 /* eslint-disable indent */
 import {
   ComKey,
+  createGetWrapper,
   GetMethod,
   isComKey,
   isPriKey,
@@ -79,13 +80,13 @@ export const getGetOperation = <
   const { coordinate, options: { references, aggregations } } = definition;
   const { kta } = coordinate;
 
-  const get = async (
-    key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>
-  ): Promise<V> => {
-    if (!isValidItemKey(key)) {
-      logger.error('Key for Get is not a valid ItemKey: %j', key);
-      throw new Error('Key for Get is not a valid ItemKey');
-    }
+  return createGetWrapper(
+    coordinate,
+    async (key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>): Promise<V> => {
+      if (!isValidItemKey(key)) {
+        logger.error('Key for Get is not a valid ItemKey: %j', key);
+        throw new Error('Key for Get is not a valid ItemKey');
+      }
 
     const keyDescription = isPriKey(key)
       ? `primary key: pk=${key.pk}`
@@ -134,7 +135,6 @@ export const getGetOperation = <
       logger.debug(`[GET] Retrieved ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${item.id}`}`);
       return result;
     }
-  }
-
-  return get;
+    }
+  );
 }

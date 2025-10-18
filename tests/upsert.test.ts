@@ -65,7 +65,7 @@ describe('upsert operation', () => {
   });
 
   it('should have correct function signature', () => {
-    expect(upsert.length).toBe(2); // key and item parameters
+    expect(upsert.length).toBe(3); // key, item, and optional locations parameters
   });
 
   it('should handle upsert with primary key', async () => {

@@ -1,7 +1,7 @@
 /* eslint-disable no-undefined */
 /* eslint-disable indent */
-import { AllMethod } from "@fjell/core";
-import { validateKeys, validateLocations } from "@fjell/core/validation";
+import { AllMethod, createAllWrapper } from "@fjell/core";
+import { validateKeys } from "@fjell/core/validation";
 
 import { buildQuery } from "../QueryBuilder";
 
@@ -57,23 +57,22 @@ export const getAllOperation = <
 
   const { coordinate, options: { references, aggregations } } = definition;
 
-  //#region Query
-  const all = async (
-    itemQuery: ItemQuery,
-    locations?: LocKeyArray<L1, L2, L3, L4, L5> | [] | undefined
-  ): Promise<V[]> => {
-    logger.debug(`ALL operation called on ${models[0].name} with ${locations?.length || 0} location filters: ${locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
+  return createAllWrapper(
+    coordinate,
+    async (
+      itemQuery?: ItemQuery,
+      locations?: LocKeyArray<L1, L2, L3, L4, L5> | []
+    ): Promise<V[]> => {
+      const locs = locations ?? [];
+      logger.debug(`ALL operation called on ${models[0].name} with ${locs.length} location filters: ${locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
 
-    // Validate location key order
-    validateLocations(locations, coordinate, 'all');
-
-    const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locations || [];
+      const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locs;
 
     // @ts-ignore
     const model = models[0];
 
     // Build base query from itemQuery
-    const options = buildQuery(itemQuery, model);
+    const options = buildQuery(itemQuery ?? {}, model);
 
     // Handle location keys if present
     if (loc.length > 0) {
@@ -180,8 +179,7 @@ export const getAllOperation = <
 
     logger.debug(`[ALL] Returning ${results.length} ${model.name} records`);
     return results;
-  }
-
-  return all;
+    }
+  );
 
 }

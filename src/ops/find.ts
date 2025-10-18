@@ -1,6 +1,6 @@
 /* eslint-disable indent */
-import { FindMethod, Item, LocKeyArray } from "@fjell/core";
-import { validateKeys, validateLocations } from "@fjell/core/validation";
+import { createFindWrapper, FindMethod, Item, LocKeyArray } from "@fjell/core";
+import { validateKeys } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -27,29 +27,29 @@ export const getFindOperation = <
 
   const { options: { finders, references, aggregations } } = definition;
 
-  const find = async (
-    finder: string,
-    finderParams: Record<string, string | number | boolean | Date | Array<string | number | boolean | Date>>,
-    locations?: LocKeyArray<L1, L2, L3, L4, L5> | [],
-
-  ): Promise<V[]> => {
-    const locationFilters = locations?.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none';
-    logger.debug(
-      `FIND operation called on ${models[0].name} with finder '${finder}' ` +
-      `and ${locations?.length || 0} location filters: ${locationFilters}`
-    );
-    logger.default(`Find configured for ${models[0].name} using finder '${finder}' with ${Object.keys(finderParams).length} params`);
-
-    // Validate location key order
-    validateLocations(locations, definition.coordinate, 'find');
+  return createFindWrapper(
+    definition.coordinate,
+    async (
+      finder: string,
+      finderParams?: Record<string, string | number | boolean | Date | Array<string | number | boolean | Date>>,
+      locations?: LocKeyArray<L1, L2, L3, L4, L5> | []
+    ): Promise<V[]> => {
+      const locs = locations ?? [];
+      const params = finderParams ?? {};
+      const locationFilters = locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none';
+      logger.debug(
+        `FIND operation called on ${models[0].name} with finder '${finder}' ` +
+        `and ${locs.length} location filters: ${locationFilters}`
+      );
+      logger.default(`Find configured for ${models[0].name} using finder '${finder}' with ${Object.keys(params).length} params`);
 
     // Note that we execute the createFinders function here because we want to make sure we're always getting the
     // most up to date methods.
     if (finders && finders[finder]) {
       const finderMethod = finders[finder];
       if (finderMethod) {
-        logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(finderParams)}, locations: ${stringifyJSON(locations)}`);
-        const results = await finderMethod(finderParams, locations);
+        logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(params)}, locations: ${stringifyJSON(locs)}`);
+        const results = await finderMethod(params, locs);
         if (results && results.length > 0) {
           const processedResults = (await Promise.all(results.map(async (row: any) => {
             // Each found row gets its own context to prevent interference between concurrent processing
@@ -71,7 +71,6 @@ export const getFindOperation = <
       logger.error(`No finders have been defined for this lib`);
       throw new Error(`No finders found`);
     }
-  }
-
-  return find;
+    }
+  );
 }
