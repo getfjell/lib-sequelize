@@ -156,7 +156,7 @@ describe('update', () => {
           key,
           updatedProps,
         )
-      ).rejects.toThrow('Item not found for key');
+      ).rejects.toThrow('Cannot update: test not found');
     });
 
     it('should process transformation pipeline correctly', async () => {
@@ -441,7 +441,7 @@ describe('update', () => {
           key,
           updatedProps,
         )
-      ).rejects.toThrow('Item not found for key');
+      ).rejects.toThrow('Cannot update: test not found');
     });
   });
 

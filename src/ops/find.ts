@@ -8,6 +8,7 @@ import { ModelStatic } from "sequelize";
 import { processRow } from "../RowProcessor";
 import * as Library from "@fjell/lib";
 import { stringifyJSON } from "../util/general";
+import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 
 const logger = LibLogger.get('sequelize', 'ops', 'find');
 
@@ -34,43 +35,48 @@ export const getFindOperation = <
       finderParams?: Record<string, string | number | boolean | Date | Array<string | number | boolean | Date>>,
       locations?: LocKeyArray<L1, L2, L3, L4, L5> | []
     ): Promise<V[]> => {
-      const locs = locations ?? [];
-      const params = finderParams ?? {};
-      const locationFilters = locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none';
-      logger.debug(
-        `FIND operation called on ${models[0].name} with finder '${finder}' ` +
-        `and ${locs.length} location filters: ${locationFilters}`
-      );
-      logger.default(`Find configured for ${models[0].name} using finder '${finder}' with ${Object.keys(params).length} params`);
+      try {
+        const locs = locations ?? [];
+        const params = finderParams ?? {};
+        const locationFilters = locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none';
+        logger.debug(
+          `FIND operation called on ${models[0].name} with finder '${finder}' ` +
+          `and ${locs.length} location filters: ${locationFilters}`
+        );
+        logger.default(`Find configured for ${models[0].name} using finder '${finder}' with ${Object.keys(params).length} params`);
 
-    // Note that we execute the createFinders function here because we want to make sure we're always getting the
-    // most up to date methods.
-    if (finders && finders[finder]) {
-      const finderMethod = finders[finder];
-      if (finderMethod) {
-        logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(params)}, locations: ${stringifyJSON(locs)}`);
-        const results = await finderMethod(params, locs);
-        if (results && results.length > 0) {
-          const processedResults = (await Promise.all(results.map(async (row: any) => {
-            // Each found row gets its own context to prevent interference between concurrent processing
-            const processedRow = await processRow(row, definition.coordinate.kta, references || [], aggregations || [], registry);
-            return validateKeys(processedRow, definition.coordinate.kta);
-          })) as V[]);
+        // Note that we execute the createFinders function here because we want to make sure we're always getting the
+        // most up to date methods.
+        if (finders && finders[finder]) {
+          const finderMethod = finders[finder];
+          if (finderMethod) {
+            logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(params)}, locations: ${stringifyJSON(locs)}`);
+            const results = await finderMethod(params, locs);
+            if (results && results.length > 0) {
+              const processedResults = (await Promise.all(results.map(async (row: any) => {
+                // Each found row gets its own context to prevent interference between concurrent processing
+                const processedRow = await processRow(row, definition.coordinate.kta, references || [], aggregations || [], registry);
+                return validateKeys(processedRow, definition.coordinate.kta);
+              })) as V[]);
 
-          logger.debug(`[FIND] Found ${processedResults.length} ${models[0].name} records using finder '${finder}'`);
-          return processedResults;
+              logger.debug(`[FIND] Found ${processedResults.length} ${models[0].name} records using finder '${finder}'`);
+              return processedResults;
+            } else {
+              logger.debug(`[FIND] Found 0 ${models[0].name} records using finder '${finder}'`);
+              return [];
+            }
+          } else {
+            logger.error(`Finder %s not found`, finder);
+            throw new Error(`Finder ${finder} not found`);
+          }
         } else {
-          logger.debug(`[FIND] Found 0 ${models[0].name} records using finder '${finder}'`);
-          return [];
+          logger.error(`No finders have been defined for this lib`);
+          throw new Error(`No finders found`);
         }
-      } else {
-        logger.error(`Finder %s not found`, finder);
-        throw new Error(`Finder ${finder} not found`);
+      } catch (error: any) {
+        // Transform database errors
+        throw transformSequelizeError(error, definition.coordinate.kta[0]);
       }
-    } else {
-      logger.error(`No finders have been defined for this lib`);
-      throw new Error(`No finders found`);
-    }
     }
   );
 }

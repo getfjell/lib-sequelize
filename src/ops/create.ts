@@ -10,88 +10,9 @@ import { ModelStatic } from "sequelize";
 import { extractEvents, removeEvents } from "../EventCoordinator";
 import { buildRelationshipChain, buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
+import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
-
-// Helper function to translate PostgreSQL errors to meaningful messages
-function translateDatabaseError(error: any, itemData: any, modelName: string): Error {
-  const originalMessage = error.message || '';
-  const errorCode = error.original?.code;
-  const constraint = error.original?.constraint;
-  const detail = error.original?.detail;
-
-  logger.error('Database error during create operation', {
-    errorCode,
-    constraint,
-    detail,
-    originalMessage,
-    modelName,
-    itemData: JSON.stringify(itemData, null, 2)
-  });
-
-  // Handle specific PostgreSQL error codes
-  switch (errorCode) {
-    case '23505': // unique_violation
-      if (constraint) {
-        return new Error(`Duplicate value violates unique constraint '${constraint}'. ${detail || ''}`);
-      }
-      return new Error(`Duplicate value detected. This record already exists. ${detail || ''}`);
-
-    case '23503': // foreign_key_violation
-      if (constraint) {
-        return new Error(`Foreign key constraint '${constraint}' violated. Referenced record does not exist. ${detail || ''}`);
-      }
-      return new Error(`Referenced record does not exist. Check that all related records are valid. ${detail || ''}`);
-
-    case '23502': // not_null_violation
-      const column = error.original?.column;
-      if (column) {
-        return new Error(`Required field '${column}' cannot be null`);
-      }
-      return new Error(`Required field is missing or null`);
-
-    case '23514': // check_violation
-      if (constraint) {
-        return new Error(`Check constraint '${constraint}' violated. ${detail || ''}`);
-      }
-      return new Error(`Data validation failed. Check constraint violated. ${detail || ''}`);
-
-    case '22001': // string_data_right_truncation
-      return new Error(`Data too long for field. Check string lengths. ${detail || ''}`);
-
-    case '22003': // numeric_value_out_of_range
-      return new Error(`Numeric value out of range. Check number values. ${detail || ''}`);
-
-    case '42703': // undefined_column
-      const undefinedColumn = error.original?.column;
-      if (undefinedColumn) {
-        return new Error(`Column '${undefinedColumn}' does not exist in table '${modelName}'`);
-      }
-      return new Error(`Referenced column does not exist`);
-
-    case '42P01': // undefined_table
-      return new Error(`Table '${modelName}' does not exist`);
-
-    default:
-      // Handle SQLite-specific errors that don't have error codes
-      if (originalMessage.includes('notNull Violation')) {
-        const fieldMatches = originalMessage.match(/([a-zA-Z]+\.[a-zA-Z]+) cannot be null/g);
-        if (fieldMatches) {
-          const fields = fieldMatches.map((match: string) => {
-            const parts = match.split('.');
-            return parts[1]?.split(' ')[0]; // Extract field name like 'code' from 'WidgetType.code'
-          }).filter(Boolean);
-          if (fields.length > 0) {
-            return new Error(`Required field${fields.length > 1 ? 's' : ''} ${fields.join(', ')} cannot be null`);
-          }
-        }
-        return new Error('Required fields are missing');
-      }
-
-      // For unknown errors, provide the original message with context
-      return new Error(`Database error in ${modelName}.create(): ${originalMessage}. Item data: ${JSON.stringify(itemData, null, 2)}`);
-  }
-}
 
 // Helper function to validate hierarchical chain exists
 async function validateHierarchicalChain(
@@ -99,16 +20,16 @@ async function validateHierarchicalChain(
   locKey: { kt: string; lk: any },
   kta: string[]
 ): Promise<void> {
+  // Find the direct parent model that contains this locator
+  const locatorIndex = kta.indexOf(locKey.kt);
+  if (locatorIndex === -1) {
+    throw new Error(`Locator type '${locKey.kt}' not found in kta array`);
+  }
+
+  // Get the model for this locator (define outside try block for catch block access)
+  const locatorModel = models[locatorIndex] || models[0]; // Fallback to primary model
+  
   try {
-    // Find the direct parent model that contains this locator
-    const locatorIndex = kta.indexOf(locKey.kt);
-    if (locatorIndex === -1) {
-      throw new Error(`Locator type '${locKey.kt}' not found in kta array`);
-    }
-
-    // Get the model for this locator
-    const locatorModel = models[locatorIndex] || models[0]; // Fallback to primary model
-
     // Build a query to validate the chain exists
     const chainResult = buildRelationshipChain(locatorModel, kta, locatorIndex, kta.length - 1);
 
@@ -135,9 +56,9 @@ async function validateHierarchicalChain(
       throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist or chain is invalid`);
     }
   } catch (error: any) {
-    // Add context to validation errors
+    // Transform database errors to Fjell error types
     if (error.original) {
-      throw translateDatabaseError(error, { locKey, kta }, locKey.kt);
+      throw transformSequelizeError(error, locKey.kt, { locKey, kta }, locatorModel.name);
     }
     throw error;
   }
@@ -323,7 +244,7 @@ export const getCreateOperation = <
       logger.debug(`[CREATE] Created ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${createdRecord.id}`}`);
       return result;
     } catch (error: any) {
-      throw translateDatabaseError(error, itemData, model.name);
+      throw transformSequelizeError(error, kta[0], options?.key, model.name, itemData);
     }
     }
   );

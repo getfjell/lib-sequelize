@@ -1,5 +1,6 @@
 /* eslint-disable no-undefined */
 /* eslint-disable indent */
+/* eslint-disable max-depth */
 import { AllMethod, createAllWrapper } from "@fjell/core";
 import { validateKeys } from "@fjell/core/validation";
 
@@ -13,6 +14,7 @@ import { Item, ItemQuery, LocKeyArray } from "@fjell/core";
 import { ModelStatic, Op } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
 import { contextManager } from "../RowProcessor";
+import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 
 import { stringifyJSON } from "../util/general";
 
@@ -63,13 +65,14 @@ export const getAllOperation = <
       itemQuery?: ItemQuery,
       locations?: LocKeyArray<L1, L2, L3, L4, L5> | []
     ): Promise<V[]> => {
-      const locs = locations ?? [];
-      logger.debug(`ALL operation called on ${models[0].name} with ${locs.length} location filters: ${locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
+      try {
+        const locs = locations ?? [];
+        logger.debug(`ALL operation called on ${models[0].name} with ${locs.length} location filters: ${locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
 
-      const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locs;
+        const loc: LocKeyArray<L1, L2, L3, L4, L5> | [] = locs;
 
-    // @ts-ignore
-    const model = models[0];
+        // @ts-ignore
+        const model = models[0];
 
     // Build base query from itemQuery
     const options = buildQuery(itemQuery ?? {}, model);
@@ -177,8 +180,12 @@ export const getAllOperation = <
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];
 
-    logger.debug(`[ALL] Returning ${results.length} ${model.name} records`);
-    return results;
+        logger.debug(`[ALL] Returning ${results.length} ${model.name} records`);
+        return results;
+      } catch (error: any) {
+        // Transform database errors
+        throw transformSequelizeError(error, coordinate.kta[0]);
+      }
     }
   );
 
