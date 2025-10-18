@@ -1,8 +1,8 @@
 /* eslint-disable indent */
-import { FindMethod, Item, LocKeyArray, validateKeys } from "@fjell/core";
+import { FindMethod, Item, LocKeyArray } from "@fjell/core";
+import { validateKeys, validateLocations } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
-import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import { ModelStatic } from "sequelize";
 import { processRow } from "../RowProcessor";

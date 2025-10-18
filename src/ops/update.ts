@@ -1,5 +1,6 @@
 /* eslint-disable indent */
-import { abbrevIK, ComKey, isComKey, isPriKey, Item, PriKey, UpdateMethod, validateKeys } from "@fjell/core";
+import { abbrevIK, ComKey, isComKey, isPriKey, Item, PriKey, UpdateMethod } from "@fjell/core";
+import { validateKeys } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
 import { extractEvents, removeEvents } from "../EventCoordinator";

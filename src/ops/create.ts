@@ -1,8 +1,8 @@
 /* eslint-disable indent */
-import { ComKey, CreateMethod, isComKey, isPriKey, Item, LocKeyArray, PriKey, validateKeys } from "@fjell/core";
+import { ComKey, CreateMethod, isComKey, isPriKey, Item, LocKeyArray, PriKey } from "@fjell/core";
+import { validateKeys, validateLocations } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
-import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import { processRow } from "../RowProcessor";
 import * as Library from "@fjell/lib";

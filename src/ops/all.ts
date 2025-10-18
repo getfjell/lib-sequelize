@@ -1,11 +1,11 @@
 /* eslint-disable no-undefined */
 /* eslint-disable indent */
-import { AllMethod, validateKeys } from "@fjell/core";
+import { AllMethod } from "@fjell/core";
+import { validateKeys, validateLocations } from "@fjell/core/validation";
 
 import { buildQuery } from "../QueryBuilder";
 
 import { Definition } from "../Definition";
-import { validateLocations } from "../validation/LocationKeyValidator";
 import LibLogger from '../logger';
 import * as Library from "@fjell/lib";
 import { processRow } from "../RowProcessor";

@@ -1,7 +1,7 @@
-import { Item } from "@fjell/core";
+import { Item, Coordinate } from "@fjell/core";
 import { Options } from "./Options";
 import { Registry as LocalRegistry } from "./Registry";
-import { InstanceFactory as BaseInstanceFactory, Registry as BaseRegistry, Coordinate, RegistryHub } from "@fjell/registry";
+import { InstanceFactory as BaseInstanceFactory, Registry as BaseRegistry, RegistryHub } from "@fjell/registry";
 import { createSequelizeLibrary, SequelizeLibrary } from "./SequelizeLibrary";
 import { ModelStatic } from "sequelize";
 import SequelizeLogger from "./logger";
