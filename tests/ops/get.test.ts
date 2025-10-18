@@ -167,7 +167,7 @@ describe('get', () => {
 
     await expect(
       getGetOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow('Item not found for key: test:123');
+    ).rejects.toThrow('test not found');
   });
 
   it('should get item with full ComKey when location columns provided', async () => {
@@ -287,7 +287,7 @@ describe('get', () => {
 
     await expect(
       getGetOperation([mockModel], definitionMock, mockRegistry)(key)
-    ).rejects.toThrow('Item not found for key: test:123:order:456');
+    ).rejects.toThrow('test not found');
   });
 
   it('should throw error for invalid key', async () => {
