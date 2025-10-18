@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { ComKey, isValidItemKey, Item, PriKey } from "@fjell/core";
+import { ComKey, createUpsertWrapper, isValidItemKey, Item, PriKey, UpsertMethod } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -24,22 +24,23 @@ export const getUpsertOperation = <
   models: Array<ModelStatic<any>>,
   definition: Definition<V, S, L1, L2, L3, L4, L5>,
   registry: Library.Registry
-) => {
+): UpsertMethod<V, S, L1, L2, L3, L4, L5> => {
 
   // Get the individual operations we'll use
   const get = getGetOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   const update = getUpdateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
   const create = getCreateOperation<V, S, L1, L2, L3, L4, L5>(models, definition, registry);
 
-  const upsert = async (
-    key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
-    item: Partial<Item<S, L1, L2, L3, L4, L5>>
-  ): Promise<V> => {
-
-    if (!isValidItemKey(key)) {
-      logger.error('Key for Upsert is not a valid ItemKey: %j', key);
-      throw new Error(`Key for Upsert is not a valid ItemKey: ${stringifyJSON(key)}`);
-    }
+  return createUpsertWrapper(
+    definition.coordinate,
+    async (
+      key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
+      item: Partial<Item<S, L1, L2, L3, L4, L5>>
+    ): Promise<V> => {
+      if (!isValidItemKey(key)) {
+        logger.error('Key for Upsert is not a valid ItemKey: %j', key);
+        throw new Error(`Key for Upsert is not a valid ItemKey: ${stringifyJSON(key)}`);
+      }
 
     logger.debug(`[UPSERT] Attempting upsert with key: ${stringifyJSON(key)}`);
 
@@ -58,7 +59,6 @@ export const getUpsertOperation = <
 
     // Item doesn't exist, create it
     return await create(item, { key });
-  }
-
-  return upsert;
+    }
+  );
 }

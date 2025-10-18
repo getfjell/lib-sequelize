@@ -14,7 +14,7 @@ export interface Definition<
   L4 extends string = never,
   L5 extends string = never
 > {
-  coordinate: import('@fjell/registry').Coordinate<S, L1, L2, L3, L4, L5>;
+  coordinate: import('@fjell/core').Coordinate<S, L1, L2, L3, L4, L5>;
   options: Options<V, S, L1, L2, L3, L4, L5>;
 }
 
