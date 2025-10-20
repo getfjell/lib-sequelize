@@ -1,5 +1,4 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
@@ -9,33 +8,35 @@ export default defineConfig({
     target: 'es2022',
   },
   test: {
-    environment: 'node',
     globals: true,
-    testTimeout: 30000,
+    environment: 'node',
     include: ['tests/**/*.{test,spec}.ts'],
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.ts'],
+      exclude: [
+        'node_modules/**',
+        'tests/**',
+        'src/index.ts',
+        '**/*.d.ts',
+        'dist/**',
+        'build.js',
+        'docs/**',
+        'coverage/**',
+        'vitest.config.ts',
+        'eslint.config.mjs',
+      ],
       thresholds: {
         global: {
           lines: 90,
           functions: 90,
           branches: 90,
-          statements: 90
-        }
+          statements: 90,
+        },
       },
-      include: ['src/**/*.ts'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        'coverage/',
-        '**/*.test.ts',
-        '**/*.spec.ts',
-        'tests/',
-        'vitest.config.ts',
-        'build.js',
-        'eslint.config.mjs'
-      ],
     },
   },
-})
+});
