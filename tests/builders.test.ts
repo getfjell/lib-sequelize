@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildAggregation, createOperationContext } from '@fjell/lib';
 import { AggregationDefinition, SequelizeReferenceDefinition } from '../src/Options';
-import { buildSequelizeReference } from '../src/processing/ReferenceBuilder';
+import { buildSequelizeReference, stripSequelizeReferenceItems } from '../src/processing/ReferenceBuilder';
 import * as Library from '@fjell/lib';
 
 // Helper to create a mock library
@@ -109,6 +109,120 @@ describe('builders from @fjell/lib-sequelize', () => {
       expect(result).toHaveProperty('data');
       expect(result).toHaveProperty('parentId', 'parent-1');
       expect(result).toHaveProperty('key');
+    });
+
+    it('should set property to null when column value is null', async () => {
+      const item = { id: '10', name: 'null-col', userId: null, key: { kt: 'test', pk: '10' } };
+      const referenceDefinition: SequelizeReferenceDefinition = {
+        column: 'userId',
+        kta: ['user'],
+        property: 'user'
+      };
+
+      const libraries = new Map();
+      const userLibrary = createMockLibrary(['user']);
+      libraries.set('user', userLibrary);
+      const registry = createMockRegistry(libraries);
+
+      const result = await buildSequelizeReference(item, referenceDefinition, registry);
+
+      expect(result.user).toBeNull();
+      expect(userLibrary.operations.get).not.toHaveBeenCalled();
+    });
+
+    it('should call get with PriKey for primary items', async () => {
+      const item = { id: '11', name: 'primary', userId: 'user-11', key: { kt: 'test', pk: '11' } };
+      const referenceDefinition: SequelizeReferenceDefinition = {
+        column: 'userId',
+        kta: ['user'],
+        property: 'user'
+      };
+
+      const libraries = new Map();
+      const userLibrary = createMockLibrary(['user']);
+      userLibrary.operations.get = vi.fn().mockResolvedValue({ id: 'user-11' });
+      libraries.set('user', userLibrary);
+      const registry = createMockRegistry(libraries);
+
+      await buildSequelizeReference(item, referenceDefinition, registry);
+
+      expect(userLibrary.operations.get).toHaveBeenCalledWith({ kt: 'user', pk: 'user-11' });
+    });
+
+    it('should build full ComKey when locationColumns are provided', async () => {
+      const item = { id: '12', name: 'composite', stepId: 's-1', phaseId: 'p-1', key: { kt: 'test', pk: '12' } };
+      const referenceDefinition: SequelizeReferenceDefinition = {
+        column: 'stepId',
+        kta: ['step', 'phase'],
+        property: 'step',
+        locationColumns: ['phaseId']
+      };
+
+      const libraries = new Map();
+      const stepLibrary = createMockLibrary(['step', 'phase']);
+      stepLibrary.operations.get = vi.fn().mockResolvedValue({ id: 's-1' });
+      libraries.set('step', stepLibrary);
+      const registry = createMockRegistry(libraries);
+
+      await buildSequelizeReference(item, referenceDefinition, registry);
+
+      expect(stepLibrary.operations.get).toHaveBeenCalledWith({ kt: 'step', pk: 's-1', loc: [{ kt: 'phase', lk: 'p-1' }] });
+    });
+
+    it('should fallback to empty loc array when a location column is missing', async () => {
+      const item = { id: '13', name: 'fallback', stepId: 's-2', phaseId: null, key: { kt: 'test', pk: '13' } };
+      const referenceDefinition: SequelizeReferenceDefinition = {
+        column: 'stepId',
+        kta: ['step', 'phase'],
+        property: 'step',
+        locationColumns: ['phaseId']
+      };
+
+      const libraries = new Map();
+      const stepLibrary = createMockLibrary(['step', 'phase']);
+      stepLibrary.operations.get = vi.fn().mockResolvedValue({ id: 's-2' });
+      libraries.set('step', stepLibrary);
+      const registry = createMockRegistry(libraries);
+
+      await buildSequelizeReference(item, referenceDefinition, registry);
+
+      expect(stepLibrary.operations.get).toHaveBeenCalledWith({ kt: 'step', pk: 's-2', loc: [] });
+    });
+
+    it('should create placeholder when context detects circular dependency', async () => {
+      const item = { id: '14', name: 'circular', userId: 'user-14', key: { kt: 'test', pk: '14' } };
+      const referenceDefinition: SequelizeReferenceDefinition = {
+        column: 'userId',
+        kta: ['user'],
+        property: 'user'
+      };
+
+      const libraries = new Map();
+      const userLibrary = createMockLibrary(['user']);
+      // Should not be called because of in-progress shortcut
+      userLibrary.operations.get = vi.fn();
+      libraries.set('user', userLibrary);
+      const registry = createMockRegistry(libraries);
+
+      // Prepare context and mark itemKey in progress so the builder returns a placeholder
+      const context = createOperationContext();
+      const itemKey = { kt: 'user', pk: 'user-14' } as const;
+      // @ts-ignore - access test helper API
+      context.markInProgress(itemKey);
+
+      const result = await buildSequelizeReference(item, referenceDefinition, registry, context);
+
+      expect(userLibrary.operations.get).not.toHaveBeenCalled();
+      expect(result.user).toEqual({ key: itemKey });
+    });
+
+    it('stripSequelizeReferenceItems should remove populated reference properties', () => {
+      const item = { id: '20', name: 'with-ref', authorId: 'a-1', author: { id: 'a-1' } };
+      const stripped = stripSequelizeReferenceItems(item as any, [
+        { column: 'authorId', kta: ['author'], property: 'author' }
+      ]);
+
+      expect(stripped).toEqual({ id: '20', name: 'with-ref', authorId: 'a-1' });
     });
   });
 
