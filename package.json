@@ -1,6 +1,6 @@
 {
   "name": "@fjell/lib-sequelize",
-  "version": "4.4.57",
+  "version": "4.4.58",
   "license": "Apache-2.0",
   "keywords": [
     "library",
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.32.0",
-    "@fjell/eslint-config": "^1.1.28",
+    "@fjell/common-config": "^1.1.28",
     "@swc/core": "^1.13.2",
     "@tsconfig/recommended": "^1.0.10",
     "@types/node": "^24.1.0",

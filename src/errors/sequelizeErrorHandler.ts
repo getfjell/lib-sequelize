@@ -204,7 +204,7 @@ export function transformSequelizeError(
   // Handle SQLite-specific errors (no error codes, message-based)
   if (error.message?.includes('notNull Violation') ||
       error.message?.includes('cannot be null')) {
-    const fieldMatches = error.message.match(/([a-zA-Z]+\.[a-zA-Z]+) cannot be null/g);
+    const fieldMatches = error.message.match(/([a-zA-Z][a-zA-Z0-9_]{0,100}\.[a-zA-Z][a-zA-Z0-9_]{0,100}) cannot be null/g);
     if (fieldMatches) {
       const fields = fieldMatches.map((match: string) => {
         const parts = match.split('.');
