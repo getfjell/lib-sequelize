@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { ComKey, createUpsertWrapper, isValidItemKey, Item, PriKey, UpsertMethod } from "@fjell/core";
+import { ComKey, createUpsertWrapper, isValidItemKey, Item, NotFoundError, PriKey, UpsertMethod } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -42,23 +42,36 @@ export const getUpsertOperation = <
         throw new Error(`Key for Upsert is not a valid ItemKey: ${stringifyJSON(key)}`);
       }
 
-    logger.debug(`[UPSERT] Attempting upsert with key: ${stringifyJSON(key)}`);
+      logger.debug(`[UPSERT] Attempting upsert with key: ${stringifyJSON(key)}`);
+
+    let resultItem: V | null = null;
 
     try {
       // Try to get the existing item first
-      const existingItem = await get(key);
-      if (existingItem) {
-        logger.debug(`[UPSERT] Item exists, updating with key: ${stringifyJSON(key)}`);
-        // Item exists, update it
-        return await update(key, item);
+      logger.debug(`[UPSERT] Retrieving item by key: ${stringifyJSON(key)}`);
+      resultItem = await get(key);
+    } catch (error: any) {
+      // Check if this is a NotFoundError (preserved by core wrapper)
+      if (error instanceof NotFoundError) {
+        // Item doesn't exist, create it
+        logger.debug(`[UPSERT] Item not found, creating new item with key: ${stringifyJSON(key)}`);
+        resultItem = await create(item, { key });
+      } else {
+        // Re-throw other errors (connection issues, permissions, etc.)
+        throw error;
       }
-    } catch {
-      // Item doesn't exist (get threw NotFoundError), fall through to create
-      logger.debug(`[UPSERT] Item not found, creating new item with key: ${stringifyJSON(key)}`);
     }
 
-    // Item doesn't exist, create it
-    return await create(item, { key });
+    if (!resultItem) {
+      throw new Error(`Failed to retrieve or create item for key: ${stringifyJSON(key)}`);
+    }
+
+    // Always update the item with the new properties (this is what makes it an "upsert")
+    logger.debug(`[UPSERT] Updating item with properties, key: ${stringifyJSON(key)}`);
+    resultItem = await update(resultItem.key, item);
+    logger.debug(`[UPSERT] Item upserted successfully: ${stringifyJSON(resultItem)}`);
+
+    return resultItem;
     }
   );
 }
