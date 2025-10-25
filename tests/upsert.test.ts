@@ -1,39 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getUpsertOperation } from '../src/ops/upsert';
-import { createRegistry } from '@fjell/registry';
-import { createCoordinate } from '../src/Coordinate';
-import { createOptions } from '../src/Options';
-import { Item, PriKey } from '@fjell/core';
-import { ModelStatic } from 'sequelize';
+import { Item, NotFoundError, PriKey } from '@fjell/core';
 
-// Mock Sequelize model
-const createMockModel = (name: string): ModelStatic<any> => {
-  const mockInstance: any = {
-    id: '1',
-    name: 'test',
-    get: vi.fn((options?: { plain: boolean }) => {
-      if (options?.plain) {
-        return { id: '1', name: 'test' };
-      }
-      return { id: '1', name: 'test' };
-    })
-  };
-  
-  // Set save after mockInstance is defined
-  mockInstance.save = vi.fn().mockResolvedValue(mockInstance);
-
-  return {
-    name,
-    primaryKeyAttribute: 'id',
-    associations: {},
-    getAttributes: vi.fn().mockReturnValue({ id: {}, name: {}, createdAt: {}, updatedAt: {} }),
-    findAll: vi.fn().mockResolvedValue([]),
-    findByPk: vi.fn().mockResolvedValue(null),
-    create: vi.fn().mockResolvedValue(mockInstance),
-    update: vi.fn().mockResolvedValue([1]),
-    destroy: vi.fn().mockResolvedValue(1)
-  } as any;
-};
+// Mock the logger
+vi.mock('../src/logger', () => ({
+  default: {
+    get: vi.fn().mockReturnValue({
+      debug: vi.fn(),
+      error: vi.fn(),
+      default: vi.fn(),
+      trace: vi.fn(),
+    }),
+  },
+}));
 
 interface TestItem extends Item<'test'> {
   id: string;
@@ -41,63 +19,131 @@ interface TestItem extends Item<'test'> {
 }
 
 describe('upsert operation', () => {
-  let mockModel: ModelStatic<any>;
-  let registry: any;
-  let coordinate: any;
-  let options: any;
-  let upsert: any;
+  let mockGet: any;
+  let mockCreate: any;
+  let mockUpdate: any;
+  let getUpsertOperation: any;
 
-  beforeEach(() => {
-    mockModel = createMockModel('TestModel');
-    registry = createRegistry();
-    coordinate = createCoordinate(['test']);
-    options = createOptions<TestItem, 'test'>({});
+  beforeEach(async () => {
+    // Reset mocks
+    vi.clearAllMocks();
     
-    upsert = getUpsertOperation<TestItem, 'test'>(
-      [mockModel],
-      { coordinate, options },
-      registry
-    );
+    // Import after mocks are set up
+    const module = await import('../src/ops/upsert');
+    getUpsertOperation = module.getUpsertOperation;
+    
+    const getModule = await import('../src/ops/get');
+    const createModule = await import('../src/ops/create');
+    const updateModule = await import('../src/ops/update');
+    
+    // Mock the operation functions
+    mockGet = vi.spyOn(getModule, 'getGetOperation').mockReturnValue(vi.fn());
+    mockCreate = vi.spyOn(createModule, 'getCreateOperation').mockReturnValue(vi.fn());
+    mockUpdate = vi.spyOn(updateModule, 'getUpdateOperation').mockReturnValue(vi.fn());
   });
 
   it('should create upsert operation function', () => {
+    const upsert = getUpsertOperation(
+      [],
+      { coordinate: { kta: ['test'], scopes: ['sequelize'] }, options: {} },
+      {} as any
+    );
     expect(typeof upsert).toBe('function');
   });
 
-  it('should have correct function signature', () => {
-    expect(upsert.length).toBe(3); // key, item, and optional locations parameters
+  it('should create item when get throws NotFoundError', async () => {
+    const key: PriKey<'test'> = { kt: 'test', pk: '1' };
+    const itemProps: Partial<TestItem> = { name: 'new item' };
+    const createdItem: TestItem = {
+      key,
+      id: '1',
+      name: 'new item'
+    } as TestItem;
+    const updatedItem: TestItem = {
+      key,
+      id: '1',
+      name: 'new item updated'
+    } as TestItem;
+
+    const getMock = vi.fn().mockRejectedValue(new NotFoundError('Not found', 'test', key));
+    const createMock = vi.fn().mockResolvedValue(createdItem);
+    const updateMock = vi.fn().mockResolvedValue(updatedItem);
+
+    mockGet.mockReturnValue(getMock);
+    mockCreate.mockReturnValue(createMock);
+    mockUpdate.mockReturnValue(updateMock);
+
+    const upsert = getUpsertOperation(
+      [],
+      { coordinate: { kta: ['test'], scopes: ['sequelize'] }, options: {} },
+      {} as any
+    );
+
+    const result = await upsert(key, itemProps);
+
+    expect(getMock).toHaveBeenCalledWith(key);
+    expect(createMock).toHaveBeenCalledWith(itemProps, { key });
+    expect(updateMock).toHaveBeenCalledWith(key, itemProps);
+    expect(result).toBe(updatedItem);
   });
 
-  it('should handle upsert with primary key', async () => {
+  it('should update item when get succeeds', async () => {
     const key: PriKey<'test'> = { kt: 'test', pk: '1' };
-    const item: Partial<TestItem> = { name: 'test item' };
-
-    // Mock the model methods to avoid complex Sequelize interactions
-    mockModel.findByPk = vi.fn().mockResolvedValue(null);
-    mockModel.create = vi.fn().mockResolvedValue({
+    const itemProps: Partial<TestItem> = { name: 'updated name' };
+    const existingItem: TestItem = {
+      key,
       id: '1',
-      name: 'test item',
-      get: vi.fn().mockReturnValue({ id: '1', name: 'test item' })
-    });
+      name: 'existing item'
+    } as TestItem;
+    const updatedItem: TestItem = {
+      key,
+      id: '1',
+      name: 'updated name'
+    } as TestItem;
 
-    // The upsert operation should be callable
-    expect(() => upsert(key, item)).not.toThrow();
+    const getMock = vi.fn().mockResolvedValue(existingItem);
+    const createMock = vi.fn();
+    const updateMock = vi.fn().mockResolvedValue(updatedItem);
+
+    mockGet.mockReturnValue(getMock);
+    mockCreate.mockReturnValue(createMock);
+    mockUpdate.mockReturnValue(updateMock);
+
+    const upsert = getUpsertOperation(
+      [],
+      { coordinate: { kta: ['test'], scopes: ['sequelize'] }, options: {} },
+      {} as any
+    );
+
+    const result = await upsert(key, itemProps);
+
+    expect(getMock).toHaveBeenCalledWith(key);
+    expect(createMock).not.toHaveBeenCalled();
+    expect(updateMock).toHaveBeenCalledWith(key, itemProps);
+    expect(result).toBe(updatedItem);
   });
 
-  it('should handle upsert with existing item', async () => {
+  it('should rethrow non-NotFoundError errors', async () => {
     const key: PriKey<'test'> = { kt: 'test', pk: '1' };
-    const item: Partial<TestItem> = { name: 'updated item' };
-    const existingItem = {
-      id: '1',
-      name: 'existing item',
-      save: vi.fn().mockResolvedValue({ id: '1', name: 'updated item' }),
-      get: vi.fn().mockReturnValue({ id: '1', name: 'updated item' })
-    };
+    const itemProps: Partial<TestItem> = { name: 'new item' };
 
-    // Mock the model methods
-    mockModel.findByPk = vi.fn().mockResolvedValue(existingItem);
+    const getMock = vi.fn().mockRejectedValue(new Error('Database connection failed'));
+    const createMock = vi.fn();
+    const updateMock = vi.fn();
 
-    // The upsert operation should be callable
-    expect(() => upsert(key, item)).not.toThrow();
+    mockGet.mockReturnValue(getMock);
+    mockCreate.mockReturnValue(createMock);
+    mockUpdate.mockReturnValue(updateMock);
+
+    const upsert = getUpsertOperation(
+      [],
+      { coordinate: { kta: ['test'], scopes: ['sequelize'] }, options: {} },
+      {} as any
+    );
+
+    await expect(upsert(key, itemProps)).rejects.toThrow('Database connection failed');
+    expect(getMock).toHaveBeenCalledWith(key);
+    expect(createMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
   });
 });
