@@ -52,12 +52,19 @@ export const getUpsertOperation = <
       resultItem = await get(key);
     } catch (error: any) {
       // Check if this is a NotFoundError (preserved by core wrapper)
-      if (error instanceof NotFoundError) {
+      // Check both instanceof and error code to handle cases where
+      // module duplication might break instanceof checks
+      const isNotFound = error instanceof NotFoundError ||
+        error?.name === 'NotFoundError' ||
+        error?.errorInfo?.code === 'NOT_FOUND';
+
+      if (isNotFound) {
         // Item doesn't exist, create it
-        logger.debug(`[UPSERT] Item not found, creating new item with key: ${stringifyJSON(key)}`);
+        logger.debug(`[UPSERT] Item not found, creating new item with key: ${stringifyJSON(key)}, errorType: ${error?.name}, errorCode: ${error?.errorInfo?.code}`);
         resultItem = await create(item, { key });
       } else {
         // Re-throw other errors (connection issues, permissions, etc.)
+        logger.error(`[UPSERT] Unexpected error during get operation`, { error: error?.message, name: error?.name, code: error?.errorInfo?.code });
         throw error;
       }
     }
