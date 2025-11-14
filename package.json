@@ -1,6 +1,6 @@
 {
   "name": "@fjell/lib-sequelize",
-  "version": "4.4.63",
+  "version": "4.4.64",
   "license": "Apache-2.0",
   "keywords": [
     "library",
@@ -41,10 +41,10 @@
     "docs:test": "cd docs && npm run test"
   },
   "dependencies": {
-    "@fjell/core": "^4.4.57",
-    "@fjell/lib": "^4.4.64",
-    "@fjell/logging": "^4.4.54",
-    "@fjell/registry": "^4.4.60",
+    "@fjell/core": "^4.4.60",
+    "@fjell/lib": "^4.4.66",
+    "@fjell/logging": "^4.4.57",
+    "@fjell/registry": "^4.4.64",
     "dayjs": "^1.11.13",
     "deepmerge": "^4.3.1",
     "sequelize": "^6.37.7",
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.32.0",
-    "@fjell/common-config": "^1.1.29",
+    "@fjell/common-config": "^1.1.30",
     "@swc/core": "^1.13.2",
     "@tsconfig/recommended": "^1.0.10",
     "@types/node": "^24.1.0",
