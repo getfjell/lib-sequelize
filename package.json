@@ -1,6 +1,6 @@
 {
   "name": "@fjell/lib-sequelize",
-  "version": "4.4.64",
+  "version": "4.4.65",
   "license": "Apache-2.0",
   "keywords": [
     "library",
@@ -42,9 +42,9 @@
   },
   "dependencies": {
     "@fjell/core": "^4.4.60",
-    "@fjell/lib": "^4.4.66",
+    "@fjell/lib": "^4.4.67",
     "@fjell/logging": "^4.4.57",
-    "@fjell/registry": "^4.4.64",
+    "@fjell/registry": "^4.4.65",
     "dayjs": "^1.11.13",
     "deepmerge": "^4.3.1",
     "sequelize": "^6.37.7",
