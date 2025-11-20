@@ -83,7 +83,7 @@ describe('upsert operation', () => {
 
     expect(getMock).toHaveBeenCalledWith(key);
     expect(createMock).toHaveBeenCalledWith(itemProps, { key });
-    expect(updateMock).toHaveBeenCalledWith(key, itemProps);
+    expect(updateMock).toHaveBeenCalledWith(key, itemProps, undefined);
     expect(result).toBe(updatedItem);
   });
 
@@ -119,7 +119,7 @@ describe('upsert operation', () => {
 
     expect(getMock).toHaveBeenCalledWith(key);
     expect(createMock).not.toHaveBeenCalled();
-    expect(updateMock).toHaveBeenCalledWith(key, itemProps);
+    expect(updateMock).toHaveBeenCalledWith(key, itemProps, undefined);
     expect(result).toBe(updatedItem);
   });
 
