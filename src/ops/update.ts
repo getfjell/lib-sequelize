@@ -1,6 +1,16 @@
 /* eslint-disable indent */
 /* eslint-disable max-depth */
-import { abbrevIK, ComKey, createUpdateWrapper, isComKey, isPriKey, Item, PriKey, UpdateMethod } from "@fjell/core";
+import {
+  abbrevIK,
+  ComKey,
+  createUpdateWrapper,
+  isComKey,
+  isPriKey,
+  Item,
+  PriKey,
+  UpdateMethod,
+  UpdateOptions
+} from "@fjell/core";
 import { validateKeys } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
@@ -62,13 +72,24 @@ export const getUpdateOperation = <
     definition.coordinate,
     async (
       key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
-      item: Partial<Item<S, L1, L2, L3, L4, L5>>
+      item: Partial<Item<S, L1, L2, L3, L4, L5>>,
+      options?: UpdateOptions
     ): Promise<V> => {
       try {
+        // Check for unsupported replace option
+        if (options?.replace) {
+          throw new Error(
+            'UpdateOptions.replace is not supported for SQL databases. ' +
+            'SQL UPDATE operations are always partial (they only update specified fields). ' +
+            'To replace an entire record, use remove() followed by create(), ' +
+            'or explicitly set all fields you want to change/clear.'
+          );
+        }
+        
         const keyDescription = isPriKey(key)
           ? `primary key: pk=${key.pk}`
           : `composite key: pk=${key.pk}, loc=[${(key as ComKey<S, L1, L2, L3, L4, L5>).loc.map((l: any) => `${l.kt}=${l.lk}`).join(', ')}]`;
-        logger.debug(`UPDATE operation called on ${models[0].name} with ${keyDescription}`);
+        logger.debug(`UPDATE operation called on ${models[0].name} with ${keyDescription}`, { options });
         const { coordinate } = definition;
         const { kta } = coordinate;
 
