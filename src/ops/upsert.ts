@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { ComKey, createUpsertWrapper, isValidItemKey, Item, NotFoundError, PriKey, UpsertMethod } from "@fjell/core";
+import { ComKey, createUpsertWrapper, isValidItemKey, Item, NotFoundError, PriKey, UpdateOptions, UpsertMethod } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -35,14 +35,15 @@ export const getUpsertOperation = <
     definition.coordinate,
     async (
       key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
-      item: Partial<Item<S, L1, L2, L3, L4, L5>>
+      item: Partial<Item<S, L1, L2, L3, L4, L5>>,
+      options?: UpdateOptions
     ): Promise<V> => {
       if (!isValidItemKey(key)) {
         logger.error('Key for Upsert is not a valid ItemKey: %j', key);
         throw new Error(`Key for Upsert is not a valid ItemKey: ${stringifyJSON(key)}`);
       }
 
-      logger.debug(`[UPSERT] Attempting upsert with key: ${stringifyJSON(key)}`);
+      logger.debug(`[UPSERT] Attempting upsert with key: ${stringifyJSON(key)}`, { options });
 
     let resultItem: V | null = null;
 
@@ -74,8 +75,9 @@ export const getUpsertOperation = <
     }
 
     // Always update the item with the new properties (this is what makes it an "upsert")
-    logger.debug(`[UPSERT] Updating item with properties, key: ${stringifyJSON(key)}`);
-    resultItem = await update(resultItem.key, item);
+    // Pass through UpdateOptions to control merge vs replace behavior
+    logger.debug(`[UPSERT] Updating item with properties, key: ${stringifyJSON(key)}`, { options });
+    resultItem = await update(resultItem.key, item, options);
     logger.debug(`[UPSERT] Item upserted successfully: ${stringifyJSON(resultItem)}`);
 
     return resultItem;
