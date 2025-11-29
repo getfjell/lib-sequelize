@@ -40,6 +40,8 @@ describe('one', () => {
       name: 'TestModel',
       // @ts-ignore
       findAll: vi.fn(),
+      // @ts-ignore
+      count: vi.fn().mockResolvedValue(0),
       primaryKeyAttribute: 'id',
       getAttributes: vi.fn().mockReturnValue({
         id: { type: DataTypes.STRING, allowNull: false },

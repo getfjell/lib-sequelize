@@ -32,11 +32,11 @@ export const getOneOperation = <
       logger.debug(`ONE operation called on ${models[0].name} with ${locs.length} location filters: ${locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
       logger.default(`One configured for ${models[0].name} delegating to all operation`);
 
-      const items = await getAllOperation(models, definition, registry)(itemQuery ?? {}, locs);
-      if (items.length > 0) {
-        const result = items[0] as V;
-        logger.debug(`[ONE] Found ${models[0].name} record with key: ${(result as any).key ? JSON.stringify((result as any).key) : 'unknown'}`);
-        return result;
+      const result = await getAllOperation(models, definition, registry)(itemQuery ?? {}, locs, { limit: 1 });
+      if (result.items.length > 0) {
+        const item = result.items[0] as V;
+        logger.debug(`[ONE] Found ${models[0].name} record with key: ${(item as any).key ? JSON.stringify((item as any).key) : 'unknown'}`);
+        return item;
       } else {
         logger.debug(`[ONE] No ${models[0].name} record found`);
         return null;

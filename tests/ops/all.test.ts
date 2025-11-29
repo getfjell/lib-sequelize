@@ -85,6 +85,8 @@ describe('all', () => {
     mockModel = {
       name: 'TestModel',
       findAll: vi.fn(),
+      // @ts-ignore
+      count: vi.fn().mockResolvedValue(0),
       associations: {},
       primaryKeyAttribute: 'id',
       getAttributes: vi.fn().mockReturnValue({
@@ -132,14 +134,18 @@ describe('all', () => {
   });
 
   describe('basic functionality', () => {
-    it('should return empty array when no matches found', async () => {
+    it('should return empty result when no matches found', async () => {
       mockModel.findAll = vi.fn().mockResolvedValue([]);
+      (mockModel.count as any).mockResolvedValue(0);
 
       const query: ItemQuery = {};
       const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
 
-      expect(result).toEqual([]);
+      expect(result.items).toEqual([]);
+      expect(result.metadata.total).toBe(0);
+      expect(result.metadata.returned).toBe(0);
       expect(mockModel.findAll).toHaveBeenCalled();
+      expect(mockModel.count).toHaveBeenCalled();
     });
 
     it('should return matched items', async () => {
@@ -157,6 +163,7 @@ describe('all', () => {
       ];
 
       mockModel.findAll = vi.fn().mockResolvedValue(mockItems);
+      (mockModel.count as any).mockResolvedValue(2);
       (validateKeys as any).mockImplementation((item: any) => ({
         key: { kt: 'test', pk: item.id },
         ...item
@@ -165,13 +172,15 @@ describe('all', () => {
       const query: ItemQuery = {};
       const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
 
-      expect(result).toHaveLength(2);
-      expect(result[0]).toMatchObject({
+      expect(result.items).toHaveLength(2);
+      expect(result.metadata.total).toBe(2);
+      expect(result.metadata.returned).toBe(2);
+      expect(result.items[0]).toMatchObject({
         key: { kt: 'test', pk: '1' },
         id: '1',
         name: 'Item 1'
       });
-      expect(result[1]).toMatchObject({
+      expect(result.items[1]).toMatchObject({
         key: { kt: 'test', pk: '2' },
         id: '2',
         name: 'Item 2'
@@ -202,6 +211,7 @@ describe('all', () => {
       });
 
       mockModel.findAll = vi.fn().mockResolvedValue([]);
+      (mockModel.count as any).mockResolvedValue(0);
 
       const query: ItemQuery = {};
       const locations = [{ kt: 'order', lk: '123' }] as LocKeyArray<'order'>;
@@ -234,6 +244,7 @@ describe('all', () => {
       });
 
       mockModel.findAll = vi.fn().mockResolvedValue([]);
+      (mockModel.count as any).mockResolvedValue(0);
 
       const query: ItemQuery = {};
       const locations = [{ kt: 'category', lk: 'electronics' }] as LocKeyArray<'category'>;
@@ -648,6 +659,7 @@ describe('all', () => {
       });
 
       mockModel.findAll = vi.fn().mockResolvedValue([]);
+      (mockModel.count as any).mockResolvedValue(0);
 
       const query: ItemQuery = {};
 
@@ -658,30 +670,37 @@ describe('all', () => {
 
     it('should handle cases with no locations parameter', async () => {
       mockModel.findAll = vi.fn().mockResolvedValue([]);
+      (mockModel.count as any).mockResolvedValue(0);
 
       const query: ItemQuery = {};
 
       const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query);
 
-      expect(result).toEqual([]);
+      expect(result.items).toEqual([]);
+      expect(result.metadata.total).toBe(0);
       expect(mockModel.findAll).toHaveBeenCalled();
+      expect(mockModel.count).toHaveBeenCalled();
     });
 
     it('should handle cases with undefined locations', async () => {
       mockModel.findAll = vi.fn().mockResolvedValue([]);
+      (mockModel.count as any).mockResolvedValue(0);
 
       const query: ItemQuery = {};
 
       const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, undefined);
 
-      expect(result).toEqual([]);
+      expect(result.items).toEqual([]);
+      expect(result.metadata.total).toBe(0);
       expect(mockModel.findAll).toHaveBeenCalled();
+      expect(mockModel.count).toHaveBeenCalled();
     });
 
     it('should handle empty where clause from buildQuery', async () => {
       (buildQuery as any).mockReturnValue({ include: [] });
 
       mockModel.findAll = vi.fn().mockResolvedValue([]);
+      (mockModel.count as any).mockResolvedValue(0);
 
       const query: ItemQuery = {};
 
@@ -707,6 +726,7 @@ describe('all', () => {
       (validateKeys as any).mockReturnValue(mockProcessedItem);
 
       mockModel.findAll = vi.fn().mockResolvedValue([mockItem]);
+      (mockModel.count as any).mockResolvedValue(1);
 
       const query: ItemQuery = {};
       const result = await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
@@ -720,12 +740,14 @@ describe('all', () => {
         mockContext
       );
       expect(validateKeys).toHaveBeenCalledWith(mockProcessedItem, definitionMock.coordinate.kta);
-      expect(result).toEqual([mockProcessedItem]);
+      expect(result.items).toEqual([mockProcessedItem]);
+      expect(result.metadata.total).toBe(1);
     });
 
     it('should handle multiple items with references and aggregations', async () => {
       const mockItems = [mockItem, { ...mockItem, id: '2' }];
       mockModel.findAll = vi.fn().mockResolvedValue(mockItems);
+      (mockModel.count as any).mockResolvedValue(2);
 
       (processRow as any).mockResolvedValue({ processed: true, key: { kt: 'test', pk: '123' } });
       (validateKeys as any).mockImplementation((item: any) => item);
@@ -744,6 +766,7 @@ describe('all', () => {
       (contextManager.getCurrentContext as any).mockReturnValue(mockContext);
 
       mockModel.findAll = vi.fn().mockResolvedValue([mockItem]);
+      (mockModel.count as any).mockResolvedValue(1);
 
       const query: ItemQuery = {};
       await getAllOperation([mockModel], definitionMock, mockRegistry)(query, []);
