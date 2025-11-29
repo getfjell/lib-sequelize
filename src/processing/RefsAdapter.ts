@@ -169,10 +169,14 @@ export function updateForeignKeysFromRefs(
         item[refDef.property] = ref.item;
       }
     } else if (ref == null) {
-      // Reference was removed - set foreign key to null
-      item[refDef.column] = null;
-      // Clear populated reference property
-      delete item[refDef.property];
+      // Reference was explicitly set to null/undefined in refs - set foreign key to null
+      // Only update if the ref was explicitly set (not if it's missing from refs object)
+      if (refName in refs) {
+        item[refDef.column] = null;
+        // Clear populated reference property
+        delete item[refDef.property];
+      }
+      // If ref is not in refs object at all, preserve original foreign key value
     }
   }
 }
@@ -201,6 +205,7 @@ export function removeRefsFromSequelizeItem<T extends Item<any, any, any, any, a
     // Remove refs property
     delete result.refs;
   }
+  // If no refs structure, preserve original foreign key values (no change needed)
 
   return result as T;
 }
