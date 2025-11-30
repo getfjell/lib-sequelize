@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { ComKey, createUpsertWrapper, isValidItemKey, Item, NotFoundError, PriKey, UpdateOptions, UpsertMethod } from "@fjell/core";
+import { ComKey, createUpsertWrapper, isValidItemKey, Item, LocKeyArray, NotFoundError, PriKey, UpdateOptions, UpsertMethod } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -36,6 +36,7 @@ export const getUpsertOperation = <
     async (
       key: PriKey<S> | ComKey<S, L1, L2, L3, L4, L5>,
       item: Partial<Item<S, L1, L2, L3, L4, L5>>,
+      locations?: LocKeyArray<L1, L2, L3, L4, L5>,
       options?: UpdateOptions
     ): Promise<V> => {
       if (!isValidItemKey(key)) {
@@ -62,7 +63,8 @@ export const getUpsertOperation = <
       if (isNotFound) {
         // Item doesn't exist, create it
         logger.debug(`[UPSERT] Item not found, creating new item with key: ${stringifyJSON(key)}, errorType: ${error?.name}, errorCode: ${error?.errorInfo?.code}`);
-        resultItem = await create(item, { key });
+        const createOptions = locations ? { locations } : { key };
+        resultItem = await create(item, createOptions);
       } else {
         // Re-throw other errors (connection issues, permissions, etc.)
         logger.error(`[UPSERT] Unexpected error during get operation`, { error: error?.message, name: error?.name, code: error?.errorInfo?.code });
