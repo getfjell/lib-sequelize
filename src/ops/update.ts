@@ -26,6 +26,7 @@ import { buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 import { removeRefsFromSequelizeItem } from "../processing/RefsAdapter";
+import { removeAggsFromItem } from "../processing/AggsAdapter";
 
 const logger = LibLogger.get('sequelize', 'ops', 'update');
 
@@ -168,6 +169,11 @@ export const getUpdateOperation = <
         // Remove refs structure if present (convert back to foreign key columns)
         if (references && references.length > 0) {
           updateProps = removeRefsFromSequelizeItem(updateProps, references);
+        }
+        
+        // Remove aggs structure if present (convert back to direct properties)
+        if (aggregations && aggregations.length > 0) {
+          updateProps = removeAggsFromItem(updateProps, aggregations);
         }
 
         logger.default(`Update found ${model.name} record to modify`);

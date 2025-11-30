@@ -259,7 +259,9 @@ describe('RowProcessor', () => {
         'test',
         JSON.stringify(['aggregated'])
       );
-      expect(result.aggregation).toEqual({ count: 5 });
+      expect(result.aggs?.aggregation).toEqual({ count: 5 });
+      // Aggregation should be removed from direct properties
+      expect(result.aggregation).toBeUndefined();
     });
 
     it('should process multiple aggregation definitions', async () => {
@@ -290,8 +292,11 @@ describe('RowProcessor', () => {
       );
 
       expect(buildAggregation).toHaveBeenCalledTimes(2);
-      expect(result.aggregation1).toEqual({ count: 10 });
-      expect(result.aggregation2).toEqual({ count: 20 });
+      expect(result.aggs?.aggregation1).toEqual({ count: 10 });
+      expect(result.aggs?.aggregation2).toEqual({ count: 20 });
+      // Aggregations should be removed from direct properties
+      expect(result.aggregation1).toBeUndefined();
+      expect(result.aggregation2).toBeUndefined();
     });
 
     it('should process both references and aggregations', async () => {
@@ -329,7 +334,9 @@ describe('RowProcessor', () => {
       expect(buildSequelizeReference).toHaveBeenCalledTimes(1);
       expect(buildAggregation).toHaveBeenCalledTimes(1);
       expect(result.reference).toEqual({ data: 'referenced' });
-      expect(result.aggregation).toEqual({ count: 5 });
+      expect(result.aggs?.aggregation).toEqual({ count: 5 });
+      // Aggregation should be removed from direct properties
+      expect(result.aggregation).toBeUndefined();
     });
 
     it('should handle empty reference and aggregation definitions', async () => {
