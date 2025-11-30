@@ -41,10 +41,10 @@
     "docs:test": "cd docs && npm run test"
   },
   "dependencies": {
-    "@fjell/core": "^4.4.63",
-    "@fjell/lib": "^4.4.72",
-    "@fjell/logging": "^4.4.58",
-    "@fjell/registry": "^4.4.69",
+    "@fjell/core": "^4.4.65",
+    "@fjell/lib": "^4.4.74",
+    "@fjell/logging": "^4.4.59",
+    "@fjell/registry": "^4.4.71",
     "dayjs": "^1.11.13",
     "deepmerge": "^4.3.1",
     "sequelize": "^6.37.7",
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.32.0",
-    "@fjell/common-config": "^1.1.30",
+    "@fjell/common-config": "^1.1.31",
     "@swc/core": "^1.13.2",
     "@tsconfig/recommended": "^1.0.10",
     "@types/node": "^24.1.0",
