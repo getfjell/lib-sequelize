@@ -19,12 +19,13 @@ import logger from "../logger";
 const libLogger = logger.get('sequelize', 'processing', 'RefsAdapter');
 
 /**
- * Type for a reference structure matching Firestore's refs pattern
+ * Type for a reference structure with flattened item properties.
+ * When populated, item properties are merged directly onto the reference object.
+ * This allows access via refs.name.property instead of refs.name.item.property.
  */
 export type ItemReference = {
   key: PriKey<any> | ComKey<any, any, any, any, any, any>;
-  item?: Item<any, any, any, any, any, any>;
-};
+} & Partial<Omit<Item<any, any, any, any, any, any>, 'key'>>;
 
 /**
  * Builds a key structure (PriKey or ComKey) from a foreign key value and reference definition.
@@ -80,9 +81,9 @@ export function buildKeyFromForeignKey(
 }
 
 /**
- * Converts a Sequelize item to include a Firestore-style refs structure.
+ * Converts a Sequelize item to include a flattened refs structure.
  * Foreign key columns are moved to refs[name].key, and populated references
- * are moved to refs[name].item.
+ * have their properties merged directly onto refs[name] (not nested under item).
  *
  * This is called automatically when items leave the Sequelize library (e.g., returned
  * from operations). The refs structure is added transparently - external code always
@@ -109,10 +110,20 @@ export function addRefsToSequelizeItem<T extends Item<any, any, any, any, any, a
       // Get populated reference if available
       const populatedItem = item[refDef.property as keyof T] as Item<any, any, any, any, any, any> | undefined;
 
-      refs[refName] = {
-        key,
-        item: populatedItem
-      };
+      if (populatedItem) {
+        // Merge item properties directly onto reference object (excluding the item's own key)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { key: _itemKey, ...itemProperties } = populatedItem;
+        refs[refName] = {
+          key,
+          ...itemProperties
+        } as ItemReference;
+      } else {
+        // Unpopulated reference - just the key
+        refs[refName] = {
+          key
+        };
+      }
     } else {
       // Foreign key is null/undefined - still create ref entry but with null key
       refs[refName] = {
@@ -134,6 +145,9 @@ export function addRefsToSequelizeItem<T extends Item<any, any, any, any, any, a
  * Updates foreign key columns in a Sequelize item based on refs structure.
  * This is used when writing items that have been modified via the refs structure.
  *
+ * With flattened references, item properties are directly on the reference object,
+ * so we reconstruct the item if properties beyond 'key' are present.
+ *
  * @param item - The Sequelize item to update
  * @param refs - The refs structure containing updated reference keys
  * @param referenceDefinitions - Array of SequelizeReferenceDefinition configs
@@ -152,11 +166,12 @@ export function updateForeignKeysFromRefs(
       if (isPriKey(ref.key)) {
         item[refDef.column] = ref.key.pk;
       } else if (isComKey(ref.key)) {
-        item[refDef.column] = ref.key.pk;
+        const comKey = ref.key as ComKey<any, any, any, any, any, any>; // Type assertion after isComKey check
+        item[refDef.column] = comKey.pk;
         
         // Update location columns if provided
-        if (refDef.locationColumns && ref.key.loc) {
-          ref.key.loc.forEach((locItem: any, index: number) => {
+        if (refDef.locationColumns && comKey.loc) {
+          comKey.loc.forEach((locItem: any, index: number) => {
             if (refDef.locationColumns && refDef.locationColumns[index]) {
               item[refDef.locationColumns[index]] = locItem.lk;
             }
@@ -164,9 +179,20 @@ export function updateForeignKeysFromRefs(
         }
       }
 
-      // Update populated reference property if available
-      if (ref.item) {
-        item[refDef.property] = ref.item;
+      // Check if reference is populated (has properties beyond 'key')
+      // Reconstruct the item from flattened properties
+      const { key, ...itemProperties } = ref;
+      const hasItemProperties = Object.keys(itemProperties).length > 0;
+      
+      if (hasItemProperties) {
+        // Reconstruct the item with its key and properties
+        item[refDef.property] = {
+          key,
+          ...itemProperties
+        } as Item<any, any, any, any, any, any>;
+      } else {
+        // Unpopulated reference - clear the property
+        delete item[refDef.property];
       }
     } else if (ref == null) {
       // Reference was explicitly set to null/undefined in refs - set foreign key to null
@@ -194,9 +220,9 @@ export function updateForeignKeysFromRefs(
  * @returns The item without refs structure, with foreign keys updated from refs if present
  */
 export function removeRefsFromSequelizeItem<T extends Item<any, any, any, any, any, any>>(
-  item: T & { refs?: Record<string, ItemReference> },
+  item: Partial<T> & { refs?: Record<string, ItemReference> },
   referenceDefinitions: SequelizeReferenceDefinition[]
-): T {
+): Partial<T> {
   const result = { ...item } as any;
 
   // If item has refs structure, update foreign keys from it

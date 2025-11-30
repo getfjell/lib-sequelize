@@ -32,7 +32,7 @@ type PostItem = Item<'post'> & {
   refs?: {
     author?: {
       key: PriKey<'user'>;
-      item?: UserItem;
+      name?: string; // Flattened: item properties directly on reference
     };
   };
 };
@@ -157,8 +157,9 @@ describe('RefsAdapter Integration', () => {
       const getOp = getGetOperation([mockPostModel], definitionMock, mockRegistry);
       const result = await getOp({ kt: 'post', pk: 'post123' });
 
-      expect(result.refs?.author?.item).toBeDefined();
-      expect(result.refs?.author?.item?.name).toBe('John Doe');
+      // With flattened structure, item properties are directly on the reference
+      expect(result.refs?.author?.name).toBe('John Doe');
+      expect(result.refs?.author?.key).toEqual({ kt: 'user', pk: 'user123' });
     });
 
     it('should handle null foreign keys', async () => {

@@ -49,7 +49,7 @@ export const createOperations = <
   // Set findOne operation that depends on find
   implOps.findOne = async (finder: string, params?: Library.OperationParams, locations?: any): Promise<V | null> => {
     const results = await implOps.find(finder, params || {}, locations);
-    return results.length > 0 ? results[0] : null;
+    return results.items.length > 0 ? results.items[0] : null;
   };
 
   // Wrap with default stub implementations for extended operations (facets, actions)

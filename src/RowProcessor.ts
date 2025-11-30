@@ -17,6 +17,7 @@ import { stringifyJSON } from "./util/general";
 import { populateEvents } from "./EventCoordinator";
 import { buildSequelizeReference } from "./processing/ReferenceBuilder";
 import { addRefsToSequelizeItem } from "./processing/RefsAdapter";
+import { addAggsToItem } from "./processing/AggsAdapter";
 
 const logger = LibLogger.get('sequelize', 'RowProcessor');
 
@@ -71,7 +72,7 @@ export const processRow = async <S extends string,
 
         const referenceDuration = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - referenceStartTime;
         if (referenceDuration > 100) {
-          logger.info(`⏱️ REFERENCE_BUILDER_PERF: Loaded ${referenceDefinitions.length} references in parallel for ${item.key.kt} - ${referenceDuration.toFixed(2)}ms`);
+          logger.debug(`⏱️ REFERENCE_BUILDER_PERF: Loaded ${referenceDefinitions.length} references in parallel for ${item.key.kt} - ${referenceDuration.toFixed(2)}ms`);
         }
       }
       if (aggregationDefinitions && aggregationDefinitions.length > 0) {
@@ -93,6 +94,13 @@ export const processRow = async <S extends string,
     if (referenceDefinitions && referenceDefinitions.length > 0) {
       item = addRefsToSequelizeItem(item, referenceDefinitions);
       logger.debug('Added refs structure to item (transparent wrapper)', { key: item.key });
+    }
+
+    // Automatically add aggs structure before returning (transparent wrapper)
+    // This ensures items leaving the Sequelize library always have unified aggs structure
+    if (aggregationDefinitions && aggregationDefinitions.length > 0) {
+      item = addAggsToItem(item, aggregationDefinitions);
+      logger.debug('Added aggs structure to item (transparent wrapper)', { key: item.key });
     }
 
     logger.default('Processed Row: %j', stringifyJSON(item));
