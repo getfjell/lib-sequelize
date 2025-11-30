@@ -12,6 +12,7 @@ import { buildRelationshipChain, buildRelationshipPath } from "../util/relations
 import { stringifyJSON } from "../util/general";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 import { removeRefsFromSequelizeItem } from "../processing/RefsAdapter";
+import { removeAggsFromItem } from "../processing/AggsAdapter";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
 
@@ -119,6 +120,11 @@ export const getCreateOperation = <
     // Remove refs structure if present (convert back to foreign key columns)
     if (references && references.length > 0) {
       itemData = removeRefsFromSequelizeItem(itemData, references);
+    }
+    
+    // Remove aggs structure if present (convert back to direct properties)
+    if (aggregations && aggregations.length > 0) {
+      itemData = removeAggsFromItem(itemData, aggregations);
     }
 
     // Validate that all item attributes exist on the model
