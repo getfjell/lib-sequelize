@@ -132,12 +132,10 @@ describe('RefsAdapter', () => {
 
       const result = addRefsToSequelizeItem(item, refDefs);
 
+      // With flattened structure, item properties are directly on the reference
       expect(result.refs.author).toEqual({
         key: { kt: 'user', pk: 'user123' },
-        item: {
-          key: { kt: 'user', pk: 'user123' },
-          name: 'John Doe'
-        }
+        name: 'John Doe'
       });
     });
 
@@ -386,10 +384,7 @@ describe('RefsAdapter', () => {
         refs: {
           author: {
             key: { kt: 'user', pk: 'user123' },
-            item: {
-              key: { kt: 'user', pk: 'user123' },
-              name: 'John Doe'
-            }
+            name: 'John Doe'  // Flattened: item properties directly on reference
           }
         }
       };
@@ -492,10 +487,7 @@ describe('RefsAdapter', () => {
       const refs: Record<string, ItemReference> = {
         author: {
           key: { kt: 'user', pk: 'user123' },
-          item: {
-            key: { kt: 'user', pk: 'user123' },
-            name: 'John Doe'
-          }
+          name: 'John Doe'  // Flattened: item properties directly on reference
         }
       };
       const refDefs: SequelizeReferenceDefinition[] = [
