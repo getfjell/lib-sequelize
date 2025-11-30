@@ -11,6 +11,7 @@ import { extractEvents, removeEvents } from "../EventCoordinator";
 import { buildRelationshipChain, buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
+import { removeRefsFromSequelizeItem } from "../processing/RefsAdapter";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
 
@@ -114,6 +115,11 @@ export const getCreateOperation = <
     // TODO: We need the opposite of processRow, something to step down from fjell to database.
     itemData = extractEvents(itemData);
     itemData = removeEvents(itemData);
+    
+    // Remove refs structure if present (convert back to foreign key columns)
+    if (references && references.length > 0) {
+      itemData = removeRefsFromSequelizeItem(itemData, references);
+    }
 
     // Validate that all item attributes exist on the model
     const invalidAttributes: string[] = [];

@@ -1,7 +1,7 @@
 /* eslint-disable no-undefined */
 /* eslint-disable indent */
 /* eslint-disable max-depth */
-import { AllMethod, createAllWrapper } from "@fjell/core";
+import { AllMethod, AllOperationResult, AllOptions, createAllWrapper } from "@fjell/core";
 import { validateKeys } from "@fjell/core/validation";
 
 import { buildQuery } from "../QueryBuilder";
@@ -63,8 +63,9 @@ export const getAllOperation = <
     coordinate,
     async (
       itemQuery?: ItemQuery,
-      locations?: LocKeyArray<L1, L2, L3, L4, L5> | []
-    ): Promise<V[]> => {
+      locations?: LocKeyArray<L1, L2, L3, L4, L5> | [],
+      allOptions?: AllOptions
+    ): Promise<AllOperationResult<V>> => {
       try {
         const locs = locations ?? [];
         logger.debug(`ALL operation called on ${models[0].name} with ${locs.length} location filters: ${locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
@@ -74,7 +75,7 @@ export const getAllOperation = <
         // @ts-ignore
         const model = models[0];
 
-    // Build base query from itemQuery
+    // Build base query from itemQuery (includes limit/offset from query)
     const options = buildQuery(itemQuery ?? {}, model);
 
     // Handle location keys if present
@@ -156,7 +157,41 @@ export const getAllOperation = <
       }
     }
 
-    logger.default(`All query configured for ${model.name} with where fields: ${options.where ? Object.keys(options.where).join(', ') : 'none'}, includes: ${options.include?.length || 0}`);
+    // Determine effective limit/offset (options takes precedence over query)
+    const effectiveLimit = allOptions?.limit ?? itemQuery?.limit;
+    const effectiveOffset = allOptions?.offset ?? itemQuery?.offset ?? 0;
+
+    const whereFields = options.where ? Object.keys(options.where).join(', ') : 'none';
+    const includeCount = options.include?.length || 0;
+    logger.default(
+      `All query configured for ${model.name} with where fields: ${whereFields}, ` +
+      `includes: ${includeCount}, limit: ${effectiveLimit}, offset: ${effectiveOffset}`
+    );
+
+    // Execute COUNT query to get total matching records (before pagination)
+    // Use only where and include from options, not limit/offset
+    const countOptions: any = {
+      where: options.where,
+      distinct: true
+    };
+    if (options.include) {
+      countOptions.include = options.include;
+    }
+
+    const total = await model.count(countOptions);
+    logger.debug(`[ALL] Total count for ${model.name}: ${total}`);
+
+    // Apply effective limit/offset for the data query
+    // Remove any limit/offset that came from buildQuery (via itemQuery)
+    delete options.limit;
+    delete options.offset;
+
+    if (effectiveLimit !== undefined) {
+      options.limit = effectiveLimit;
+    }
+    if (effectiveOffset > 0) {
+      options.offset = effectiveOffset;
+    }
 
     try {
       logger.trace(`[ALL] Executing ${model.name}.findAll() with options: ${JSON.stringify(options, null, 2)}`);
@@ -174,14 +209,25 @@ export const getAllOperation = <
 
     // TODO: Move this Up!
     const currentContext = contextManager.getCurrentContext();
-    const results = (await Promise.all(matchingItems.map(async (row: any) => {
+    const items = (await Promise.all(matchingItems.map(async (row: any) => {
       // Each row in an all() operation should get its own context to prevent interference
       const processedRow = await processRow(row, coordinate.kta, references || [], aggregations || [], registry, currentContext);
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];
 
-        logger.debug(`[ALL] Returning ${results.length} ${model.name} records`);
-        return results;
+        logger.debug(`[ALL] Returning ${items.length} of ${total} ${model.name} records`);
+
+        // Build and return AllOperationResult
+        return {
+          items,
+          metadata: {
+            total,
+            returned: items.length,
+            limit: effectiveLimit,
+            offset: effectiveOffset,
+            hasMore: effectiveOffset + items.length < total
+          }
+        };
       } catch (error: any) {
         // Transform database errors
         throw transformSequelizeError(error, coordinate.kta[0]);

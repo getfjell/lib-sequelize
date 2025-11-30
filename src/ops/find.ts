@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-import { createFindWrapper, FindMethod, Item, LocKeyArray } from "@fjell/core";
+import { createFindWrapper, FindMethod, FindOperationResult, FindOptions, Item, LocKeyArray } from "@fjell/core";
 import { validateKeys } from "@fjell/core/validation";
 
 import { Definition } from "../Definition";
@@ -33,8 +33,9 @@ export const getFindOperation = <
     async (
       finder: string,
       finderParams?: Record<string, string | number | boolean | Date | Array<string | number | boolean | Date>>,
-      locations?: LocKeyArray<L1, L2, L3, L4, L5> | []
-    ): Promise<V[]> => {
+      locations?: LocKeyArray<L1, L2, L3, L4, L5> | [],
+      findOptions?: FindOptions
+    ): Promise<FindOperationResult<V>> => {
       try {
         const locs = locations ?? [];
         const params = finderParams ?? {};
@@ -47,32 +48,63 @@ export const getFindOperation = <
 
         // Note that we execute the createFinders function here because we want to make sure we're always getting the
         // most up to date methods.
-        if (finders && finders[finder]) {
-          const finderMethod = finders[finder];
-          if (finderMethod) {
-            logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(params)}, locations: ${stringifyJSON(locs)}`);
-            const results = await finderMethod(params, locs);
-            if (results && results.length > 0) {
-              const processedResults = (await Promise.all(results.map(async (row: any) => {
-                // Each found row gets its own context to prevent interference between concurrent processing
-                const processedRow = await processRow(row, definition.coordinate.kta, references || [], aggregations || [], registry);
-                return validateKeys(processedRow, definition.coordinate.kta);
-              })) as V[]);
-
-              logger.debug(`[FIND] Found ${processedResults.length} ${models[0].name} records using finder '${finder}'`);
-              return processedResults;
-            } else {
-              logger.debug(`[FIND] Found 0 ${models[0].name} records using finder '${finder}'`);
-              return [];
-            }
-          } else {
-            logger.error(`Finder %s not found`, finder);
-            throw new Error(`Finder ${finder} not found`);
-          }
-        } else {
+        if (!finders || !finders[finder]) {
           logger.error(`No finders have been defined for this lib`);
           throw new Error(`No finders found`);
         }
+
+        const finderMethod = finders[finder];
+        if (!finderMethod) {
+          logger.error(`Finder %s not found`, finder);
+          throw new Error(`Finder ${finder} not found`);
+        }
+
+        logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(params)}, locations: ${stringifyJSON(locs)}, options: ${stringifyJSON(findOptions)}`);
+            // Pass findOptions to finder - finder can opt-in by returning FindOperationResult, or return V[] for legacy behavior
+            const finderResult = await finderMethod(params, locs, findOptions);
+            
+            // Helper function to process items
+            const processItems = async (items: any[]): Promise<V[]> => {
+              return (await Promise.all(items.map(async (row: any) => {
+                const processedRow = await processRow(row, definition.coordinate.kta, references || [], aggregations || [], registry);
+                return validateKeys(processedRow, definition.coordinate.kta);
+              })) as V[]);
+            };
+
+            // Check if finder opted-in (returned FindOperationResult) or legacy (returned V[])
+            const isOptInResult = finderResult && typeof finderResult === 'object' && 'items' in finderResult && 'metadata' in finderResult;
+            
+            if (isOptInResult) {
+              // Finder opted-in: process items and return FindOperationResult
+              const optInResult = finderResult as FindOperationResult<any>;
+          const processedResults = optInResult.items && optInResult.items.length > 0
+            ? await processItems(optInResult.items)
+            : [];
+          
+          logger.debug(`[FIND] Finder opted-in, found ${processedResults.length} ${models[0].name} records using finder '${finder}' (total: ${optInResult.metadata.total})`);
+          return {
+            items: processedResults,
+            metadata: optInResult.metadata
+          };
+        }
+
+        // Legacy finder: process results as array
+        const results = finderResult as V[];
+        const processedResults = results && results.length > 0
+          ? await processItems(results)
+          : [];
+        
+                logger.debug(`[FIND] Legacy finder, found ${processedResults.length} ${models[0].name} records using finder '${finder}'`);
+                // Return as FindOperationResult - createFindWrapper will apply post-processing pagination
+        return {
+          items: processedResults,
+          metadata: {
+            total: processedResults.length,
+            returned: processedResults.length,
+            offset: 0,
+            hasMore: false
+          }
+        };
       } catch (error: any) {
         // Transform database errors
         throw transformSequelizeError(error, definition.coordinate.kta[0]);

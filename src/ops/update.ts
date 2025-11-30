@@ -25,6 +25,7 @@ import { ModelStatic, Op } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
+import { removeRefsFromSequelizeItem } from "../processing/RefsAdapter";
 
 const logger = LibLogger.get('sequelize', 'ops', 'update');
 
@@ -163,6 +164,11 @@ export const getUpdateOperation = <
         // TODO: We need the opposite of processRow, something to step down from fjell to database.
         updateProps = extractEvents(updateProps);
         updateProps = removeEvents(updateProps);
+        
+        // Remove refs structure if present (convert back to foreign key columns)
+        if (references && references.length > 0) {
+          updateProps = removeRefsFromSequelizeItem(updateProps, references);
+        }
 
         logger.default(`Update found ${model.name} record to modify`);
         logger.default(`Update properties configured: ${Object.keys(updateProps).join(', ')}`);
