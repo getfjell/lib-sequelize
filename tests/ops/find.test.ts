@@ -85,8 +85,10 @@ describe('find', () => {
 
     const result = await findOperation('testFinder', finderParams);
 
-    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, []);
-    expect(result).toEqual([expect.objectContaining({
+    // find() now passes findOptions as 3rd parameter (undefined when not provided)
+    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, [], undefined);
+    // find() now returns FindOperationResult, not array
+    expect(result.items).toEqual([expect.objectContaining({
       id: '123',
       testColumn: 'test',
       orderId: '2324',
@@ -152,7 +154,8 @@ describe('find', () => {
 
     await findOperation('testFinder', finderParams);
 
-    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, []);
+    // find() now passes findOptions as 3rd parameter (undefined when not provided)
+    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, [], undefined);
   });
 
   it('should handle locations correctly', async () => {
@@ -173,6 +176,7 @@ describe('find', () => {
     // @ts-ignore
     await findOperation('testFinder', finderParams, locations);
 
-    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, locations);
+    // find() now passes findOptions as 4th parameter (undefined when not provided)
+    expect(mockFinderMethod).toHaveBeenCalledWith(finderParams, locations, undefined);
   });
 });

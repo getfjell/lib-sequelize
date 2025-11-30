@@ -16,6 +16,7 @@ import {
 import { stringifyJSON } from "./util/general";
 import { populateEvents } from "./EventCoordinator";
 import { buildSequelizeReference } from "./processing/ReferenceBuilder";
+import { addRefsToSequelizeItem } from "./processing/RefsAdapter";
 
 const logger = LibLogger.get('sequelize', 'RowProcessor');
 
@@ -54,9 +55,23 @@ export const processRow = async <S extends string,
 
     try {
       if (referenceDefinitions && referenceDefinitions.length > 0) {
-        for (const referenceDefinition of referenceDefinitions) {
+        // Process all references in parallel for better performance
+        // Each reference reads from a different column and writes to a different property,
+        // so they can safely run in parallel without race conditions
+        const referenceStartTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const referencePromises = referenceDefinitions.map((referenceDefinition) => {
           logger.default('Processing Reference for %s to %s', item.key.kt, stringifyJSON(referenceDefinition.kta));
-          item = await buildSequelizeReference(item, referenceDefinition, registry, operationContext);
+          // buildSequelizeReference modifies item in place, but each modifies a different property
+          // so parallel execution is safe
+          return buildSequelizeReference(item, referenceDefinition, registry, operationContext);
+        });
+
+        // Wait for all references to load in parallel
+        await Promise.all(referencePromises);
+
+        const referenceDuration = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - referenceStartTime;
+        if (referenceDuration > 100) {
+          logger.info(`⏱️ REFERENCE_BUILDER_PERF: Loaded ${referenceDefinitions.length} references in parallel for ${item.key.kt} - ${referenceDuration.toFixed(2)}ms`);
         }
       }
       if (aggregationDefinitions && aggregationDefinitions.length > 0) {
@@ -71,6 +86,13 @@ export const processRow = async <S extends string,
     } finally {
       // Mark this item as complete
       operationContext.markComplete(item.key);
+    }
+
+    // Automatically add refs structure before returning (transparent wrapper)
+    // This ensures items leaving the Sequelize library always have Firestore-style refs structure
+    if (referenceDefinitions && referenceDefinitions.length > 0) {
+      item = addRefsToSequelizeItem(item, referenceDefinitions);
+      logger.debug('Added refs structure to item (transparent wrapper)', { key: item.key });
     }
 
     logger.default('Processed Row: %j', stringifyJSON(item));

@@ -98,6 +98,7 @@ export const buildSequelizeReference = async (
     // Composite item with location columns provided: build full ComKey
     const locationTypes = referenceDefinition.kta.slice(1); // Skip primary key type
     const loc: Array<{kt: string, lk: any}> = [];
+    let hasNullLocation = false;
     
     for (let i = 0; i < referenceDefinition.locationColumns.length; i++) {
       const columnName = referenceDefinition.locationColumns[i];
@@ -109,11 +110,7 @@ export const buildSequelizeReference = async (
           `Falling back to empty loc array search.`
         );
         // Fall back to empty loc array if any location column is missing
-        itemKey = {
-          kt: primaryKeyType,
-          pk: columnValue,
-          loc: []
-        };
+        hasNullLocation = true;
         break;
       }
       
@@ -123,8 +120,15 @@ export const buildSequelizeReference = async (
       });
     }
     
-    // Only set itemKey if we haven't already (fallback case)
-    if (!itemKey) {
+    if (hasNullLocation) {
+      // Fallback to empty loc array if any location column is missing
+      itemKey = {
+        kt: primaryKeyType,
+        pk: columnValue,
+        loc: []
+      };
+    } else {
+      // Build full ComKey with location context
       itemKey = {
         kt: primaryKeyType,
         pk: columnValue,

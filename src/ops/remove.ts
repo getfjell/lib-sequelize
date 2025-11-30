@@ -10,6 +10,7 @@ import { buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
 import { NotFoundError } from "@fjell/core";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
+import { addRefsToSequelizeItem } from "../processing/RefsAdapter";
 
 const logger = LibLogger.get('sequelize', 'ops', 'remove');
 
@@ -140,6 +141,13 @@ export const getRemoveOperation = <
         }
 
         logger.debug(`[REMOVE] Removed ${model.name} with key: ${(returnItem as any).key ? JSON.stringify((returnItem as any).key) : `id=${item.id}`}`);
+        
+        // Automatically add refs structure before returning (transparent wrapper)
+        const { references } = options;
+        if (references && references.length > 0) {
+          returnItem = addRefsToSequelizeItem(returnItem as any, references);
+        }
+        
         return returnItem as V;
       } catch (error: any) {
         // Transform database errors but pass through NotFoundError

@@ -157,10 +157,10 @@ describe('RowProcessor', () => {
       };
       mockReferenceDefinitions = [mockReference];
 
-      (buildSequelizeReference as Mock).mockImplementation((item) => ({
-        ...item,
-        reference: { data: 'referenced' }
-      }));
+      (buildSequelizeReference as Mock).mockImplementation(async (item) => {
+        item.reference = { data: 'referenced' };
+        return item;
+      });
 
       const result = await processRow(
         mockRow,
@@ -203,10 +203,11 @@ describe('RowProcessor', () => {
       mockReferenceDefinitions = [mockReference1, mockReference2];
 
       let callCount = 0;
-      (buildSequelizeReference as Mock).mockImplementation((item) => ({
-        ...item,
-        [`reference${++callCount}`]: { data: `ref${callCount}` }
-      }));
+      (buildSequelizeReference as Mock).mockImplementation(async (item) => {
+        callCount++;
+        item[`reference${callCount}`] = { data: `ref${callCount}` };
+        return item;
+      });
 
       const result = await processRow(
         mockRow,
@@ -308,10 +309,10 @@ describe('RowProcessor', () => {
       mockReferenceDefinitions = [mockReference];
       mockAggregationDefinitions = [mockAggregation];
 
-      (buildSequelizeReference as Mock).mockImplementation((item) => ({
-        ...item,
-        reference: { data: 'referenced' }
-      }));
+      (buildSequelizeReference as Mock).mockImplementation(async (item) => {
+        item.reference = { data: 'referenced' };
+        return item;
+      });
       (buildAggregation as Mock).mockImplementation((item) => ({
         ...item,
         aggregation: { count: 5 }
