@@ -62,7 +62,7 @@ export const getFindOperation = <
         logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(params)}, locations: ${stringifyJSON(locs)}, options: ${stringifyJSON(findOptions)}`);
             // Pass findOptions to finder - finder can opt-in by returning FindOperationResult, or return V[] for legacy behavior
             const finderResult = await finderMethod(params, locs, findOptions);
-            
+
             // Helper function to process items
             const processItems = async (items: any[]): Promise<V[]> => {
               return (await Promise.all(items.map(async (row: any) => {
@@ -73,14 +73,14 @@ export const getFindOperation = <
 
             // Check if finder opted-in (returned FindOperationResult) or legacy (returned V[])
             const isOptInResult = finderResult && typeof finderResult === 'object' && 'items' in finderResult && 'metadata' in finderResult;
-            
+
             if (isOptInResult) {
               // Finder opted-in: process items and return FindOperationResult
               const optInResult = finderResult as FindOperationResult<any>;
           const processedResults = optInResult.items && optInResult.items.length > 0
             ? await processItems(optInResult.items)
             : [];
-          
+
           logger.debug(`[FIND] Finder opted-in, found ${processedResults.length} ${models[0].name} records using finder '${finder}' (total: ${optInResult.metadata.total})`);
           return {
             items: processedResults,
@@ -93,7 +93,7 @@ export const getFindOperation = <
         const processedResults = results && results.length > 0
           ? await processItems(results)
           : [];
-        
+
                 logger.debug(`[FIND] Legacy finder, found ${processedResults.length} ${models[0].name} records using finder '${finder}'`);
                 // Return as FindOperationResult - createFindWrapper will apply post-processing pagination
         return {
@@ -106,6 +106,24 @@ export const getFindOperation = <
           }
         };
       } catch (error: any) {
+        // Enhanced error logging before transforming
+        logger.error('Error in find operation', {
+          finder,
+          finderParams: finderParams,
+          locations: locations,
+          findOptions,
+          errorMessage: error?.message,
+          errorName: error?.name,
+          errorStack: error?.stack,
+          errorCause: error?.cause,
+          errorString: String(error),
+          errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        });
+        console.error('ERROR in SequelizeLibrary find:', {
+          finder,
+          error: error?.message || String(error),
+          stack: error?.stack
+        });
         // Transform database errors
         throw transformSequelizeError(error, definition.coordinate.kta[0]);
       }
