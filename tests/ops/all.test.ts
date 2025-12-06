@@ -7,7 +7,11 @@ import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
 // Mocking dependencies
 vi.mock('../../src/QueryBuilder', () => ({
-  buildQuery: vi.fn()
+  buildQuery: vi.fn(),
+  addAggregationIncludes: vi.fn((options) => ({
+    options,
+    includedAggregations: []
+  }))
 }));
 
 vi.mock('../../src/util/relationshipUtils', () => ({
@@ -737,7 +741,8 @@ describe('all', () => {
         mockReferences,
         mockAggregations,
         mockRegistry,
-        mockContext
+        mockContext,
+        expect.anything() // includedAggregations parameter
       );
       expect(validateKeys).toHaveBeenCalledWith(mockProcessedItem, definitionMock.coordinate.kta);
       expect(result.items).toEqual([mockProcessedItem]);
@@ -778,7 +783,8 @@ describe('all', () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
-        mockContext
+        mockContext,
+        expect.anything() // includedAggregations parameter
       );
     });
   });

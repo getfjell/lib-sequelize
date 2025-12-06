@@ -4,7 +4,7 @@
 import { AllMethod, AllOperationResult, AllOptions, createAllWrapper } from "@fjell/core";
 import { validateKeys } from "@fjell/core/validation";
 
-import { buildQuery } from "../QueryBuilder";
+import { addAggregationIncludes, buildQuery } from "../QueryBuilder";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -76,7 +76,15 @@ export const getAllOperation = <
         const model = models[0];
 
     // Build base query from itemQuery (includes limit/offset from query)
-    const options = buildQuery(itemQuery ?? {}, model);
+    let options = buildQuery(itemQuery ?? {}, model);
+
+    // Auto-detect and add aggregation INCLUDES to prevent N+1 queries
+    const { options: optionsWithAggs, includedAggregations } = addAggregationIncludes(
+      options,
+      model,
+      aggregations || []
+    );
+    options = optionsWithAggs;
 
     // Handle location keys if present
     if (loc.length > 0) {
@@ -214,7 +222,15 @@ export const getAllOperation = <
     const currentContext = contextManager.getCurrentContext();
     const items = (await Promise.all(matchingItems.map(async (row: any) => {
       // Each row in an all() operation should get its own context to prevent interference
-      const processedRow = await processRow(row, coordinate.kta, references || [], aggregations || [], registry, currentContext);
+      const processedRow = await processRow(
+        row,
+        coordinate.kta,
+        references || [],
+        aggregations || [],
+        registry,
+        currentContext,
+        includedAggregations
+      );
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];
 
