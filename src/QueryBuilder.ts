@@ -339,6 +339,70 @@ const addAssociationIncludes = (options: any, model: ModelStatic<any>): any => {
   return options;
 };
 
+/**
+ * Detects aggregations that can be loaded via Sequelize INCLUDE and adds them to options.
+ * This prevents N+1 queries by using JOIN instead of separate queries per item.
+ *
+ * @param options - Query options to modify
+ * @param model - Sequelize model to check for associations
+ * @param aggregationDefinitions - Aggregation definitions from library config
+ * @returns Modified options with includes added, plus array of property names that were included
+ */
+export const addAggregationIncludes = (
+  options: any,
+  model: ModelStatic<any>,
+  aggregationDefinitions: any[]
+): { options: any; includedAggregations: string[] } => {
+  if (!aggregationDefinitions || aggregationDefinitions.length === 0) {
+    return { options, includedAggregations: [] };
+  }
+
+  const includedAggregations: string[] = [];
+  options.include = options.include || [];
+
+  for (const aggDef of aggregationDefinitions) {
+    // Check if the model has an association matching the aggregation property
+    const association = model.associations && model.associations[aggDef.property];
+    
+    if (association) {
+      // Check if this association is already included
+      const alreadyIncluded = options.include.some((inc: any) =>
+        (typeof inc === 'string' && inc === aggDef.property) ||
+        (typeof inc === 'object' && inc.as === aggDef.property)
+      );
+
+      if (!alreadyIncluded) {
+        logger.debug(`Auto-detected association for aggregation '${aggDef.property}' - using INCLUDE to prevent N+1`, {
+          property: aggDef.property,
+          associationType: association.associationType,
+          targetModel: association.target.name
+        });
+
+        // Add the association to includes
+        options.include.push({
+          model: association.target,
+          as: aggDef.property,
+          required: false // Use LEFT JOIN to preserve items without aggregations
+        });
+
+        includedAggregations.push(aggDef.property);
+      } else {
+        logger.debug(`Association '${aggDef.property}' already included in query`, {
+          property: aggDef.property
+        });
+        includedAggregations.push(aggDef.property);
+      }
+    } else {
+      logger.debug(`No association found for aggregation '${aggDef.property}' - will use separate query`, {
+        property: aggDef.property,
+        availableAssociations: Object.keys(model.associations || {})
+      });
+    }
+  }
+
+  return { options, includedAggregations };
+};
+
 export const buildQuery = (
   itemQuery: ItemQuery,
   model: ModelStatic<any>
