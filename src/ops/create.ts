@@ -250,7 +250,8 @@ export const getCreateOperation = <
 
       // Add key and events
       // Create operations get their own context since they're top-level operations
-      const processedRecord = await processRow(createdRecord, kta, references || [], aggregations || [], registry);
+      // For create, we don't pre-load aggregations via INCLUDE, so pass void 0
+      const processedRecord = await processRow(createdRecord, kta, references || [], aggregations || [], registry, void 0, void 0);
       const result = validateKeys(processedRecord, kta) as V;
 
       logger.debug(`[CREATE] Created ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${createdRecord.id}`}`);

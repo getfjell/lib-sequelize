@@ -24,7 +24,7 @@ const logger = LibLogger.get('sequelize', 'RowProcessor');
 // Re-export types and functions from @fjell/lib for backwards compatibility
 export type { OperationContext };
 export { createOperationContext, contextManager };
-
+ 
 export const processRow = async <S extends string,
   L1 extends string = never,
   L2 extends string = never,
@@ -36,7 +36,9 @@ export const processRow = async <S extends string,
     referenceDefinitions: SequelizeReferenceDefinition[],
     aggregationDefinitions: AggregationDefinition[],
     registry: Library.Registry,
-    context?: OperationContext
+    context?: OperationContext,
+    includedAggregations?: string[]
+  // eslint-disable-next-line max-params
   ): Promise<Item<S, L1, L2, L3, L4, L5>> => {
   logger.default('Processing Row', { row });
 
@@ -77,8 +79,27 @@ export const processRow = async <S extends string,
       }
       if (aggregationDefinitions && aggregationDefinitions.length > 0) {
         for (const aggregationDefinition of aggregationDefinitions) {
-          logger.default('Processing Aggregation for %s from %s', item.key.kt, stringifyJSON(aggregationDefinition.kta));
-          item = await buildAggregation(item, aggregationDefinition, registry, operationContext);
+          // Check if this aggregation was already loaded via INCLUDE (Option C optimization)
+          const alreadyLoaded = includedAggregations &&
+                               includedAggregations.includes(aggregationDefinition.property) &&
+                               typeof item[aggregationDefinition.property] !== 'undefined';
+          
+          if (alreadyLoaded) {
+            logger.debug(
+              `Skipping buildAggregation for '${aggregationDefinition.property}' - already loaded via INCLUDE (N+1 prevention)`,
+              {
+                property: aggregationDefinition.property,
+                itemType: item.key.kt,
+                hasData: Array.isArray(item[aggregationDefinition.property])
+                  ? `${item[aggregationDefinition.property].length} items`
+                  : 'single item'
+              }
+            );
+            // Data is already on the item, AggsAdapter will move it to aggs structure
+          } else {
+            logger.default('Processing Aggregation for %s from %s', item.key.kt, stringifyJSON(aggregationDefinition.kta));
+            item = await buildAggregation(item, aggregationDefinition, registry, operationContext);
+          }
         }
       }
 
