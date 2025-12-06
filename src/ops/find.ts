@@ -66,7 +66,9 @@ export const getFindOperation = <
             // Helper function to process items
             const processItems = async (items: any[]): Promise<V[]> => {
               return (await Promise.all(items.map(async (row: any) => {
-                const processedRow = await processRow(row, definition.coordinate.kta, references || [], aggregations || [], registry);
+                // For finders, we don't control the query, so we pass void 0 for includedAggregations
+                // The custom finder might have already loaded associations via INCLUDE
+                const processedRow = await processRow(row, definition.coordinate.kta, references || [], aggregations || [], registry, void 0, void 0);
                 return validateKeys(processedRow, definition.coordinate.kta);
               })) as V[]);
             };

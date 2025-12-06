@@ -22,6 +22,7 @@ import { buildRelationshipPath } from "../util/relationshipUtils";
 import { contextManager } from "../RowProcessor";
 import { stringifyJSON } from "../util/general";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
+import { addAggregationIncludes } from "../QueryBuilder";
 
 const logger = LibLogger.get('sequelize', 'ops', 'get');
 
@@ -102,26 +103,48 @@ export const getGetOperation = <
         const model = models[0];
 
         let item;
+        let includedAggregations: string[] = [];
 
         if (isPriKey(itemKey)) {
+          // For primary key lookups, add aggregation includes
+          let options: any = {};
+          const aggResult = addAggregationIncludes(options, model, aggregations || []);
+          includedAggregations = aggResult.includedAggregations;
+          options = aggResult.options;
+          
           // This is the easy case because we can just find the item by its primary key
-          logger.trace(`[GET] Executing ${model.name}.findByPk() with pk: ${(itemKey as PriKey<S>).pk}`);
-          item = await model.findByPk((itemKey as PriKey<S>).pk);
+          logger.trace(`[GET] Executing ${model.name}.findByPk() with pk: ${(itemKey as PriKey<S>).pk} and ${includedAggregations.length} aggregation includes`);
+          item = options.include && options.include.length > 0
+            ? await model.findByPk((itemKey as PriKey<S>).pk, { include: options.include })
+            : await model.findByPk((itemKey as PriKey<S>).pk);
         } else if (isComKey(itemKey)) {
           const comKey = itemKey as ComKey<S, L1, L2, L3, L4, L5>;
           
           // Empty loc array is a special case: find by primary key across all locations
           // This is used for foreign key references to composite items where location context is unknown
           if (comKey.loc.length === 0) {
+            // For primary key lookups, add aggregation includes
+            let options: any = {};
+            const aggResult = addAggregationIncludes(options, model, aggregations || []);
+            includedAggregations = aggResult.includedAggregations;
+            options = aggResult.options;
+            
             logger.debug(`[GET] Empty loc array detected - finding by primary key across all locations: ${comKey.pk}`);
-            logger.trace(`[GET] Executing ${model.name}.findByPk() with pk: ${comKey.pk}`);
-            item = await model.findByPk(comKey.pk);
+            logger.trace(`[GET] Executing ${model.name}.findByPk() with pk: ${comKey.pk} and ${includedAggregations.length} aggregation includes`);
+            item = options.include && options.include.length > 0
+              ? await model.findByPk(comKey.pk, { include: options.include })
+              : await model.findByPk(comKey.pk);
           } else {
             // This is a composite key with location context, build a where clause based on the locators
-            const queryOptions = processCompositeKey(comKey, model, kta);
+            let queryOptions = processCompositeKey(comKey, model, kta);
+            
+            // Add aggregation includes to the query
+            const aggResult = addAggregationIncludes(queryOptions, model, aggregations || []);
+            includedAggregations = aggResult.includedAggregations;
+            queryOptions = aggResult.options;
 
             logger.default('Composite key query', { queryOptions });
-            logger.trace(`[GET] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)}`);
+            logger.trace(`[GET] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)} and ${includedAggregations.length} aggregation includes`);
             item = await model.findOne(queryOptions);
           }
         }
@@ -137,7 +160,7 @@ export const getGetOperation = <
         // Use current context if available (prevents infinite recursion in reference loading)
         // This ensures proper circular dependency detection within the same operation
         const currentContext = contextManager.getCurrentContext();
-        const result = validateKeys(await processRow(item, kta, references || [], aggregations || [], registry, currentContext), kta) as V;
+        const result = validateKeys(await processRow(item, kta, references || [], aggregations || [], registry, currentContext, includedAggregations), kta) as V;
 
         logger.debug(`[GET] Retrieved ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${item.id}`}`);
         return result;
