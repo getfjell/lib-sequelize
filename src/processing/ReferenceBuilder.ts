@@ -42,7 +42,7 @@ export const buildSequelizeReference = async (
   context?: OperationContext
 ) => {
   const libLogger = logger.get('processing', 'ReferenceBuilder');
-  
+
   // Check if this is a composite item reference (has location hierarchy)
   const isCompositeItem = referenceDefinition.kta.length > 1;
   const primaryKeyType = referenceDefinition.kta[0];
@@ -87,7 +87,7 @@ export const buildSequelizeReference = async (
 
   // Create the appropriate key type based on whether this is a composite item
   let itemKey: PriKey<string> | ComKey<string>;
-  
+
   if (!isCompositeItem) {
     // Primary item: use PriKey
     itemKey = {
@@ -99,11 +99,11 @@ export const buildSequelizeReference = async (
     const locationTypes = referenceDefinition.kta.slice(1); // Skip primary key type
     const loc: Array<{kt: string, lk: any}> = [];
     let hasNullLocation = false;
-    
+
     for (let i = 0; i < referenceDefinition.locationColumns.length; i++) {
       const columnName = referenceDefinition.locationColumns[i];
       const locValue = item[columnName];
-      
+
       if (locValue == null) {
         libLogger.warning(
           `Location column '${columnName}' is null/undefined for reference '${referenceDefinition.property}'. ` +
@@ -113,13 +113,13 @@ export const buildSequelizeReference = async (
         hasNullLocation = true;
         break;
       }
-      
+
       loc.push({
         kt: locationTypes[i],
         lk: locValue
       });
     }
-    
+
     if (hasNullLocation) {
       // Fallback to empty loc array if any location column is missing
       itemKey = {
@@ -134,7 +134,7 @@ export const buildSequelizeReference = async (
         pk: columnValue,
         loc: loc as any
       };
-      
+
       libLogger.debug('Built full ComKey with location context', {
         itemKey,
         locationColumns: referenceDefinition.locationColumns,
@@ -149,14 +149,14 @@ export const buildSequelizeReference = async (
       pk: columnValue,
       loc: []
     };
-    
-    libLogger.debug('Using empty loc array for composite item reference', {
+
+    libLogger.default('Using empty loc array for composite item reference', {
       kta: referenceDefinition.kta,
       property: referenceDefinition.property
     });
   }
 
-  libLogger.debug('Created reference key', {
+  libLogger.default('Created reference key', {
     itemKey,
     isCompositeItem,
     hasLocationColumns: !!referenceDefinition.locationColumns,
@@ -173,7 +173,7 @@ export const buildSequelizeReference = async (
     }
     // Check if this item is currently being loaded (circular dependency)
     else if (context.isInProgress(itemKey)) {
-      libLogger.debug('Circular dependency detected, creating reference placeholder', {
+      libLogger.default('Circular dependency detected, creating reference placeholder', {
         itemKey,
         property: referenceDefinition.property
       });
