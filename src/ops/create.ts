@@ -13,6 +13,7 @@ import { stringifyJSON } from "../util/general";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 import { removeRefsFromSequelizeItem } from "../processing/RefsAdapter";
 import { removeAggsFromItem } from "../processing/AggsAdapter";
+import { queryMetrics } from "../metrics/QueryMetrics";
 
 const logger = LibLogger.get('sequelize', 'ops', 'create');
 
@@ -37,6 +38,7 @@ async function validateHierarchicalChain(
 
     if (!chainResult.success) {
       // If we can't build a chain, just validate the record exists
+      queryMetrics.recordQuery(locatorModel.name);
       const record = await locatorModel.findByPk(locKey.lk);
       if (!record) {
         throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist`);
@@ -53,6 +55,7 @@ async function validateHierarchicalChain(
       queryOptions.include = chainResult.includes;
     }
 
+    queryMetrics.recordQuery(locatorModel.name);
     const record = await locatorModel.findOne(queryOptions);
     if (!record) {
       throw new Error(`Referenced ${locKey.kt} with id ${locKey.lk} does not exist or chain is invalid`);
@@ -246,6 +249,7 @@ export const getCreateOperation = <
     // Create the record
     try {
       logger.trace(`[CREATE] Executing ${model.name}.create() with data: ${stringifyJSON(itemData)}`);
+      queryMetrics.recordQuery(model.name);
       const createdRecord = await model.create(itemData);
 
       // Add key and events

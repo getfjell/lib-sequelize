@@ -24,7 +24,7 @@ const logger = LibLogger.get('sequelize', 'RowProcessor');
 // Re-export types and functions from @fjell/lib for backwards compatibility
 export type { OperationContext };
 export { createOperationContext, contextManager };
- 
+
 export const processRow = async <S extends string,
   L1 extends string = never,
   L2 extends string = never,
@@ -37,7 +37,8 @@ export const processRow = async <S extends string,
     aggregationDefinitions: AggregationDefinition[],
     registry: Library.Registry,
     context?: OperationContext,
-    includedAggregations?: string[]
+    includedAggregations?: string[],
+    includedReferences?: string[]
   // eslint-disable-next-line max-params
   ): Promise<Item<S, L1, L2, L3, L4, L5>> => {
   logger.default('Processing Row', { row });
@@ -62,11 +63,29 @@ export const processRow = async <S extends string,
         // Each reference reads from a different column and writes to a different property,
         // so they can safely run in parallel without race conditions
         const referenceStartTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        const referencePromises = referenceDefinitions.map((referenceDefinition) => {
-          logger.default('Processing Reference for %s to %s', item.key.kt, stringifyJSON(referenceDefinition.kta));
-          // buildSequelizeReference modifies item in place, but each modifies a different property
-          // so parallel execution is safe
-          return buildSequelizeReference(item, referenceDefinition, registry, operationContext);
+        const referencePromises = referenceDefinitions.map(async (referenceDefinition) => {
+          // Check if this reference was already loaded via INCLUDE (N+1 prevention)
+          const alreadyLoaded = includedReferences &&
+                               includedReferences.includes(referenceDefinition.property) &&
+                               typeof item[referenceDefinition.property] !== 'undefined';
+
+          if (alreadyLoaded) {
+            logger.default(
+              `Skipping buildSequelizeReference for '${referenceDefinition.property}' - already loaded via INCLUDE (N+1 prevention)`,
+              {
+                property: referenceDefinition.property,
+                itemType: item.key.kt,
+                hasData: item[referenceDefinition.property] ? 'loaded' : 'undefined'
+              }
+            );
+            // Data is already on the item, RefsAdapter will move it to refs structure
+            return item;
+          } else {
+            logger.default('Processing Reference for %s to %s', item.key.kt, stringifyJSON(referenceDefinition.kta));
+            // buildSequelizeReference modifies item in place, but each modifies a different property
+            // so parallel execution is safe
+            return buildSequelizeReference(item, referenceDefinition, registry, operationContext);
+          }
         });
 
         // Wait for all references to load in parallel
@@ -83,9 +102,9 @@ export const processRow = async <S extends string,
           const alreadyLoaded = includedAggregations &&
                                includedAggregations.includes(aggregationDefinition.property) &&
                                typeof item[aggregationDefinition.property] !== 'undefined';
-          
+
           if (alreadyLoaded) {
-            logger.debug(
+            logger.default(
               `Skipping buildAggregation for '${aggregationDefinition.property}' - already loaded via INCLUDE (N+1 prevention)`,
               {
                 property: aggregationDefinition.property,
@@ -114,14 +133,14 @@ export const processRow = async <S extends string,
     // This ensures items leaving the Sequelize library always have Firestore-style refs structure
     if (referenceDefinitions && referenceDefinitions.length > 0) {
       item = addRefsToSequelizeItem(item, referenceDefinitions);
-      logger.debug('Added refs structure to item (transparent wrapper)', { key: item.key });
+      logger.default('Added refs structure to item (transparent wrapper)', { key: item.key });
     }
 
     // Automatically add aggs structure before returning (transparent wrapper)
     // This ensures items leaving the Sequelize library always have unified aggs structure
     if (aggregationDefinitions && aggregationDefinitions.length > 0) {
       item = addAggsToItem(item, aggregationDefinitions);
-      logger.debug('Added aggs structure to item (transparent wrapper)', { key: item.key });
+      logger.default('Added aggs structure to item (transparent wrapper)', { key: item.key });
     }
 
     logger.default('Processed Row: %j', stringifyJSON(item));
