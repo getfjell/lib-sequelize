@@ -11,6 +11,10 @@ vi.mock('../../src/QueryBuilder', () => ({
   addAggregationIncludes: vi.fn((options) => ({
     options,
     includedAggregations: []
+  })),
+  addReferenceIncludes: vi.fn((options) => ({
+    options,
+    includedReferences: []
   }))
 }));
 
@@ -222,7 +226,7 @@ describe('all', () => {
 
       await getAllOperation<Item<'test', 'order'>, 'test', 'order'>([mockModel], definitionMock, mockRegistry)(query, locations);
 
-      expect(buildQuery).toHaveBeenCalledWith(query, mockModel);
+      expect(buildQuery).toHaveBeenCalledWith(query, mockModel, definitionMock.options.references, mockRegistry);
     });
 
     it('should handle hierarchical location keys with includes', async () => {
@@ -742,7 +746,8 @@ describe('all', () => {
         mockAggregations,
         mockRegistry,
         mockContext,
-        expect.anything() // includedAggregations parameter
+        expect.anything(), // includedAggregations parameter
+        expect.anything() // includedReferences parameter
       );
       expect(validateKeys).toHaveBeenCalledWith(mockProcessedItem, definitionMock.coordinate.kta);
       expect(result.items).toEqual([mockProcessedItem]);
@@ -784,7 +789,8 @@ describe('all', () => {
         expect.anything(),
         expect.anything(),
         mockContext,
-        expect.anything() // includedAggregations parameter
+        expect.anything(), // includedAggregations parameter
+        expect.anything() // includedReferences parameter
       );
     });
   });
@@ -862,7 +868,7 @@ describe('all', () => {
 
       await getAllOperation([mockModel], definitionMock, mockRegistry)(query, locations);
 
-      expect(buildQuery).toHaveBeenCalledWith(query, mockModel);
+      expect(buildQuery).toHaveBeenCalledWith(query, mockModel, definitionMock.options.references, mockRegistry);
       expect(mockModel.findAll).toHaveBeenCalled();
     });
   });

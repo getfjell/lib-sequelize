@@ -3,6 +3,7 @@ import { CompoundCondition, Condition, ItemQuery } from '@fjell/core';
 import dayjs from 'dayjs';
 import { ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { SequelizeReferenceDefinition } from '../src/processing/ReferenceBuilder';
 
 describe('QueryBuilder', () => {
   let mockModel: ModelStatic<any>;
@@ -225,15 +226,20 @@ describe('QueryBuilder', () => {
         .toThrow('Condition column invalidColumn not found on model TestModel');
     });
 
-    it('should throw error for unsupported operator', () => {
+    it('should handle != operator', () => {
       const condition: Condition = {
         column: 'testColumn',
-        operator: '!=' as any,
+        operator: '!=',
         value: 'test'
       };
 
-      expect(() => addCondition({}, condition, mockModel))
-        .toThrow('Operator != not supported');
+      const result = addCondition({}, condition, mockModel);
+
+      expect(result).toEqual({
+        testColumn: {
+          [Op.ne]: 'test'
+        }
+      });
     });
 
     it('should throw error for unsupported like operator', () => {
@@ -1396,6 +1402,435 @@ describe('QueryBuilder', () => {
         as: 'phase',
         required: false
       });
+    });
+  });
+
+  describe('Reference Join Auto-Detection', () => {
+    let orderPhaseModel: ModelStatic<any>;
+    let phaseModel: ModelStatic<any>;
+    let stepModel: ModelStatic<any>;
+    let references: SequelizeReferenceDefinition[];
+
+    beforeEach(() => {
+      // Create Phase model
+      phaseModel = {
+        name: 'Phase',
+        getAttributes: () => ({
+          id: {},
+          code: {},
+          name: {},
+          position: {},
+        }),
+        associations: {}
+      } as any;
+
+      // Create Step model with phase reference
+      stepModel = {
+        name: 'Step',
+        getAttributes: () => ({
+          id: {},
+          phaseId: {},
+          name: {},
+        }),
+        associations: {
+          phase: {
+            target: phaseModel,
+            associationType: 'BelongsTo'
+          }
+        }
+      } as any;
+
+      // Create OrderPhase model with phase and step references
+      orderPhaseModel = {
+        name: 'OrderPhase',
+        getAttributes: () => ({
+          id: {},
+          orderId: {},
+          phaseId: {},
+          stepId: {},
+          position: {},
+        }),
+        associations: {
+          phase: {
+            target: phaseModel,
+            associationType: 'BelongsTo'
+          },
+          step: {
+            target: stepModel,
+            associationType: 'BelongsTo'
+          }
+        }
+      } as any;
+
+      // Define references for OrderPhase
+      references = [
+        {
+          column: 'phaseId',
+          kta: ['phase'],
+          property: 'phase'
+        },
+        {
+          column: 'stepId',
+          kta: ['step'],
+          property: 'step'
+        }
+      ];
+    });
+
+    it('should auto-detect reference property and add JOIN for direct reference', () => {
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '==',
+        value: 'PRT'
+      };
+
+      const options: any = { where: {} };
+      const result = addCondition({}, condition, orderPhaseModel, options, references);
+
+      // Should add condition using Sequelize association syntax
+      expect(result).toEqual({
+        '$phase.code$': {
+          [Op.eq]: 'PRT'
+        }
+      });
+
+      // Should add include for the association
+      expect(options.include).toBeDefined();
+      expect(options.include).toHaveLength(1);
+      expect(options.include[0]).toMatchObject({
+        model: phaseModel,
+        as: 'phase',
+        required: true // INNER JOIN for filtering
+      });
+    });
+
+    it('should auto-detect nested reference and add nested JOIN', () => {
+      const condition: Condition = {
+        column: 'step.phase.code',
+        operator: '==',
+        value: 'PRT'
+      };
+
+      const options: any = { where: {} };
+      const result = addCondition({}, condition, orderPhaseModel, options, references);
+
+      // Should add condition using nested Sequelize association syntax
+      expect(result).toEqual({
+        '$step.phase.code$': {
+          [Op.eq]: 'PRT'
+        }
+      });
+
+      // Should add nested include
+      expect(options.include).toBeDefined();
+      expect(options.include).toHaveLength(1);
+      expect(options.include[0]).toMatchObject({
+        model: stepModel,
+        as: 'step',
+        required: true
+      });
+      expect(options.include[0].include).toBeDefined();
+      expect(options.include[0].include).toHaveLength(1);
+      expect(options.include[0].include[0]).toMatchObject({
+        model: phaseModel,
+        as: 'phase',
+        required: true
+      });
+    });
+
+    it('should fall back to direct association if reference definition not found', () => {
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '==',
+        value: 'PRT'
+      };
+
+      // No references provided
+      const options: any = { where: {} };
+      const result = addCondition({}, condition, orderPhaseModel, options);
+
+      // Should still work using direct association lookup
+      expect(result).toEqual({
+        '$phase.code$': {
+          [Op.eq]: 'PRT'
+        }
+      });
+    });
+
+    it('should handle multiple reference conditions in compound query', () => {
+      const itemQuery: ItemQuery = {
+        compoundCondition: {
+          compoundType: 'AND',
+          conditions: [
+            {
+              column: 'phase.code',
+              operator: '==',
+              value: 'PRT'
+            },
+            {
+              column: 'step.name',
+              operator: '==',
+              value: 'Design'
+            }
+          ]
+        }
+      };
+
+      const result = buildQuery(itemQuery, orderPhaseModel, references);
+
+      // Should have both conditions (wrapped in Op.and for compound conditions)
+      const andConditions = result.where[Op.and];
+      expect(andConditions).toBeDefined();
+      const whereConditions = Array.isArray(andConditions) ? andConditions[1] : andConditions;
+      expect(whereConditions).toHaveProperty('$phase.code$');
+      expect(whereConditions).toHaveProperty('$step.name$');
+
+      // Should have includes for both associations
+      expect(result.include).toBeDefined();
+      expect(result.include.length).toBeGreaterThanOrEqual(1);
+      
+      // Check that both phase and step are included
+      const includeAliases = result.include.map((inc: any) =>
+        typeof inc === 'string' ? inc : inc.as
+      );
+      expect(includeAliases).toContain('phase');
+      expect(includeAliases).toContain('step');
+    });
+
+    it('should not add duplicate includes when reference already included', () => {
+      const condition1: Condition = {
+        column: 'phase.code',
+        operator: '==',
+        value: 'PRT'
+      };
+
+      const condition2: Condition = {
+        column: 'phase.name',
+        operator: '==',
+        value: 'Production'
+      };
+
+      const options: any = { where: {} };
+      addCondition({}, condition1, orderPhaseModel, options, references);
+      const initialIncludeCount = options.include?.length || 0;
+      
+      addCondition({}, condition2, orderPhaseModel, options, references);
+
+      // Should not add duplicate include
+      expect(options.include?.length).toBe(initialIncludeCount);
+    });
+
+    it('should handle null values on reference conditions', () => {
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '==',
+        value: null as any
+      };
+
+      const options: any = { where: {} };
+      const result = addCondition({}, condition, orderPhaseModel, options, references);
+
+      expect(result).toEqual({
+        '$phase.code$': {
+          [Op.is]: null
+        }
+      });
+
+      expect(options.include).toBeDefined();
+      expect(options.include[0]).toMatchObject({
+        as: 'phase',
+        required: true
+      });
+    });
+
+    it('should handle IS NOT NULL on reference conditions', () => {
+      const condition: Condition = {
+        column: 'phase.code',
+        operator: '!=',
+        value: null as any
+      };
+
+      const options: any = { where: {} };
+      const result = addCondition({}, condition, orderPhaseModel, options, references);
+
+      expect(result).toEqual({
+        '$phase.code$': {
+          [Op.not]: null
+        }
+      });
+    });
+
+    it('should handle different operators on reference conditions', () => {
+      const operators = [
+        { op: '>', sequelizeOp: Op.gt },
+        { op: '<', sequelizeOp: Op.lt },
+        { op: '>=', sequelizeOp: Op.gte },
+        { op: '<=', sequelizeOp: Op.lte },
+        { op: 'in', sequelizeOp: Op.in }
+      ];
+
+      operators.forEach(({ op, sequelizeOp }) => {
+        const condition: Condition = {
+          column: 'phase.position',
+          operator: op as any,
+          value: op === 'in' ? [1, 2, 3] : 5
+        };
+
+        const options: any = { where: {} };
+        const result = addCondition({}, condition, orderPhaseModel, options, references);
+
+        expect(result).toEqual({
+          '$phase.position$': {
+            [sequelizeOp]: op === 'in' ? [1, 2, 3] : 5
+          }
+        });
+      });
+    });
+
+    it('should throw error if reference property exists but association does not', () => {
+      const invalidReferences: SequelizeReferenceDefinition[] = [
+        {
+          column: 'invalidId',
+          kta: ['invalid'],
+          property: 'invalid'
+        }
+      ];
+
+      const condition: Condition = {
+        column: 'invalid.code',
+        operator: '==',
+        value: 'test'
+      };
+
+      const options: any = { where: {} };
+      
+      expect(() => addCondition({}, condition, orderPhaseModel, options, invalidReferences))
+        .toThrow('Association invalid not found on model OrderPhase');
+    });
+
+    it('should work with buildQuery and reference definitions', () => {
+      const itemQuery: ItemQuery = {
+        compoundCondition: {
+          compoundType: 'AND',
+          conditions: [
+            {
+              column: 'phase.code',
+              operator: '==',
+              value: 'PRT'
+            }
+          ]
+        }
+      };
+
+      const result = buildQuery(itemQuery, orderPhaseModel, references);
+
+      // Should have the condition (wrapped in Op.and for compound conditions)
+      const andConditions = result.where[Op.and];
+      expect(andConditions).toBeDefined();
+      const whereConditions = Array.isArray(andConditions) ? andConditions[1] : andConditions;
+      expect(whereConditions).toHaveProperty('$phase.code$');
+      expect(whereConditions['$phase.code$']).toEqual({
+        [Op.eq]: 'PRT'
+      });
+
+      // Should have include for phase
+      expect(result.include).toBeDefined();
+      const phaseInclude = result.include.find((inc: any) =>
+        (typeof inc === 'object' && inc.as === 'phase')
+      );
+      expect(phaseInclude).toBeDefined();
+      expect(phaseInclude).toMatchObject({
+        model: phaseModel,
+        as: 'phase',
+        required: true
+      });
+    });
+
+    it('should handle three-level nested references', () => {
+      // Create a deeper model structure: OrderPhase -> Step -> Phase -> Category
+      const categoryModel = {
+        name: 'Category',
+        getAttributes: () => ({
+          id: {},
+          code: {},
+          name: {},
+        }),
+        associations: {}
+      } as any;
+
+      const enhancedPhaseModel = {
+        name: 'Phase',
+        getAttributes: () => ({
+          id: {},
+          code: {},
+          name: {},
+          categoryId: {},
+        }),
+        associations: {
+          category: {
+            target: categoryModel,
+            associationType: 'BelongsTo'
+          }
+        }
+      } as any;
+
+      const enhancedStepModel = {
+        name: 'Step',
+        getAttributes: () => ({
+          id: {},
+          phaseId: {},
+          name: {},
+        }),
+        associations: {
+          phase: {
+            target: enhancedPhaseModel,
+            associationType: 'BelongsTo'
+          }
+        }
+      } as any;
+
+      const enhancedOrderPhaseModel = {
+        name: 'OrderPhase',
+        getAttributes: () => ({
+          id: {},
+          orderId: {},
+          stepId: {},
+        }),
+        associations: {
+          step: {
+            target: enhancedStepModel,
+            associationType: 'BelongsTo'
+          }
+        }
+      } as any;
+
+      const condition: Condition = {
+        column: 'step.phase.category.code',
+        operator: '==',
+        value: 'CAT1'
+      };
+
+      const stepReferences: SequelizeReferenceDefinition[] = [
+        {
+          column: 'stepId',
+          kta: ['step'],
+          property: 'step'
+        }
+      ];
+
+      const options: any = { where: {} };
+      const result = addCondition({}, condition, enhancedOrderPhaseModel, options, stepReferences);
+
+      expect(result).toEqual({
+        '$step.phase.category.code$': {
+          [Op.eq]: 'CAT1'
+        }
+      });
+
+      // Should have nested includes
+      expect(options.include).toBeDefined();
+      expect(options.include[0].include).toBeDefined();
+      expect(options.include[0].include[0].include).toBeDefined();
     });
   });
 });

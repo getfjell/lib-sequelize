@@ -44,13 +44,13 @@ export function addAggsToItem<T extends Item<any, any, any, any, any, any>>(
 
   for (const aggDef of aggregationDefinitions) {
     const aggregationValue = item[aggDef.property as keyof T];
-    
+
     if (typeof aggregationValue !== 'undefined') {
       // Move aggregation from direct property to aggs structure
       aggs[aggDef.property] = aggregationValue;
       // Remove from direct properties
       delete result[aggDef.property];
-      libLogger.debug(`Moved aggregation '${aggDef.property}' to aggs structure`, {
+      libLogger.default(`Moved aggregation '${aggDef.property}' to aggs structure`, {
         property: aggDef.property,
         hasValue: typeof aggregationValue !== 'undefined',
         valueType: Array.isArray(aggregationValue) ? 'array' : typeof aggregationValue

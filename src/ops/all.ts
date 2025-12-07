@@ -4,7 +4,7 @@
 import { AllMethod, AllOperationResult, AllOptions, createAllWrapper } from "@fjell/core";
 import { validateKeys } from "@fjell/core/validation";
 
-import { addAggregationIncludes, buildQuery } from "../QueryBuilder";
+import { addAggregationIncludes, addReferenceIncludes, buildQuery } from "../QueryBuilder";
 
 import { Definition } from "../Definition";
 import LibLogger from '../logger';
@@ -17,6 +17,7 @@ import { contextManager } from "../RowProcessor";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 
 import { stringifyJSON } from "../util/general";
+import { queryMetrics } from "../metrics/QueryMetrics";
 
 const logger = LibLogger.get('sequelize', 'ops', 'all');
 
@@ -76,7 +77,15 @@ export const getAllOperation = <
         const model = models[0];
 
     // Build base query from itemQuery (includes limit/offset from query)
-    let options = buildQuery(itemQuery ?? {}, model);
+    let options = buildQuery(itemQuery ?? {}, model, references, registry);
+
+    // Auto-detect and add reference INCLUDES to prevent N+1 queries
+    const { options: optionsWithRefs, includedReferences } = addReferenceIncludes(
+      options,
+      model,
+      references || []
+    );
+    options = optionsWithRefs;
 
     // Auto-detect and add aggregation INCLUDES to prevent N+1 queries
     const { options: optionsWithAggs, includedAggregations } = addAggregationIncludes(
@@ -186,6 +195,7 @@ export const getAllOperation = <
       countOptions.include = options.include;
     }
 
+    queryMetrics.recordQuery(model.name);
     const countResult = await model.count(countOptions);
     // Sequelize count() with distinct:true and include can return GroupedCountResultItem[]
     // Extract the count value properly
@@ -210,6 +220,7 @@ export const getAllOperation = <
       // Fallback for cases where JSON.stringify fails on Sequelize operators
       logger.trace(`[ALL] Executing ${model.name}.findAll() with options containing non-serializable operators (${Object.keys(options.where || {}).length} where conditions)`);
     }
+    queryMetrics.recordQuery(model.name);
     const matchingItems = await model.findAll(options);
 
     // this.logger.default('Matching Items', { matchingItems });
@@ -229,7 +240,8 @@ export const getAllOperation = <
         aggregations || [],
         registry,
         currentContext,
-        includedAggregations
+        includedAggregations,
+        includedReferences
       );
       return validateKeys(processedRow, coordinate.kta);
     }))) as V[];

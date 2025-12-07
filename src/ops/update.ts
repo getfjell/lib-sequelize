@@ -27,6 +27,7 @@ import { stringifyJSON } from "../util/general";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 import { removeRefsFromSequelizeItem } from "../processing/RefsAdapter";
 import { removeAggsFromItem } from "../processing/AggsAdapter";
+import { queryMetrics } from "../metrics/QueryMetrics";
 
 const logger = LibLogger.get('sequelize', 'ops', 'update');
 
@@ -106,6 +107,7 @@ export const getUpdateOperation = <
           // Find the model by using the PK
           const priKey = key as PriKey<S>;
           logger.trace(`[UPDATE] Executing ${model.name}.findByPk() with pk: ${priKey.pk}`);
+          queryMetrics.recordQuery(model.name);
           response = await model.findByPk(priKey.pk);
         } else if (isComKey(key)) {
           const comKey = key as ComKey<S, L1, L2, L3, L4, L5>;
@@ -149,6 +151,7 @@ export const getUpdateOperation = <
 
           logger.default(`Update composite key query for ${model.name} with where fields: ${queryOptions.where ? Object.keys(queryOptions.where).join(', ') : 'none'}`);
           logger.trace(`[UPDATE] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)}`);
+          queryMetrics.recordQuery(model.name);
           response = await model.findOne(queryOptions);
         }
 
@@ -181,6 +184,7 @@ export const getUpdateOperation = <
 
         // Update the object
         logger.trace(`[UPDATE] Executing ${model.name}.update() with properties: ${stringifyJSON(updateProps)}`);
+        queryMetrics.recordQuery(model.name);
         response = await response.update(updateProps);
 
         // Populate the key and events
