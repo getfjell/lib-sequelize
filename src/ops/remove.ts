@@ -11,6 +11,7 @@ import { stringifyJSON } from "../util/general";
 import { NotFoundError } from "@fjell/core";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 import { addRefsToSequelizeItem } from "../processing/RefsAdapter";
+import { queryMetrics } from "../metrics/QueryMetrics";
 
 const logger = LibLogger.get('sequelize', 'ops', 'remove');
 
@@ -93,6 +94,7 @@ export const getRemoveOperation = <
         logger.debug('remove: %s', abbrevIK(key));
         if (isPriKey(key)) {
           logger.debug(`[REMOVE] Executing ${model.name}.findByPk() with pk: ${(key as PriKey<S>).pk}`);
+          queryMetrics.recordQuery(model.name);
           item = await model.findByPk((key as PriKey<S>).pk);
         } else if (isComKey(key)) {
           // This is a composite key, so we need to build a where clause based on the composite key's locators
@@ -101,6 +103,7 @@ export const getRemoveOperation = <
 
           logger.default(`Remove composite key query for ${model.name} with where fields: ${queryOptions.where ? Object.keys(queryOptions.where).join(', ') : 'none'}`);
           logger.debug(`[REMOVE] Executing ${model.name}.findOne() with options: ${stringifyJSON(queryOptions)}`);
+          queryMetrics.recordQuery(model.name);
           item = await model.findOne(queryOptions);
         }
 
@@ -126,12 +129,14 @@ export const getRemoveOperation = <
 
           // Save the object
           logger.debug(`[REMOVE] Executing ${model.name}.save() for soft delete`);
+          queryMetrics.recordQuery(model.name);
           await item?.save();
           returnItem = item?.get({ plain: true }) as Partial<Item<S, L1, L2, L3, L4, L5>>;
           returnItem = addKey(item, returnItem as any, kta);
           returnItem = populateEvents(returnItem);
         } else if (options.deleteOnRemove) {
           logger.debug(`[REMOVE] Executing ${model.name}.destroy() for hard delete`);
+          queryMetrics.recordQuery(model.name);
           await item?.destroy();
           returnItem = item?.get({ plain: true }) as Partial<Item<S, L1, L2, L3, L4, L5>>;
           returnItem = addKey(item, returnItem as any, kta);
