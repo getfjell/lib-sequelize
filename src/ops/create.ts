@@ -140,11 +140,21 @@ export const getCreateOperation = <
 
     if (invalidAttributes.length > 0) {
       const availableAttributes = Object.keys(modelAttributes).join(', ');
-      throw new Error(
-        `Invalid attributes for model '${model.name}': [${invalidAttributes.join(', ')}]. ` +
-        `Available attributes: [${availableAttributes}]. ` +
-        `Item data: ${JSON.stringify(itemData, null, 2)}`
-      );
+      const errorMessage = `Invalid attributes for model '${model.name}': [${invalidAttributes.join(', ')}]. ` +
+        `Available attributes: [${availableAttributes}].`;
+      
+      logger.error('Create operation failed - invalid attributes', {
+        operation: 'create',
+        model: model.name,
+        invalidAttributes,
+        availableAttributes: Object.keys(modelAttributes),
+        providedAttributes: Object.keys(itemData),
+        itemData: JSON.stringify(itemData, null, 2),
+        suggestion: `Remove invalid attributes or add them to the model definition. Valid attributes are: ${availableAttributes}`,
+        coordinate: JSON.stringify(definition.coordinate)
+      });
+      
+      throw new Error(errorMessage + ` Item data: ${JSON.stringify(itemData, null, 2)}`);
     }
 
     // Handle key options
@@ -261,6 +271,23 @@ export const getCreateOperation = <
       logger.debug(`[CREATE] Created ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${createdRecord.id}`}`);
       return result;
     } catch (error: any) {
+      // Log detailed error information for debugging
+      logger.error('Create operation failed', {
+        operation: 'create',
+        model: model.name,
+        itemData: JSON.stringify(itemData, null, 2),
+        options: JSON.stringify(options),
+        errorType: error?.constructor?.name || typeof error,
+        errorMessage: error?.message,
+        errorName: error?.name,
+        sqlError: error?.original?.message,
+        sqlCode: error?.original?.code,
+        constraint: error?.original?.constraint,
+        detail: error?.original?.detail,
+        suggestion: 'Check validation rules, unique constraints, foreign keys, required fields, and data types',
+        coordinate: JSON.stringify(definition.coordinate)
+      });
+      
       throw transformSequelizeError(error, kta[0], options?.key, model.name, itemData);
     }
     }
