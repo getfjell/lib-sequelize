@@ -61,16 +61,35 @@ export const buildSequelizeReference = async (
 
   // Check if dependencies exist
   if (!registry) {
+    libLogger.error('Registry not provided for reference processing', {
+      component: 'lib-sequelize',
+      subcomponent: 'ReferenceBuilder',
+      operation: 'buildSequelizeReference',
+      property: referenceDefinition.property,
+      kta: referenceDefinition.kta,
+      column: referenceDefinition.column,
+      suggestion: 'Ensure registry is passed to library configuration'
+    });
     throw new Error(
       `This model definition has a reference definition, but the registry is not present. ` +
       `Reference property: '${referenceDefinition.property}', ` +
-      `key types: [${referenceDefinition.kta.join(', ')}], column: '${referenceDefinition.column}'`
+      `key types: [${referenceDefinition.kta.join(', ')}], column: '${referenceDefinition.column}'. ` +
+      `Suggestion: Pass registry to library initialization.`
     );
   }
 
   // Find the Library.Instance for the key type
   const library: any = registry.get(referenceDefinition.kta as any);
   if (!library) {
+    libLogger.error('Referenced library not found in registry', {
+      component: 'lib-sequelize',
+      subcomponent: 'ReferenceBuilder',
+      operation: 'buildSequelizeReference',
+      property: referenceDefinition.property,
+      kta: referenceDefinition.kta,
+      column: referenceDefinition.column,
+      suggestion: `Register a library for [${referenceDefinition.kta.join(', ')}] in the registry`
+    });
     throw new Error(
       `This model definition has a reference definition, but the dependency is not present in registry. ` +
       `Reference property: '${referenceDefinition.property}', ` +
@@ -195,6 +214,18 @@ export const buildSequelizeReference = async (
         // Cache the result
         context.setCached(itemKey, referencedItem);
       } catch (error: any) {
+        libLogger.error('Failed to load reference', {
+          component: 'lib-sequelize',
+          subcomponent: 'ReferenceBuilder',
+          operation: 'buildSequelizeReference',
+          property: referenceDefinition.property,
+          referenceKey: JSON.stringify(itemKey),
+          referencedItemType: primaryKeyType,
+          errorType: error?.constructor?.name,
+          errorMessage: error?.message,
+          errorCode: error?.code || error?.errorInfo?.code,
+          suggestion: 'Check referenced item exists, registry is configured, and database connectivity'
+        });
         throw error; // Re-throw to maintain original behavior
       } finally {
         // Always mark as complete, even if there was an error
