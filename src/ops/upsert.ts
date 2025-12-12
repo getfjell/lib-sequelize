@@ -40,8 +40,16 @@ export const getUpsertOperation = <
       options?: UpdateOptions
     ): Promise<V> => {
       if (!isValidItemKey(key)) {
-        logger.error('Key for Upsert is not a valid ItemKey: %j', key);
-        throw new Error(`Key for Upsert is not a valid ItemKey: ${stringifyJSON(key)}`);
+        logger.error('Invalid key for upsert operation', {
+          operation: 'upsert',
+          model: models[0]?.name,
+          key: stringifyJSON(key),
+          keyType: typeof key,
+          reason: 'Key validation failed',
+          suggestion: 'Ensure key has valid PriKey or ComKey structure',
+          coordinate: JSON.stringify(definition.coordinate)
+        });
+        throw new Error(`Invalid key for upsert operation: ${stringifyJSON(key)}. Expected valid PriKey or ComKey structure.`);
       }
 
       logger.debug(`[UPSERT] Attempting upsert with key: ${stringifyJSON(key)}`, { options });
@@ -67,7 +75,18 @@ export const getUpsertOperation = <
         resultItem = await create(item, createOptions);
       } else {
         // Re-throw other errors (connection issues, permissions, etc.)
-        logger.error(`[UPSERT] Unexpected error during get operation`, { error: error?.message, name: error?.name, code: error?.errorInfo?.code });
+        logger.error(`[UPSERT] Unexpected error during get operation`, {
+          operation: 'upsert',
+          phase: 'get-existing',
+          model: models[0]?.name,
+          key: stringifyJSON(key),
+          errorType: error?.constructor?.name || typeof error,
+          errorMessage: error?.message,
+          errorName: error?.name,
+          errorCode: error?.errorInfo?.code,
+          suggestion: 'Check database connectivity, permissions, and key validity',
+          coordinate: JSON.stringify(definition.coordinate)
+        });
         throw error;
       }
     }
