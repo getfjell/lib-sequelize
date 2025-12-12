@@ -1,3 +1,0 @@
-{
-  "extends": "@fjell/docs-template/tsconfig.node.json"
-}
