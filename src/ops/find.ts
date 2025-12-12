@@ -49,14 +49,32 @@ export const getFindOperation = <
         // Note that we execute the createFinders function here because we want to make sure we're always getting the
         // most up to date methods.
         if (!finders || !finders[finder]) {
-          logger.error(`No finders have been defined for this lib`);
-          throw new Error(`No finders found`);
+          const availableFinders = finders ? Object.keys(finders) : [];
+          logger.error(`No finders defined for library`, {
+            operation: 'find',
+            model: models[0]?.name,
+            requestedFinder: finder,
+            availableFinders,
+            suggestion: availableFinders.length > 0
+              ? `Use one of the available finders: ${availableFinders.join(', ')}`
+              : 'Define finders in your library configuration',
+            coordinate: JSON.stringify(definition.coordinate)
+          });
+          throw new Error(`No finders found. ${availableFinders.length > 0 ? `Available finders: ${availableFinders.join(', ')}` : 'No finders defined.'}`);
         }
 
         const finderMethod = finders[finder];
         if (!finderMethod) {
-          logger.error(`Finder %s not found`, finder);
-          throw new Error(`Finder ${finder} not found`);
+          const availableFinders = Object.keys(finders);
+          logger.error(`Finder not found`, {
+            operation: 'find',
+            model: models[0]?.name,
+            requestedFinder: finder,
+            availableFinders,
+            suggestion: `Use one of: ${availableFinders.join(', ')}`,
+            coordinate: JSON.stringify(definition.coordinate)
+          });
+          throw new Error(`Finder '${finder}' not found. Available finders: ${availableFinders.join(', ')}`);
         }
 
         logger.trace(`[FIND] Executing finder '${finder}' on ${models[0].name} with params: ${stringifyJSON(params)}, locations: ${stringifyJSON(locs)}, options: ${stringifyJSON(findOptions)}`);
