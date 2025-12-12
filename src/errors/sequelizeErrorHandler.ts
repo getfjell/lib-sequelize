@@ -3,6 +3,9 @@ import {
   DuplicateError,
   ValidationError
 } from "@fjell/core";
+import LibLogger from '../logger';
+
+const logger = LibLogger.get('sequelize', 'errors', 'errorHandler');
 
 /**
  * Transforms Sequelize-specific errors into Fjell error types.
@@ -41,6 +44,18 @@ export function transformSequelizeError(
     }
     
     const field = error.fields ? Object.keys(error.fields)[0] : 'unique constraint';
+    
+    logger.debug('Transformed PostgreSQL unique constraint error to DuplicateError', {
+      component: 'lib-sequelize',
+      transformation: 'sequelizeErrorHandler',
+      originalError: 'PostgreSQL 23505',
+      transformedError: 'DuplicateError',
+      itemType,
+      constraint,
+      field,
+      model: modelName
+    });
+    
     return new DuplicateError(message, key, field);
   }
   
@@ -228,6 +243,17 @@ export function transformSequelizeError(
   // Handle connection errors
   if (error.name === 'SequelizeConnectionError' ||
       error.name === 'SequelizeConnectionRefusedError') {
+    logger.error('Transformed database connection error to BusinessLogicError', {
+      component: 'lib-sequelize',
+      transformation: 'sequelizeErrorHandler',
+      originalError: error.name,
+      transformedError: 'BusinessLogicError',
+      itemType,
+      retryable: true,
+      model: modelName,
+      suggestion: 'Check database is running, connection string is correct, and network connectivity'
+    });
+    
     return new BusinessLogicError(
       'Database connection failed',
       'Check database connectivity and try again',
@@ -237,6 +263,17 @@ export function transformSequelizeError(
 
   // Handle timeout errors
   if (error.name === 'SequelizeTimeoutError') {
+    logger.error('Transformed database timeout error to BusinessLogicError', {
+      component: 'lib-sequelize',
+      transformation: 'sequelizeErrorHandler',
+      originalError: 'SequelizeTimeoutError',
+      transformedError: 'BusinessLogicError',
+      itemType,
+      retryable: true,
+      model: modelName,
+      suggestion: 'Reduce query complexity, add indexes, or increase timeout limits'
+    });
+    
     return new BusinessLogicError(
       'Database operation timed out',
       'Try again or simplify the operation',
