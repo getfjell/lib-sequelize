@@ -199,7 +199,7 @@ const findReferenceByProperty = (
 const getReferencesFromRegistry = (
   model: ModelStatic<any>,
   registry?: Registry
-): SequelizeReferenceDefinition[] | void => {
+): SequelizeReferenceDefinition[] | undefined => {
   if (!registry) {
     return;
   }
@@ -464,6 +464,7 @@ const addAssociationCondition = (
   references?: SequelizeReferenceDefinition[],
   allReferences?: Map<string, SequelizeReferenceDefinition[]>,
   registry?: Registry
+  // eslint-disable-next-line max-params
 ): Record<string, any> => {
   const fieldPath = condition.column;
   const pathSegments = fieldPath.split('.');
@@ -660,6 +661,7 @@ export const addCondition = (
   references?: SequelizeReferenceDefinition[],
   allReferences?: Map<string, SequelizeReferenceDefinition[]>,
   registry?: Registry
+  // eslint-disable-next-line max-params
 ) => {
   const conditionColumn: string = condition.column;
 

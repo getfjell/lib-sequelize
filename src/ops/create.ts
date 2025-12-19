@@ -31,7 +31,7 @@ async function validateHierarchicalChain(
 
   // Get the model for this locator (define outside try block for catch block access)
   const locatorModel = models[locatorIndex] || models[0]; // Fallback to primary model
-  
+
   try {
     // Build a query to validate the chain exists
     const chainResult = buildRelationshipChain(locatorModel, kta, locatorIndex, kta.length - 1);
@@ -119,12 +119,12 @@ export const getCreateOperation = <
     // TODO: We need the opposite of processRow, something to step down from fjell to database.
     itemData = extractEvents(itemData);
     itemData = removeEvents(itemData);
-    
+
     // Remove refs structure if present (convert back to foreign key columns)
     if (references && references.length > 0) {
       itemData = removeRefsFromSequelizeItem(itemData, references);
     }
-    
+
     // Remove aggs structure if present (convert back to direct properties)
     if (aggregations && aggregations.length > 0) {
       itemData = removeAggsFromItem(itemData, aggregations);
@@ -142,7 +142,7 @@ export const getCreateOperation = <
       const availableAttributes = Object.keys(modelAttributes).join(', ');
       const errorMessage = `Invalid attributes for model '${model.name}': [${invalidAttributes.join(', ')}]. ` +
         `Available attributes: [${availableAttributes}].`;
-      
+
       logger.error('Create operation failed - invalid attributes', {
         operation: 'create',
         model: model.name,
@@ -153,7 +153,7 @@ export const getCreateOperation = <
         suggestion: `Remove invalid attributes or add them to the model definition. Valid attributes are: ${availableAttributes}`,
         coordinate: JSON.stringify(definition.coordinate)
       });
-      
+
       throw new Error(errorMessage + ` Item data: ${JSON.stringify(itemData, null, 2)}`);
     }
 
@@ -262,10 +262,59 @@ export const getCreateOperation = <
       queryMetrics.recordQuery(model.name);
       const createdRecord = await model.create(itemData);
 
+      // For composite items (kta.length > 1), we need to reload the record with relationships
+      // so that the key can be properly constructed by traversing the relationship chain
+      let recordToProcess = createdRecord;
+      if (kta.length > 1) {
+        // Build includes for the relationship chain needed for key construction
+        // We only need to include up to the second-to-last level (since the last is accessed via the penultimate)
+        const includesForKey: any[] = [];
+
+        // Build nested includes for each level in the kta (excluding the first which is self)
+        let currentInclude: any = null;
+        for (let i = kta.length - 1; i > 0; i--) {
+          const relationshipType = kta[i];
+          const relationshipInfo = buildRelationshipPath(model, relationshipType, kta, true);
+
+          if (relationshipInfo.found && !relationshipInfo.isDirect) {
+            // This is a hierarchical relationship that needs to be included
+            const intermediateType = kta[i - 1];
+            const newInclude: any = {
+              association: intermediateType,
+              required: false,
+            };
+
+            if (currentInclude) {
+              newInclude.include = [currentInclude];
+            }
+
+            currentInclude = newInclude;
+          }
+        }
+
+        if (currentInclude) {
+          includesForKey.push(currentInclude);
+        }
+
+        if (includesForKey.length > 0) {
+          logger.debug(`[CREATE] Reloading ${model.name} with includes for key construction`, { includes: includesForKey });
+          queryMetrics.recordQuery(model.name);
+          const reloadedRecord = await model.findByPk(createdRecord.get('id'), {
+            include: includesForKey
+          });
+
+          if (reloadedRecord) {
+            recordToProcess = reloadedRecord;
+          } else {
+            logger.warning(`[CREATE] Failed to reload ${model.name} after creation, using original record`);
+          }
+        }
+      }
+
       // Add key and events
       // Create operations get their own context since they're top-level operations
       // For create, we don't pre-load aggregations via INCLUDE, so pass void 0
-      const processedRecord = await processRow(createdRecord, kta, references || [], aggregations || [], registry, void 0, void 0);
+      const processedRecord = await processRow(recordToProcess, kta, references || [], aggregations || [], registry, void 0, void 0);
       const result = validateKeys(processedRecord, kta) as V;
 
       logger.debug(`[CREATE] Created ${model.name} with key: ${(result as any).key ? JSON.stringify((result as any).key) : `id=${createdRecord.id}`}`);
@@ -287,7 +336,7 @@ export const getCreateOperation = <
         suggestion: 'Check validation rules, unique constraints, foreign keys, required fields, and data types',
         coordinate: JSON.stringify(definition.coordinate)
       });
-      
+
       throw transformSequelizeError(error, kta[0], options?.key, model.name, itemData);
     }
     }
