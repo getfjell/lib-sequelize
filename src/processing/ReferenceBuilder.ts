@@ -1,6 +1,5 @@
-import { ComKey, Item, PriKey } from "@fjell/core";
-import type { Registry } from "@fjell/lib";
-import { OperationContext } from "@fjell/lib";
+import { ComKey, Item, PriKey } from "@fjell/types";
+import type { OperationContext, Registry } from "@fjell/lib";
 import logger from "../logger";
 
 /**

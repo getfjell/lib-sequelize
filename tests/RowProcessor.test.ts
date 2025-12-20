@@ -14,10 +14,22 @@ vi.mock('../src/logger', () => ({
   }
 }));
 vi.mock('../src/KeyMaster');
-vi.mock('@fjell/lib', async () => {
-  const actual = await vi.importActual('@fjell/lib');
+vi.mock('@fjell/lib', async (importOriginal) => {
+  const actual: any = await importOriginal();
   return {
     ...actual,
+    createOperationContext: actual.createOperationContext || vi.fn().mockReturnValue({
+      markInProgress: vi.fn(),
+      markComplete: vi.fn(),
+      isInProgress: vi.fn(),
+      getCached: vi.fn(),
+      setCached: vi.fn(),
+      isCached: vi.fn(),
+    }),
+    contextManager: actual.contextManager || {
+      withContext: vi.fn().mockImplementation(async (_context, fn) => await fn()),
+      getCurrentContext: vi.fn(),
+    },
     // Only mock buildAggregation from lib
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     buildAggregation: vi.fn().mockImplementation(async (item, def, _registry, _context) => {

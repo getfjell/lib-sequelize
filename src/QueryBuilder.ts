@@ -3,13 +3,15 @@ import {
   CompoundCondition,
   Condition,
   EventQuery,
-  isComKey,
-  isCondition,
-  isPriKey,
   ItemQuery,
   OrderBy,
   PriKey,
   References
+} from '@fjell/types';
+import {
+  isComKey,
+  isCondition,
+  isPriKey,
 } from '@fjell/core';
 
 import { Association, ModelStatic, Op } from 'sequelize';

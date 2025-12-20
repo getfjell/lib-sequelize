@@ -11,8 +11,8 @@ vi.mock('../../src/KeyMaster');
 vi.mock('../../src/EventCoordinator');
 vi.mock('../../src/RowProcessor');
 vi.mock('../../src/util/general');
-vi.mock('@fjell/core/validation', async () => {
-  const actual = await vi.importActual('@fjell/core/validation');
+vi.mock('@fjell/validation', async () => {
+  const actual = await vi.importActual('@fjell/validation');
   return {
     ...actual,
     validateKeys: vi.fn()
@@ -33,7 +33,7 @@ import { extractEvents, removeEvents } from '../../src/EventCoordinator';
 import { processRow } from '../../src/RowProcessor';
 import { stringifyJSON } from '../../src/util/general';
 import { abbrevIK } from '@fjell/core';
-import { validateKeys } from '@fjell/core/validation';
+import { validateKeys } from '@fjell/validation';
 
 type TestItem = import('@fjell/core').Item<'test'>;
 

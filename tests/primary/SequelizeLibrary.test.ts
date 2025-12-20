@@ -8,11 +8,16 @@ import type { Registry } from '../../src/Registry';
 vi.mock('../../src/Operations');
 vi.mock('../../src/Options');
 vi.mock('../../src/Coordinate');
-vi.mock('@fjell/lib', () => ({
-  Primary: {
-    wrapOperations: vi.fn(),
-  },
-}));
+vi.mock('@fjell/lib', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    Primary: {
+      ...actual.Primary,
+      wrapOperations: vi.fn(),
+    },
+  };
+});
 
 // Import mocked functions
 import { createOperations } from '../../src/Operations';

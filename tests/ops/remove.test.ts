@@ -6,15 +6,20 @@ import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
 
 // Mock the logger
-vi.mock('../../src/logger', () => ({
-  default: {
-    get: () => ({
-      default: vi.fn(),
-      debug: vi.fn(),
-      error: vi.fn(),
-    })
-  }
-}));
+vi.mock('../../src/logger', () => {
+  const mockLogger = {
+    get: vi.fn().mockReturnThis(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    default: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    trace: vi.fn(),
+  };
+  return {
+    default: mockLogger,
+  };
+});
 
 // Mock the relationship utils
 vi.mock('../../src/util/relationshipUtils', () => ({
