@@ -1,5 +1,5 @@
 import * as Library from '@fjell/lib';
-import { ComKey, Item, LocKeyArray, PriKey } from '@fjell/core';
+import { ComKey, Item, LocKeyArray, PriKey } from '@fjell/types';
 import { SequelizeReferenceDefinition } from './processing/ReferenceBuilder';
 
 // Re-export AggregationDefinition from @fjell/lib for backwards compatibility

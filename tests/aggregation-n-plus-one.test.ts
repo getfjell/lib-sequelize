@@ -11,7 +11,7 @@ import { createSequelizeLibrary } from '../src/SequelizeLibrary';
 import { createCoordinate } from '../src/Coordinate';
 import { createOptions } from '../src/Options';
 import { createRegistry } from '@fjell/registry';
-import { PriKey } from '@fjell/core';
+import { PriKey } from "@fjell/types";
 import type { Registry } from '../src/Registry';
 
 // Test models

@@ -1,17 +1,8 @@
 /* eslint-disable indent */
 /* eslint-disable max-depth */
-import {
-  abbrevIK,
-  ComKey,
-  createUpdateWrapper,
-  isComKey,
-  isPriKey,
-  Item,
-  PriKey,
-  UpdateMethod,
-  UpdateOptions
-} from "@fjell/core";
-import { validateKeys } from "@fjell/core/validation";
+import { ComKey, Item, PriKey, UpdateMethod, UpdateOptions } from "@fjell/types";
+import { abbrevIK, createUpdateWrapper, isComKey, isPriKey } from "@fjell/core";
+import { validateKeys } from "@fjell/validation";
 
 import { Definition } from "../Definition";
 import { extractEvents, removeEvents } from "../EventCoordinator";

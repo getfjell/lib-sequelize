@@ -2,7 +2,7 @@ import {
   Evented,
   Item,
   ManagedEvents
-} from '@fjell/core';
+} from '@fjell/types';
 import deepmerge from 'deepmerge';
 
 import LibLogger from './logger';

@@ -1,6 +1,6 @@
 /* eslint-disable indent */
 
-import { AllItemTypeArrays, Item } from "@fjell/core";
+import { AllItemTypeArrays, Item } from "@fjell/types";
 import { Model } from "sequelize";
 
 import LibLogger from "./logger";
@@ -22,8 +22,8 @@ import { addAggsToItem } from "./processing/AggsAdapter";
 const logger = LibLogger.get('sequelize', 'RowProcessor');
 
 // Re-export types and functions from @fjell/lib for backwards compatibility
-export type { OperationContext };
-export { createOperationContext, contextManager };
+export type { OperationContext as ProcessingContext, OperationContext };
+export { createOperationContext as createProcessingContext, createOperationContext, contextManager };
 
 export const processRow = async <S extends string,
   L1 extends string = never,

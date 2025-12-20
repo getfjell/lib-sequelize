@@ -1,6 +1,7 @@
 import { Definition } from '../../src/Definition';
 import { getCreateOperation } from '../../src/ops/create';
-import { ComKey, cPK, LocKeyArray } from '@fjell/core';
+import { ComKey, LocKeyArray } from "@fjell/types";
+import { cPK } from "@fjell/core";
 import { ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";

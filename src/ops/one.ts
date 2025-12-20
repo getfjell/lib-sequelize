@@ -1,13 +1,12 @@
 /* eslint-disable indent */
-import { createOneWrapper, Item, ItemQuery, LocKeyArray, OneMethod } from "@fjell/core";
+import { Item, ItemQuery, LocKeyArray, OneMethod } from "@fjell/types";
+import { createOneWrapper } from "@fjell/core";
 
 import { Definition } from "../Definition";
-import LibLogger from '../logger';
+import logger from '../logger';
 import { ModelStatic } from "sequelize";
 import { getAllOperation } from "./all";
 import * as Library from "@fjell/lib";
-
-const logger = LibLogger.get('sequelize', 'ops', 'one');
 
 export const getOneOperation = <
   V extends Item<S, L1, L2, L3, L4, L5>,
@@ -32,9 +31,9 @@ export const getOneOperation = <
       logger.debug(`ONE operation called on ${models[0].name} with ${locs.length} location filters: ${locs.map(loc => `${loc.kt}=${loc.lk}`).join(', ') || 'none'}`);
       logger.default(`One configured for ${models[0].name} delegating to all operation`);
 
-      const result = await getAllOperation(models, definition, registry)(itemQuery ?? {}, locs, { limit: 1 });
+      const result = await getAllOperation(models, definition, registry)(itemQuery ?? {}, locs as any, { limit: 1 });
       if (result.items.length > 0) {
-        const item = result.items[0] as V;
+        const item = result.items[0] as unknown as V;
         logger.debug(`[ONE] Found ${models[0].name} record with key: ${(item as any).key ? JSON.stringify((item as any).key) : 'unknown'}`);
         return item;
       } else {

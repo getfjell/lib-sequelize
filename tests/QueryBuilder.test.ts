@@ -1,5 +1,5 @@
 import { addCompoundCondition, addCondition, buildQuery } from '../src/QueryBuilder';
-import { CompoundCondition, Condition, ItemQuery } from '@fjell/core';
+import { CompoundCondition, Condition, ItemQuery } from "@fjell/types";
 import dayjs from 'dayjs';
 import { ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it } from 'vitest';

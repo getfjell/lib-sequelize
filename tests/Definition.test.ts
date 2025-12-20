@@ -1,4 +1,4 @@
-import { Item, ItemTypeArray } from '@fjell/core';
+import { Item, ItemTypeArray } from "@fjell/types";
 import { createDefinition } from '../src/Definition';
 import { createCoordinate } from '../src/Coordinate';
 import { createOptions } from '../src/Options';

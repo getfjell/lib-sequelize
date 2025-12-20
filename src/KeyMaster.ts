@@ -3,7 +3,7 @@
 import {
   AllItemTypeArrays,
   Item,
-} from '@fjell/core';
+} from '@fjell/types';
 
 import LibLogger from './logger';
 import { Model, ModelStatic } from 'sequelize';

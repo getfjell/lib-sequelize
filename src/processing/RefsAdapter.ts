@@ -12,7 +12,8 @@
  * - Unified API: External code always sees refs structure, regardless of backend
  */
 
-import { ComKey, isComKey, isPriKey, Item, PriKey } from "@fjell/core";
+import { ComKey, Item, PriKey } from "@fjell/types";
+import { isComKey, isPriKey } from "@fjell/core";
 import { SequelizeReferenceDefinition } from "./ReferenceBuilder";
 import logger from "../logger";
 

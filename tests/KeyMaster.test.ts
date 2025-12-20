@@ -1,5 +1,5 @@
 import { addKey, removeKey } from '../src/KeyMaster';
-import { AllItemTypeArrays, Item } from '@fjell/core';
+import { AllItemTypeArrays, Item } from "@fjell/types";
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Model, ModelStatic } from 'sequelize';
 
