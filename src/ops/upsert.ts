@@ -1,16 +1,15 @@
 /* eslint-disable indent */
-import { ComKey, createUpsertWrapper, isValidItemKey, Item, LocKeyArray, NotFoundError, PriKey, UpdateOptions, UpsertMethod } from "@fjell/core";
+import { ComKey, Item, LocKeyArray, PriKey, UpdateOptions, UpsertMethod } from "@fjell/types";
+import { createUpsertWrapper, isValidItemKey, NotFoundError } from "@fjell/core";
 
 import { Definition } from "../Definition";
-import LibLogger from '../logger';
+import logger from '../logger';
 import * as Library from "@fjell/lib";
 import { ModelStatic } from "sequelize";
 import { getGetOperation } from "./get";
 import { getUpdateOperation } from "./update";
 import { getCreateOperation } from "./create";
 import { stringifyJSON } from "../util/general";
-
-const logger = LibLogger.get('sequelize', 'ops', 'upsert');
 
 export const getUpsertOperation = <
   V extends Item<S, L1, L2, L3, L4, L5>,

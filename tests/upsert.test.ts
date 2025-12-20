@@ -1,17 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Item, NotFoundError, PriKey } from '@fjell/core';
+import { Item, PriKey } from "@fjell/types";
+import { NotFoundError } from "@fjell/core";
 
 // Mock the logger
-vi.mock('../src/logger', () => ({
-  default: {
-    get: vi.fn().mockReturnValue({
-      debug: vi.fn(),
-      error: vi.fn(),
-      default: vi.fn(),
-      trace: vi.fn(),
-    }),
-  },
-}));
+vi.mock('../src/logger', () => {
+  const mockLogger = {
+    get: vi.fn().mockReturnThis(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    default: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    trace: vi.fn(),
+  };
+  return {
+    default: mockLogger,
+  };
+});
 
 interface TestItem extends Item<'test'> {
   id: string;

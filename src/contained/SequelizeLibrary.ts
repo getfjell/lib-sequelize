@@ -1,6 +1,5 @@
 
-import { SequelizeLibrary as AbstractSequelizeLibrary } from '../SequelizeLibrary';
-import { Item, ItemTypeArray } from '@fjell/core';
+import { Item, ItemTypeArray } from '@fjell/types';
 import { Contained } from '@fjell/lib';
 import * as Library from '@fjell/lib';
 import { createOperations } from '../Operations';
@@ -10,14 +9,14 @@ import { createOptions, Options } from '../Options';
 import { Coordinate, createCoordinate } from '../Coordinate';
 
 export interface SequelizeLibrary<
-  V extends Item<S>,
+  V extends Item<S, L1, L2, L3, L4, L5>,
   S extends string,
   L1 extends string = never,
   L2 extends string = never,
   L3 extends string = never,
   L4 extends string = never,
   L5 extends string = never
-> extends AbstractSequelizeLibrary<V, S, L1, L2, L3, L4, L5> {
+> {
   coordinate: Coordinate<S, L1, L2, L3, L4, L5>;
   registry: Registry;
   operations: Library.Operations<V, S, L1, L2, L3, L4, L5>;

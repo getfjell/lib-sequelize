@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Item } from '@fjell/core';
+import { Item } from "@fjell/types";
 import { createOperations } from '../src/Operations';
 import { ModelStatic } from 'sequelize';
 import { Options } from '../src/Options';

@@ -9,7 +9,7 @@
 import { DataTypes, ModelStatic, Sequelize } from 'sequelize';
 import { createRegistry } from '@fjell/registry';
 import { createSequelizeLibrary } from '@fjell/lib-sequelize';
-import { Item } from '@fjell/core';
+import { Item } from "@fjell/types";
 
 // Initialize Sequelize with SQLite for this example
 const sequelize = new Sequelize('sqlite::memory:', { logging: false });

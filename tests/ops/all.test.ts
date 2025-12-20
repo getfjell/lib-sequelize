@@ -1,7 +1,7 @@
  
 import { Definition } from '../../src/Definition';
 import { getAllOperation } from '../../src/ops/all';
-import { Item, ItemQuery, LocKeyArray } from '@fjell/core';
+import { Item, ItemQuery, LocKeyArray } from "@fjell/types";
 import { ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
@@ -30,8 +30,8 @@ vi.mock('../../src/RowProcessor', () => ({
   }
 }));
 
-vi.mock('@fjell/core/validation', async () => {
-  const actual = await vi.importActual('@fjell/core/validation');
+vi.mock('@fjell/validation', async () => {
+  const actual = await vi.importActual('@fjell/validation');
   return {
     ...actual,
     validateKeys: vi.fn(),
@@ -39,12 +39,21 @@ vi.mock('@fjell/core/validation', async () => {
   };
 });
 
-vi.mock('@fjell/lib', async () => {
-  const actual = await vi.importActual('@fjell/lib');
+vi.mock('@fjell/lib', async (importOriginal) => {
+  const actual: any = await importOriginal();
   return {
     ...actual,
-    contextManager: {
-      getCurrentContext: vi.fn()
+    createOperationContext: actual.createOperationContext || vi.fn().mockReturnValue({
+      markInProgress: vi.fn(),
+      markComplete: vi.fn(),
+      isInProgress: vi.fn(),
+      getCached: vi.fn(),
+      setCached: vi.fn(),
+      isCached: vi.fn(),
+    }),
+    contextManager: actual.contextManager || {
+      getCurrentContext: vi.fn().mockReturnValue(undefined),
+      withContext: vi.fn().mockImplementation(async (_context, fn) => await fn()),
     }
   };
 });
@@ -56,7 +65,7 @@ vi.mock('../../src/util/general', () => ({
 import { buildQuery } from '../../src/QueryBuilder';
 import { buildRelationshipPath } from '../../src/util/relationshipUtils';
 import { processRow } from '../../src/RowProcessor';
-import { validateKeys, validateLocations } from '@fjell/core/validation';
+import { validateKeys, validateLocations } from '@fjell/validation';
 import { contextManager } from '../../src/RowProcessor';
 import { stringifyJSON } from '../../src/util/general';
 

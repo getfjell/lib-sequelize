@@ -1,19 +1,19 @@
 /* eslint-disable */
-import { abbrevIK, ComKey, isComKey, isPriKey, isValidItemKey, Item, PriKey, RemoveMethod, createRemoveWrapper } from "@fjell/core";
+import { ComKey, Item, PriKey, RemoveMethod } from "@fjell/types";
+import { abbrevIK, isComKey, isPriKey, isValidItemKey, createRemoveWrapper, NotFoundError } from "@fjell/core";
 
 import { Definition } from "../Definition";
 import { populateEvents } from "../EventCoordinator";
 import { addKey } from "../KeyMaster";
-import LibLogger from '../logger';
+import logger from '../logger';
 import { ModelStatic } from "sequelize";
 import { buildRelationshipPath } from "../util/relationshipUtils";
 import { stringifyJSON } from "../util/general";
-import { NotFoundError } from "@fjell/core";
 import { transformSequelizeError } from "../errors/sequelizeErrorHandler";
 import { addRefsToSequelizeItem } from "../processing/RefsAdapter";
 import { queryMetrics } from "../metrics/QueryMetrics";
 
-const logger = LibLogger.get('sequelize', 'ops', 'remove');
+const libLogger = logger.get('sequelize', 'ops', 'remove');
 
 // Helper function to process composite key and build query options
 const processCompositeKey = (
@@ -29,7 +29,7 @@ const processCompositeKey = (
 
     if (!relationshipInfo.found) {
       const errorMessage = `Composite key locator '${locator.kt}' cannot be resolved on model '${model.name}' or through its relationships.`;
-      logger.error(errorMessage, { key: comKey, kta });
+      libLogger.error(errorMessage, { key: comKey, kta });
       throw new Error(errorMessage);
     }
 

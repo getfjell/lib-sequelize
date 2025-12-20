@@ -1,20 +1,25 @@
 import { Definition } from '../../src/Definition';
 import { getRemoveOperation } from '../../src/ops/remove';
-import { ComKey, Item, PriKey } from '@fjell/core';
+import { ComKey, Item, PriKey } from "@fjell/types";
 import { ModelStatic } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";
 
 // Mock the logger
-vi.mock('../../src/logger', () => ({
-  default: {
-    get: () => ({
-      default: vi.fn(),
-      debug: vi.fn(),
-      error: vi.fn(),
-    })
-  }
-}));
+vi.mock('../../src/logger', () => {
+  const mockLogger = {
+    get: vi.fn().mockReturnThis(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    default: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    trace: vi.fn(),
+  };
+  return {
+    default: mockLogger,
+  };
+});
 
 // Mock the relationship utils
 vi.mock('../../src/util/relationshipUtils', () => ({

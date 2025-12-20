@@ -1,6 +1,5 @@
 
-import { SequelizeLibrary as AbstractSequelizeLibrary } from '../SequelizeLibrary';
-import { Item } from '@fjell/core';
+import { Item } from '@fjell/types';
 import { Primary } from '@fjell/lib';
 import * as Library from '@fjell/lib';
 import { createOperations } from '../Operations';
@@ -16,7 +15,7 @@ const logger = LibLogger.get('lib-sequelize', 'primary', 'library');
 export interface SequelizeLibrary<
   V extends Item<S>,
   S extends string
-> extends AbstractSequelizeLibrary<V, S> {
+> {
   coordinate: Coordinate<S>;
   registry: Registry;
   operations: Library.Operations<V, S>;
@@ -41,10 +40,10 @@ export function createSequelizeLibrary<
   const options = createOptions(libOptions);
 
   // Create operations with the new signature
-  const operations = createOperations<V, S>(models, coordinate, registry, options);
+  const operations = createOperations<V, S>(models, coordinate as any, registry, options as any);
 
   // Wrap operations for primary pattern
-  const wrappedOperations = Primary.wrapOperations(operations, options as any, coordinate, registry);
+  const wrappedOperations = Primary.wrapOperations(operations as any, options as any, coordinate as any, registry);
 
   return {
     coordinate,

@@ -1,18 +1,25 @@
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
-import { Item, PriKey } from '@fjell/core';
+import { Item, PriKey } from "@fjell/types";
 import { DataTypes, ModelStatic } from 'sequelize';
 import * as Library from '@fjell/lib';
 
 // Mock @fjell/lib before other imports
-vi.mock('@fjell/lib', async () => {
-  const actual = await vi.importActual('@fjell/lib');
+vi.mock('@fjell/lib', async (importOriginal) => {
+  const actual: any = await importOriginal();
   return {
     ...actual,
     contextManager: {
       getCurrentContext: vi.fn().mockReturnValue(undefined),
-      withContext: vi.fn().mockImplementation((ctx, fn) => fn())
+      withContext: vi.fn().mockImplementation((_ctx, fn) => fn())
     },
-    createOperationContext: actual.createOperationContext,
+    createOperationContext: actual.createOperationContext || vi.fn().mockReturnValue({
+      markInProgress: vi.fn(),
+      markComplete: vi.fn(),
+      isInProgress: vi.fn(),
+      getCached: vi.fn(),
+      setCached: vi.fn(),
+      isCached: vi.fn(),
+    }),
     buildAggregation: vi.fn().mockImplementation(async (item) => item)
   };
 });

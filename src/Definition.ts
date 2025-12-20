@@ -1,4 +1,4 @@
-import { Item, ItemTypeArray } from '@fjell/core';
+import { Item, ItemTypeArray } from '@fjell/types';
 import { createOptions, Options } from './Options';
 import LibLogger from './logger';
 import { createCoordinate } from './Coordinate';
