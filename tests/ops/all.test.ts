@@ -1,7 +1,7 @@
  
 import { Definition } from '../../src/Definition';
 import { getAllOperation } from '../../src/ops/all';
-import { Item, ItemQuery, LocKeyArray } from '@fjell/core';
+import { Item, ItemQuery, LocKeyArray } from "@fjell/types";
 import { ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";

@@ -21,7 +21,8 @@ vi.mock('@fjell/lib', async (importOriginal) => {
 });
 
 import { getOneOperation } from '../../src/ops/one';
-import { IQFactory, Item, ItemQuery, LocKeyArray } from '@fjell/core';
+import { Item, ItemQuery, LocKeyArray } from "@fjell/types";
+import { IQFactory } from "@fjell/core";
 import { DataTypes, ModelStatic } from 'sequelize';
 import { Definition } from '../../src/Definition';
 import * as Library from "@fjell/lib";

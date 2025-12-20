@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Item, NotFoundError, PriKey } from '@fjell/core';
+import { Item, PriKey } from "@fjell/types";
+import { NotFoundError } from "@fjell/core";
 
 // Mock the logger
 vi.mock('../src/logger', () => {

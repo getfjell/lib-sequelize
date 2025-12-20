@@ -3,7 +3,7 @@ import { createSequelizeLibrary, isSequelizeLibrary } from '../src/SequelizeLibr
 import { createRegistry } from '@fjell/registry';
 import { createCoordinate } from '../src/Coordinate';
 import { createOptions } from '../src/Options';
-import { Item } from '@fjell/core';
+import { Item } from "@fjell/types";
 import { ModelStatic } from 'sequelize';
 
 // Mock Sequelize model

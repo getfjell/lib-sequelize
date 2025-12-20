@@ -1,6 +1,6 @@
 import { Definition } from '../../src/Definition';
 import { getUpdateOperation } from '../../src/ops/update';
-import { ComKey, Item, PriKey } from '@fjell/core';
+import { ComKey, Item, PriKey } from "@fjell/types";
 import { DataTypes, ModelStatic, Op } from 'sequelize';
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
 import * as Library from "@fjell/lib";

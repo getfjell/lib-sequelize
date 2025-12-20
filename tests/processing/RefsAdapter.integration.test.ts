@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
-import { Item, PriKey } from '@fjell/core';
+import { Item, PriKey } from "@fjell/types";
 import { DataTypes, ModelStatic } from 'sequelize';
 import * as Library from '@fjell/lib';
 

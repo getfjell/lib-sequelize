@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createSequelizeLibraryFactory, SequelizeLibraryFactory } from '../src/SequelizeLibraryFactory';
 import { createOptions } from '../src/Options';
-import { Item } from '@fjell/core';
+import { Item } from "@fjell/types";
 import { ModelStatic } from 'sequelize';
 
 // Mock Sequelize model

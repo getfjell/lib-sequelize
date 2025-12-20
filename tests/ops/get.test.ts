@@ -21,7 +21,7 @@ vi.mock('@fjell/lib', async (importOriginal) => {
 });
 
 import { getGetOperation } from '../../src/ops/get';
-import { ComKey, PriKey } from '@fjell/core';
+import { ComKey, PriKey } from "@fjell/types";
 import { DataTypes, ModelStatic } from 'sequelize';
 import { Definition } from '../../src/Definition';
 import * as Library from "@fjell/lib";

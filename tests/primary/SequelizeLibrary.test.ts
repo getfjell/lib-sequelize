@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Item } from '@fjell/core';
+import { Item } from "@fjell/types";
 import { createSequelizeLibrary } from '../../src/primary/SequelizeLibrary';
 import { ModelStatic } from 'sequelize';
 import type { Registry } from '../../src/Registry';

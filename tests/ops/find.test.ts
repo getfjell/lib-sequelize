@@ -21,7 +21,7 @@ vi.mock('@fjell/lib', async (importOriginal) => {
 });
 
 import { getFindOperation } from '../../src/ops/find';
-import { Item, LocKeyArray } from '@fjell/core';
+import { Item, LocKeyArray } from "@fjell/types";
 import { Definition } from '../../src/Definition';
 import { ModelStatic } from 'sequelize';
 import * as Library from "@fjell/lib";

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { Model } from 'sequelize';
-import { AllItemTypeArrays } from '@fjell/core';
+import { AllItemTypeArrays } from "@fjell/types";
 import * as Library from '@fjell/lib';
 import type { ReferenceDefinition } from '@fjell/lib';
 
