@@ -7,6 +7,11 @@ import { ModelStatic } from 'sequelize';
 import { createOptions, Options } from '../Options';
 import { Registry } from '../Registry';
 import { Coordinate, createCoordinate } from '../Coordinate';
+import {
+  hasHooksDefined,
+  SequelizeWrapperConfig,
+  wrapSequelizeModels
+} from '../util/SequelizeInstanceWrapper';
 
 import LibLogger from '../logger';
 
@@ -39,7 +44,27 @@ export function createSequelizeLibrary<
   const coordinate = createCoordinate([keyType], scopes);
   const options = createOptions(libOptions);
 
-  // Create operations with the new signature
+  // Check if hooks are defined and if we should wrap models
+  const hasHooks = hasHooksDefined(options);
+  const directSaveBehavior = options.directSaveBehavior || 'warn-and-throw';
+  
+  // Wrap models if hooks are defined to prevent direct save()/update() calls
+  let wrappedModels = models;
+  if (hasHooks) {
+    const wrapperConfig: SequelizeWrapperConfig = {
+      directSaveBehavior,
+      itemType: keyType,
+      hasHooks: true
+    };
+    wrappedModels = wrapSequelizeModels(models, wrapperConfig);
+    logger.debug("Wrapped Sequelize models to prevent direct save()/update() calls", {
+      itemType: keyType,
+      directSaveBehavior,
+      modelCount: models.length
+    });
+  }
+
+  // Create operations with the new signature (use original models for internal operations)
   const operations = createOperations<V, S>(models, coordinate as any, registry, options as any);
 
   // Wrap operations for primary pattern
@@ -50,6 +75,6 @@ export function createSequelizeLibrary<
     registry,
     operations: wrappedOperations,
     options,
-    models,
+    models: wrappedModels, // Expose wrapped models
   } as unknown as SequelizeLibrary<V, S>;
 }

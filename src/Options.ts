@@ -1,6 +1,7 @@
 import * as Library from '@fjell/lib';
 import { ComKey, Item, LocKeyArray, PriKey } from '@fjell/types';
 import { SequelizeReferenceDefinition } from './processing/ReferenceBuilder';
+import { DirectSaveBehavior } from './util/SequelizeInstanceWrapper';
 
 // Re-export AggregationDefinition from @fjell/lib for backwards compatibility
 export type { AggregationDefinition } from '@fjell/lib';
@@ -78,6 +79,16 @@ export interface Options<
   references?: SequelizeReferenceDefinition[], // Sequelize-specific!
   aggregations?: Library.AggregationDefinition[],
   deleteOnRemove?: boolean; // Sequelize-specific option
+  /**
+   * Behavior when save() or update() is called directly on a Sequelize instance
+   * that was obtained from library.models queries (e.g., in actions/facets).
+   * - 'warn-and-throw': Log a warning and throw an error (default)
+   * - 'warn-only': Log a warning but allow the operation to proceed
+   *
+   * This prevents bypassing Fjell hooks when Sequelize instances are accessed
+   * directly from library.models in custom actions or facets.
+   */
+  directSaveBehavior?: DirectSaveBehavior;
 }
 
 export const createOptions = <

@@ -6,6 +6,11 @@ import { createOperations } from './Operations';
 import { ModelStatic } from 'sequelize';
 import { Options } from './Options';
 import SequelizeLogger from './logger';
+import {
+  hasHooksDefined,
+  SequelizeWrapperConfig,
+  wrapSequelizeModels
+} from './util/SequelizeInstanceWrapper';
 
 const logger = SequelizeLogger.get("SequelizeLibrary");
 
@@ -51,7 +56,28 @@ export const createSequelizeLibrary = <
   ): SequelizeLibrary<V, S, L1, L2, L3, L4, L5> => {
   logger.debug("createSequelizeLibrary", { coordinate, models, registry, options });
 
-  // Create Sequelize-specific operations
+  // Check if hooks are defined and if we should wrap models
+  const hasHooks = hasHooksDefined(options);
+  const directSaveBehavior = options.directSaveBehavior || 'warn-and-throw';
+  
+  // Wrap models if hooks are defined to prevent direct save()/update() calls
+  // that would bypass Fjell hooks
+  let wrappedModels = models;
+  if (hasHooks) {
+    const wrapperConfig: SequelizeWrapperConfig = {
+      directSaveBehavior,
+      itemType: coordinate.kta[0],
+      hasHooks: true
+    };
+    wrappedModels = wrapSequelizeModels(models, wrapperConfig);
+    logger.debug("Wrapped Sequelize models to prevent direct save()/update() calls", {
+      itemType: coordinate.kta[0],
+      directSaveBehavior,
+      modelCount: models.length
+    });
+  }
+
+  // Create Sequelize-specific operations (use original models for internal operations)
   const operations = createOperations<V, S, L1, L2, L3, L4, L5>(models, coordinate, registry, options);
 
   // Wrap operations with validation and hooks from base library
@@ -62,7 +88,8 @@ export const createSequelizeLibrary = <
 
   return {
     ...libLibrary,
-    models,
+    // Expose wrapped models so actions/facets get wrapped instances when querying
+    models: wrappedModels,
   };
 }
 
