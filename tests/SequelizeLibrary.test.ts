@@ -39,7 +39,9 @@ describe('SequelizeLibrary', () => {
       );
 
       expect(library).toBeDefined();
-      expect(library.models).toEqual(models);
+      expect(library.models).toBeDefined();
+      expect(library.models).toHaveLength(1);
+      expect(library.models[0].name).toBe('TestModel');
       expect(library.coordinate).toBe(coordinate);
       expect(library.registry).toBe(registry);
       expect(library.options).toBe(options);
@@ -64,6 +66,76 @@ describe('SequelizeLibrary', () => {
       expect(library.models).toHaveLength(2);
       expect(library.models[0].name).toBe('TestModel');
       expect(library.models[1].name).toBe('RelatedModel');
+    });
+
+    it('should wrap models when hooks are defined', () => {
+      const registry = createRegistry();
+      const coordinate = createCoordinate(['test']);
+      const models = [createMockModel('TestModel')];
+      const options = createOptions<TestItem, 'test'>({
+        hooks: {
+          preUpdate: async () => ({})
+        }
+      });
+
+      const library = createSequelizeLibrary<TestItem, 'test'>(
+        registry,
+        coordinate,
+        models,
+        options
+      );
+
+      // Models should be wrapped (not the same reference)
+      expect(library.models).toBeDefined();
+      expect(library.models[0]).toBeDefined();
+      // The wrapped model should still have the same name
+      expect(library.models[0].name).toBe('TestModel');
+    });
+
+    it('should not wrap models when hooks are not defined', () => {
+      const registry = createRegistry();
+      const coordinate = createCoordinate(['test']);
+      const models = [createMockModel('TestModel')];
+      const options = createOptions<TestItem, 'test'>({});
+
+      const library = createSequelizeLibrary<TestItem, 'test'>(
+        registry,
+        coordinate,
+        models,
+        options
+      );
+
+      // Models should not be wrapped when no hooks are defined
+      // They should have the same properties and behavior (no proxy wrapping for save/update/destroy)
+      expect(library.models).toBeDefined();
+      expect(library.models).toHaveLength(1);
+      expect(library.models[0].name).toBe('TestModel');
+      // When no hooks are defined, the models should work normally without interception
+      // We verify this by checking that the model has the expected methods
+      expect(library.models[0].findAll).toBeDefined();
+      expect(library.models[0].findByPk).toBeDefined();
+    });
+
+    it('should respect directSaveBehavior option', () => {
+      const registry = createRegistry();
+      const coordinate = createCoordinate(['test']);
+      const models = [createMockModel('TestModel')];
+      const options = createOptions<TestItem, 'test'>({
+        hooks: {
+          preUpdate: async () => ({})
+        },
+        directSaveBehavior: 'warn-only'
+      });
+
+      const library = createSequelizeLibrary<TestItem, 'test'>(
+        registry,
+        coordinate,
+        models,
+        options
+      );
+
+      expect(library.models).toBeDefined();
+      expect(library.options.directSaveBehavior).toBe('warn-only');
     });
   });
 

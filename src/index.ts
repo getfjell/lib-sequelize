@@ -13,3 +13,6 @@ export type { Coordinate } from './Coordinate';
 
 // Export Sequelize-specific reference handling
 export * from './processing/ReferenceBuilder';
+
+// Export Sequelize instance wrapper utilities
+export * from './util/SequelizeInstanceWrapper';
