@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Item, PriKey } from "@fjell/types";
+import { ComKey, Item, LocKeyArray, PriKey } from "@fjell/types";
 import { NotFoundError } from "@fjell/core";
 
 // Mock the logger
@@ -150,5 +150,43 @@ describe('upsert operation', () => {
     expect(getMock).toHaveBeenCalledWith(key);
     expect(createMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('should pass both key and locations when creating from upsert', async () => {
+    const key: ComKey<'test', 'parent'> = {
+      kt: 'test',
+      pk: '1',
+      loc: [{ kt: 'parent', lk: 'p1' }]
+    };
+    const locations: LocKeyArray<'parent'> = [{ kt: 'parent', lk: 'p1' }];
+    const itemProps: Partial<TestItem> = { name: 'new item' };
+    const createdItem: TestItem = {
+      key,
+      id: '1',
+      name: 'new item'
+    } as TestItem;
+    const updatedItem: TestItem = {
+      key,
+      id: '1',
+      name: 'new item updated'
+    } as TestItem;
+
+    const getMock = vi.fn().mockRejectedValue(new NotFoundError('Not found', 'test', key));
+    const createMock = vi.fn().mockResolvedValue(createdItem);
+    const updateMock = vi.fn().mockResolvedValue(updatedItem);
+
+    mockGet.mockReturnValue(getMock);
+    mockCreate.mockReturnValue(createMock);
+    mockUpdate.mockReturnValue(updateMock);
+
+    const upsert = getUpsertOperation(
+      [],
+      { coordinate: { kta: ['test', 'parent'], scopes: ['sequelize'] }, options: {} },
+      {} as any
+    );
+
+    await upsert(key, itemProps, locations);
+
+    expect(createMock).toHaveBeenCalledWith(itemProps, { key, locations });
   });
 });
