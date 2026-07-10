@@ -231,7 +231,7 @@ export const getAllOperation = <
     // This prevents circular dependency false positives between concurrent operations
     // while still detecting legitimate circular references within the same operation
 
-    // TODO: Move this Up!
+    // Process all matching rows, each with its own context to prevent interference
     const currentContext = contextManager.getCurrentContext();
     const items = (await Promise.all(matchingItems.map(async (row: any) => {
       // Each row in an all() operation should get its own context to prevent interference

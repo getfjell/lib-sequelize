@@ -919,7 +919,8 @@ export const buildQuery = (
     options = addEventQueries(options, itemQuery.events, model);
   }
 
-  // TODO: Once we start to support Aggs on the server-side, we'll need to parse agg queries
+  // NOTE: Aggregation query parsing is deferred until server-side Aggs support is implemented.
+  // Currently, aggregations are resolved client-side via AggsAdapter during row processing.
 
   // Apply a limit to the result set
   if (itemQuery.limit) {

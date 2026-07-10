@@ -117,7 +117,9 @@ export const getCreateOperation = <
     // Validate that all item attributes exist on the model
     let itemData = { ...item } as any;
 
-    // TODO: We need the opposite of processRow, something to step down from fjell to database.
+    // Step down from Fjell item to database row: extract events to DB columns,
+    // remove the events structure, and strip refs/aggs back to foreign keys.
+    // This is the inverse of processRow() which steps up from DB row to Fjell item.
     itemData = extractEvents(itemData);
     itemData = removeEvents(itemData);
 

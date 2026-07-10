@@ -99,33 +99,8 @@ export const removeKey = <
   return item;
 }
 
-// export const populateKey = <
-//   S extends string,
-//   L1 extends string = never,
-//   L2 extends string = never,
-//   L3 extends string = never,
-//   L4 extends string = never,
-//   L5 extends string = never
-// >(
-//   item: ItemProperties<S, L1, L2, L3, L4, L5>,
-//   keyTypes: AllItemTypeArrays<S, L1, L2, L3, L4, L5>
-// ): ItemProperties<S, L1, L2, L3, L4, L5> => {
-//   if (keyTypes.length === 1) {
-//     item.key = { kt: keyTypes[0], pk: item.id };
-//     delete item.id;
-//   } else if (keyTypes.length === 2) {
-//     item.key = {
-//       kt: keyTypes[0], pk: item.id,
-//       // TODO: Shouldn't this be inspecting the model to get the primary key type?
-//       loc: [{ kt: keyTypes[1], lk: item[keyTypes[1] + 'Id'] }],
-//     };
-//     delete item.id;
-//     delete item[keyTypes[1] + 'Id'];
-//   } else {
-//     throw new Error('Not implemented');
-//   }
-//   return item;
-// }
+// NOTE: populateKey was removed — the active addKey() implementation below
+// handles key construction by inspecting Sequelize model associations at runtime.
 
 export const addKey = <
   S extends string,
