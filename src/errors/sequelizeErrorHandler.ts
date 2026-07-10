@@ -283,17 +283,15 @@ export function transformSequelizeError(
 
   // Handle database errors without original property but with modelName and itemData
   if (!error.original && modelName && itemData && error.message) {
-    const formattedData = JSON.stringify(itemData, null, 2);
     return new Error(
-      `Database error in ${modelName}.create(): ${error.message}. Item data: ${formattedData}`
+      `Database error in ${modelName}.create(): ${error.message}`
     );
   }
   
   // Handle unknown database errors with original property
   if (error.original && modelName && itemData) {
-    const formattedData = JSON.stringify(itemData, null, 2);
     return new Error(
-      `Database error in ${modelName}.create(): ${error.message}. Item data: ${formattedData}`
+      `Database error in ${modelName}.create(): ${error.message}`
     );
   }
 

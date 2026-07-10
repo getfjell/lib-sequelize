@@ -70,7 +70,7 @@ export const getUpsertOperation = <
       if (isNotFound) {
         // Item doesn't exist, create it
         logger.debug(`[UPSERT] Item not found, creating new item with key: ${stringifyJSON(key)}, errorType: ${error?.name}, errorCode: ${error?.errorInfo?.code}`);
-        const createOptions = locations ? { locations } : { key };
+        const createOptions = locations ? ({ key, locations } as any) : { key };
         resultItem = await create(item, createOptions);
       } else {
         // Re-throw other errors (connection issues, permissions, etc.)

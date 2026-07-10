@@ -65,10 +65,13 @@ const addEventQueries = (
       if (!model.getAttributes()[`${key}By`]) {
         throw new Error(`Event ${key} is not supported on model '${model.name}', column '${key}By' not found. Available columns: [${Object.keys(model.getAttributes()).join(', ')}]. Event query: ${stringifyJSON(events[key])}`);
       }
-      whereClauses = { ...whereClauses, [Op.eq]: event.by };
+      options.where[`${key}By`] = { [Op.eq]: event.by };
     }
 
-    options.where[`${key}At`] = whereClauses;
+    // Op.gte / Op.lt are Symbols — Object.keys() would miss them
+    if (event.start || event.end) {
+      options.where[`${key}At`] = whereClauses;
+    }
 
   });
   return options;
@@ -100,7 +103,7 @@ const addReferenceQueries = (options: any, references: References, model: ModelS
       options.where[`${key}Id`] = {
         [Op.eq]: priKey.pk
       }
-    } else if (isComKey(references[key])) {
+    } else if (isComKey(keyValue)) {
       throw new Error(`ComKeys are not supported in Sequelize. Reference key: '${key}', Model: '${model.name}', ComKey: ${stringifyJSON(references[key])}`);
     }
   });

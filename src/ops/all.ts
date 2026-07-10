@@ -199,7 +199,9 @@ export const getAllOperation = <
     const countResult = await model.count(countOptions);
     // Sequelize count() with distinct:true and include can return GroupedCountResultItem[]
     // Extract the count value properly
-    const total = Array.isArray(countResult) ? countResult.length : (countResult as number);
+    const total = Array.isArray(countResult)
+      ? countResult.reduce((sum: number, group: any) => sum + (typeof group?.count === 'number' ? group.count : 0), 0)
+      : (countResult as number);
     logger.debug(`[ALL] Total count for ${model.name}: ${total}`);
 
     // Apply effective limit/offset for the data query

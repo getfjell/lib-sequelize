@@ -1044,6 +1044,8 @@ describe('QueryBuilder', () => {
         where: {
           birthdayAt: {
             [Op.gte]: now,
+          },
+          birthdayBy: {
             [Op.eq]: userId,
           },
         },
@@ -1111,7 +1113,7 @@ describe('QueryBuilder', () => {
 
       expect(result).toMatchObject({
         where: {
-          birthdayAt: {
+          birthdayBy: {
             [Op.eq]: userId,
           },
         },

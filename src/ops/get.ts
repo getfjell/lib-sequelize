@@ -34,7 +34,8 @@ const processCompositeKey = (
   model: ModelStatic<any>,
   kta: string[]
 ): { where: { [key: string]: any }; include?: any[] } => {
-  const where: { [key: string]: any } = { id: comKey.pk };
+  const pkField = model.primaryKeyAttribute || 'id';
+  const where: { [key: string]: any } = { [pkField]: comKey.pk };
   const includes: any[] = [];
 
   for (const locator of comKey.loc) {

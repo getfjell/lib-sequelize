@@ -51,3 +51,5 @@ processed/
 .env.development
 .env.test
 .env.production
+
+.kodrdriv*
