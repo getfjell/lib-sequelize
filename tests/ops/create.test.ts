@@ -1019,7 +1019,7 @@ describe('create', () => {
 
       await expect(
         getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem)
-      ).rejects.toThrow('Database error in TestModel.create(): Unknown database error. Item data: {\n  "testColumn": "test"\n}');
+      ).rejects.toThrow('Database error in TestModel.create(): Unknown database error');
     });
 
     it('should handle database error without original property', async () => {
@@ -1033,7 +1033,7 @@ describe('create', () => {
 
       await expect(
         getCreateOperation([mockModel], definitionMock, mockRegistry)(newItem)
-      ).rejects.toThrow('Database error in TestModel.create(): Database connection error. Item data: {\n  "testColumn": "test"\n}');
+      ).rejects.toThrow('Database error in TestModel.create(): Database connection error');
     });
   });
 
